@@ -18,11 +18,11 @@
 mod lexer;
 
 fn main() {
-    let mut it = "(1234567890, ab)\nHello, world.".chars();
-    let mut it = lexer::Lexer::new(&mut it);
+    let data = "(1234567890, ab)\nHello, world.";
+    let mut iter = lexer::Lexer::new(data);
     loop {
-        match it.next() {
-            Some((pos, item)) => println!("{}: {}", pos, item),
+        match iter.next() {
+            Some((item, pos)) => println!("{}: {}", pos, item),
             None => break,
         }
     }

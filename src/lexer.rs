@@ -16,13 +16,14 @@
 */
 
 use std::fmt;
+use std::str;
 
 pub const OPERATORS: &'static str = "()[],=.";
 
 #[derive(Debug, Clone)]
-pub enum Item {
-    Error(&'static str),
-    Identifier(String),
+pub enum Item<'a> {
+    Error(&'a str),     // TODO: change it to &'static
+    Identifier(String), // TODO: change it to &'a str
     Operator(char),
     Integer(u32),
 }
@@ -33,7 +34,7 @@ pub struct Pos {
     col: u32,
 }
 
-impl fmt::Display for Item {
+impl<'a> fmt::Display for Item<'a> {
     fn fmt(self: &Self, f: &mut fmt::Formatter) -> fmt::Result {
         return fmt::Debug::fmt(self, f);
     }
@@ -46,17 +47,20 @@ impl fmt::Display for Pos {
 }
 
 pub struct Lexer<'a> {
-    next: Option<char>,
-    iter: &'a mut Iterator<Item = char>,
+    next: Option<(usize, char)>,
+    iter: str::CharIndices<'a>,
     pos: Pos,
+    data: &'a str,
 }
 
 impl<'a> Lexer<'a> {
-    pub fn new(iter: &'a mut Iterator<Item = char>) -> Self {
+    pub fn new(data: &'a str) -> Self {
+        let mut iter = data.char_indices();
         return Lexer {
             next: iter.next(),
             iter: iter,
             pos: Pos { line: 1, col: 1 },
+            data: data,
         };
     }
 
@@ -70,7 +74,7 @@ impl<'a> Lexer<'a> {
         self.next = self.iter.next();
     }
 
-    fn get_error(self: &mut Self, msg: &'static str) -> Item {
+    fn get_error(self: &mut Self, msg: &'static str) -> Item<'a> {
         self.next = None;
         return Item::Error(msg);
     }
@@ -85,9 +89,9 @@ impl<'a> Lexer<'a> {
         };
     }
 
-    fn get_integer(self: &mut Self) -> Item {
+    fn get_integer(self: &mut Self) -> Item<'a> {
         let mut n: u32 = 0;
-        while let Some(c) = self.next {
+        while let Some((_, c)) = self.next {
             match c.to_digit(10) {
                 Some(d) => match Lexer::add_digit(n, d) {
                     Some(n2) => n = n2,
@@ -101,9 +105,9 @@ impl<'a> Lexer<'a> {
         return Item::Integer(n);
     }
 
-    fn get_identifier(self: &mut Self) -> Item {
+    fn get_identifier(self: &mut Self) -> Item<'a> {
         let mut s = String::new();
-        while let Some(c) = self.next {
+        while let Some((_, c)) = self.next {
             if c.is_alphanumeric() {
                 s.push(c);
                 self.pos.col += 1;
@@ -115,8 +119,8 @@ impl<'a> Lexer<'a> {
         return Item::Identifier(s);
     }
 
-    fn get_operator(self: &mut Self) -> Item {
-        let c = self.next.unwrap();
+    fn get_operator(self: &mut Self) -> Item<'a> {
+        let c = self.next.unwrap().1;
         self.pos.col += 1;
         self.next = self.iter.next();
         return Item::Operator(c);
@@ -124,21 +128,21 @@ impl<'a> Lexer<'a> {
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = (Pos, Item);
+    type Item = (Item<'a>, Pos);
 
     fn next(self: &mut Self) -> Option<Self::Item> {
-        while let Some(c) = self.next {
+        while let Some((_, c)) = self.next {
             let p = self.pos;
             if c.is_alphabetic() {
-                return Some((p, self.get_identifier()));
+                return Some((self.get_identifier(), p));
             } else if c.is_digit(10) {
-                return Some((p, self.get_integer()));
+                return Some((self.get_integer(), p));
             } else if OPERATORS.contains(c) {
-                return Some((p, self.get_operator()));
+                return Some((self.get_operator(), p));
             } else if c.is_whitespace() {
                 self.eat_whitespace(c);
             } else {
-                return Some((p, self.get_error("unexpected character")));
+                return Some((self.get_error("unexpected character"), p));
             }
         }
         return None;

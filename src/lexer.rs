@@ -27,36 +27,22 @@ pub enum Item {
     Integer(u32),
 }
 
-impl fmt::Display for Item {
-    fn fmt(self: &Self, f: &mut fmt::Formatter) -> fmt::Result {
-        return fmt::Debug::fmt(self, f);
-    }
-}
-
 #[derive(Debug, Clone, Copy)]
 pub struct Pos {
     line: u32,
     col: u32,
 }
 
+impl fmt::Display for Item {
+    fn fmt(self: &Self, f: &mut fmt::Formatter) -> fmt::Result {
+        return fmt::Debug::fmt(self, f);
+    }
+}
+
 impl fmt::Display for Pos {
     fn fmt(self: &Self, f: &mut fmt::Formatter) -> fmt::Result {
         return write!(f, "line {} col {}", self.line, self.col);
     }
-}
-
-fn checked_mul(a: Option<u32>, b: u32) -> Option<u32> {
-    return match a {
-        Some(c) => c.checked_mul(b),
-        None => None,
-    };
-}
-
-fn checked_add(a: Option<u32>, b: u32) -> Option<u32> {
-    return match a {
-        Some(c) => c.checked_add(b),
-        None => None,
-    };
 }
 
 pub struct Lexer<'a> {
@@ -89,20 +75,30 @@ impl<'a> Lexer<'a> {
         return Item::Error(msg);
     }
 
+    fn add_digit(n: u32, d: u32) -> Option<u32> {
+        return match n.checked_mul(10) {
+            Some(n2) => match n2.checked_add(d) {
+                Some(n3) => Some(n3),
+                None => None,
+            },
+            None => None,
+        };
+    }
+
     fn get_integer(self: &mut Self) -> Item {
-        let mut n: Option<u32> = Some(0);
+        let mut n: u32 = 0;
         while let Some(c) = self.next {
             match c.to_digit(10) {
-                Some(d) => n = checked_add(checked_mul(n, 10), d),
+                Some(d) => match Lexer::add_digit(n, d) {
+                    Some(n2) => n = n2,
+                    None => return self.get_error("too large integer"),
+                },
                 None => break,
             }
             self.pos.col += 1;
             self.next = self.iter.next();
         }
-        return match n {
-            Some(n) => Item::Integer(n),
-            None => self.get_error("too large integer"),
-        };
+        return Item::Integer(n);
     }
 
     fn get_identifier(self: &mut Self) -> Item {

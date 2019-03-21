@@ -15,26 +15,31 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use std::fmt;
-use std::str;
+use std::{fmt, iter, str};
 
-pub const OPERATORS: &'static str = "()[],=.";
+pub const OPERATORS: &'static str = "()[]{}<>=,.?!:;*/+-@%&'\"`_#|~";
 
-#[derive(Debug, Clone)]
-pub enum Item<'a> {
-    Error(&'a str),     // TODO: change it to &'static
-    Identifier(String), // TODO: change it to &'a str
+#[derive(Debug, Clone, Copy)]
+pub enum Error {
+    UnexpectedChar(char),
+    IntegerTooLarge,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Token<'a> {
+    Identifier(&'a str),
     Operator(char),
     Integer(u32),
+    Error(Error),
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Pos {
-    line: u32,
-    col: u32,
+    pub line: u32,
+    pub column: u32,
 }
 
-impl<'a> fmt::Display for Item<'a> {
+impl<'a> fmt::Display for Token<'a> {
     fn fmt(self: &Self, f: &mut fmt::Formatter) -> fmt::Result {
         return fmt::Debug::fmt(self, f);
     }
@@ -42,41 +47,57 @@ impl<'a> fmt::Display for Item<'a> {
 
 impl fmt::Display for Pos {
     fn fmt(self: &Self, f: &mut fmt::Formatter) -> fmt::Result {
-        return write!(f, "line {} col {}", self.line, self.col);
+        return write!(f, "line {} column {}", self.line, self.column);
     }
 }
 
 pub struct Lexer<'a> {
-    next: Option<(usize, char)>,
     iter: str::CharIndices<'a>,
     pos: Pos,
+    offset: usize,
+    next: Option<char>,
     data: &'a str,
 }
 
 impl<'a> Lexer<'a> {
     pub fn new(data: &'a str) -> Self {
         let mut iter = data.char_indices();
+        let (offset, next) = match iter.next() {
+            Some((o, c)) => (o, Some(c)),
+            None => (0, None),
+        };
         return Lexer {
-            next: iter.next(),
             iter: iter,
-            pos: Pos { line: 1, col: 1 },
+            pos: Pos { line: 1, column: 1 },
+            offset: offset,
+            next: next,
             data: data,
         };
     }
 
-    fn eat_whitespace(self: &mut Self, c: char) {
-        if c == '\n' {
+    fn read_char(self: &mut Self) {
+        if self.next.unwrap_or_default() == '\n' {
             self.pos.line += 1;
-            self.pos.col = 1;
+            self.pos.column = 1;
         } else {
-            self.pos.col += 1;
+            self.pos.column += 1;
         }
-        self.next = self.iter.next();
+
+        match self.iter.next() {
+            Some((p, c)) => {
+                self.offset = p;
+                self.next = Some(c);
+            }
+            None => {
+                self.offset = self.data.len();
+                self.next = None;
+            }
+        };
     }
 
-    fn get_error(self: &mut Self, msg: &'static str) -> Item<'a> {
+    fn get_error(self: &mut Self, error: Error) -> Token<'a> {
         self.next = None;
-        return Item::Error(msg);
+        return Token::Error(error);
     }
 
     fn add_digit(n: u32, d: u32) -> Option<u32> {
@@ -89,49 +110,46 @@ impl<'a> Lexer<'a> {
         };
     }
 
-    fn get_integer(self: &mut Self) -> Item<'a> {
+    fn get_integer(self: &mut Self) -> Token<'a> {
         let mut n: u32 = 0;
-        while let Some((_, c)) = self.next {
+        while let Some(c) = self.next {
             match c.to_digit(10) {
                 Some(d) => match Lexer::add_digit(n, d) {
                     Some(n2) => n = n2,
-                    None => return self.get_error("too large integer"),
+                    None => return self.get_error(Error::IntegerTooLarge),
                 },
                 None => break,
             }
-            self.pos.col += 1;
-            self.next = self.iter.next();
+            self.read_char();
         }
-        return Item::Integer(n);
+        return Token::Integer(n);
     }
 
-    fn get_identifier(self: &mut Self) -> Item<'a> {
-        let mut s = String::new();
-        while let Some((_, c)) = self.next {
+    fn get_identifier(self: &mut Self) -> Token<'a> {
+        let o = self.offset;
+        while let Some(c) = self.next {
             if c.is_alphanumeric() {
-                s.push(c);
-                self.pos.col += 1;
-                self.next = self.iter.next();
+                self.read_char();
             } else {
                 break;
             }
         }
-        return Item::Identifier(s);
+        let s = unsafe { self.data.get_unchecked(o..self.offset) };
+        return Token::Identifier(s);
     }
 
-    fn get_operator(self: &mut Self) -> Item<'a> {
-        let c = self.next.unwrap().1;
-        self.pos.col += 1;
-        self.next = self.iter.next();
-        return Item::Operator(c);
+    fn get_operator(self: &mut Self) -> Token<'a> {
+        let c = self.next.unwrap();
+        self.read_char();
+        return Token::Operator(c);
     }
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = (Item<'a>, Pos);
+    type Item = (Token<'a>, Pos);
 
     fn next(self: &mut Self) -> Option<Self::Item> {
-        while let Some((_, c)) = self.next {
+        while let Some(c) = self.next {
             let p = self.pos;
             if c.is_alphabetic() {
                 return Some((self.get_identifier(), p));
@@ -140,11 +158,14 @@ impl<'a> Iterator for Lexer<'a> {
             } else if OPERATORS.contains(c) {
                 return Some((self.get_operator(), p));
             } else if c.is_whitespace() {
-                self.eat_whitespace(c);
+                self.read_char();
             } else {
-                return Some((self.get_error("unexpected character"), p));
+                self.read_char();
+                return Some((self.get_error(Error::UnexpectedChar(c)), p));
             }
         }
         return None;
     }
 }
+
+impl<'a> iter::FusedIterator for Lexer<'a> {}

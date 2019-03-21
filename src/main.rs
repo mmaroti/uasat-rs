@@ -18,7 +18,10 @@
 mod lexer;
 
 fn main() {
-    let data = "(1234567890, ab)\nHello, world.";
+    println!("{}", std::mem::size_of::<lexer::Token>());
+    let data = "a\n(1234567890, ab)\nHello, world";
+    // let data = &std::fs::read_to_string("LICENSE").unwrap();
+
     let mut iter = lexer::Lexer::new(data);
     loop {
         match iter.next() {

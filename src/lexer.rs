@@ -17,7 +17,7 @@
 
 use std::{fmt, iter, str};
 
-pub const OPERATORS: &'static str = "()[],=";
+pub const OPERATORS: &str = "()[],=";
 
 #[derive(Debug, Clone, Copy)]
 pub enum Kind {
@@ -36,7 +36,7 @@ pub struct Token<'a> {
 
 impl<'a> fmt::Display for Token<'a> {
     fn fmt(self: &Self, f: &mut fmt::Formatter) -> fmt::Result {
-        return fmt::Debug::fmt(self, f);
+        fmt::Debug::fmt(self, f)
     }
 }
 
@@ -55,13 +55,13 @@ impl<'a> Lexer<'a> {
             Some((o, c)) => (o, Some(c)),
             None => (0, None),
         };
-        return Lexer {
-            data: data,
-            iter: iter,
-            offset: offset,
-            next: next,
+        Lexer {
+            data,
+            iter,
+            offset,
+            next,
             line: 1,
-        };
+        }
     }
 
     #[inline]
@@ -87,23 +87,23 @@ impl<'a> Lexer<'a> {
                 break;
             }
         }
-        let d = unsafe { self.data.get_unchecked(o..self.offset) };
-        return Token {
-            data: d,
-            kind: kind,
+        let data = unsafe { self.data.get_unchecked(o..self.offset) };
+        Token {
+            data,
+            kind,
             line: self.line,
-        };
+        }
     }
 
     fn get_single(self: &mut Self, kind: Kind) -> Token<'a> {
         let o = self.offset;
         self.read_char();
-        let d = unsafe { self.data.get_unchecked(o..self.offset) };
-        return Token {
-            data: d,
-            kind: kind,
+        let data = unsafe { self.data.get_unchecked(o..self.offset) };
+        Token {
+            data,
+            kind,
             line: self.line,
-        };
+        }
     }
 }
 
@@ -129,7 +129,7 @@ impl<'a> Iterator for Lexer<'a> {
                 return Some(self.get_single(Kind::Unknown));
             }
         }
-        return None;
+        None
     }
 }
 

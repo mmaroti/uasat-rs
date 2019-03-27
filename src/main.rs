@@ -22,11 +22,8 @@ fn main() {
     let data = "a\n(1234567890123456789, ab)\nHello, world! Continue";
     // let data = &std::fs::read_to_string("LICENSE").unwrap();
 
-    let mut iter = lexer::Lexer::new(data);
-    loop {
-        match iter.next() {
-            Some(item) => println!("{}", item),
-            None => break,
-        }
+    let lexer = lexer::Lexer::new(data);
+    for item in lexer {
+        println!("{}", item);
     }
 }

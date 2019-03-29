@@ -19,7 +19,7 @@ use std::{fmt, iter, str};
 
 pub const OPERATORS: &str = "()[],=";
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
     Identifier,
     Operator,
@@ -27,11 +27,12 @@ pub enum Kind {
     Unknown,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Token<'a> {
     data: &'a str,
     kind: Kind,
-    line: u32,
+    line: usize,
+    column: usize,
 }
 
 impl<'a> fmt::Display for Token<'a> {
@@ -41,11 +42,12 @@ impl<'a> fmt::Display for Token<'a> {
 }
 
 pub struct Lexer<'a> {
-    data: &'a str,
     iter: str::CharIndices<'a>,
     offset: usize,
     next: Option<char>,
-    line: u32,
+    line: usize,
+    column: usize,
+    data: &'a str,
 }
 
 impl<'a> Lexer<'a> {
@@ -61,6 +63,7 @@ impl<'a> Lexer<'a> {
             offset,
             next,
             line: 1,
+            column: 1,
         }
     }
 
@@ -70,6 +73,7 @@ impl<'a> Lexer<'a> {
             Some((p, c)) => {
                 self.offset = p;
                 self.next = Some(c);
+                self.column += 1;
             }
             None => {
                 self.offset = self.data.len();
@@ -78,8 +82,8 @@ impl<'a> Lexer<'a> {
         };
     }
 
-    fn get_range(self: &mut Self, kind: Kind, pred: impl Fn(char) -> bool) -> Token<'a> {
-        let o = self.offset;
+    fn get_range(self: &mut Self, pred: impl Fn(char) -> bool) -> &'a str {
+        let offset = self.offset;
         while let Some(c) = self.next {
             if pred(c) {
                 self.read_char();
@@ -87,23 +91,13 @@ impl<'a> Lexer<'a> {
                 break;
             }
         }
-        let data = unsafe { self.data.get_unchecked(o..self.offset) };
-        Token {
-            data,
-            kind,
-            line: self.line,
-        }
+        unsafe { self.data.get_unchecked(offset..self.offset) }
     }
 
-    fn get_single(self: &mut Self, kind: Kind) -> Token<'a> {
-        let o = self.offset;
+    fn get_single(self: &mut Self) -> &'a str {
+        let offset = self.offset;
         self.read_char();
-        let data = unsafe { self.data.get_unchecked(o..self.offset) };
-        Token {
-            data,
-            kind,
-            line: self.line,
-        }
+        unsafe { self.data.get_unchecked(offset..self.offset) }
     }
 }
 
@@ -112,21 +106,40 @@ impl<'a> Iterator for Lexer<'a> {
 
     fn next(self: &mut Self) -> Option<Self::Item> {
         while let Some(c) = self.next {
-            if c.is_alphabetic() {
-                let p = |c: char| c.is_alphanumeric() || c == '_';
-                return Some(self.get_range(Kind::Identifier, p));
+            if c.is_alphabetic() || c == '_' {
+                return Some(Token {
+                    kind: Kind::Identifier,
+                    line: self.line,
+                    column: self.column,
+                    data: self.get_range(|c: char| c.is_alphanumeric() || c == '_'),
+                });
             } else if c.is_digit(10) {
-                let p = |c: char| c.is_digit(10);
-                return Some(self.get_range(Kind::Integer, p));
+                return Some(Token {
+                    kind: Kind::Integer,
+                    line: self.line,
+                    column: self.column,
+                    data: self.get_range(|c: char| c.is_digit(10)),
+                });
             } else if OPERATORS.contains(c) {
-                return Some(self.get_single(Kind::Operator));
+                return Some(Token {
+                    kind: Kind::Operator,
+                    line: self.line,
+                    column: self.column,
+                    data: self.get_single(),
+                });
             } else if c.is_whitespace() {
                 if c == '\n' {
                     self.line += 1;
+                    self.column = 0;
                 }
                 self.read_char();
             } else {
-                return Some(self.get_single(Kind::Unknown));
+                return Some(Token {
+                    kind: Kind::Unknown,
+                    line: self.line,
+                    column: self.column,
+                    data: self.get_single(),
+                });
             }
         }
         None

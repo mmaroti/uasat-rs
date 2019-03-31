@@ -29,10 +29,10 @@ pub enum Kind {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Token<'a> {
-    data: &'a str,
-    kind: Kind,
-    line: usize,
-    column: usize,
+    pub data: &'a str,
+    pub kind: Kind,
+    pub line: u32,
+    pub column: u32,
 }
 
 impl<'a> fmt::Display for Token<'a> {
@@ -45,8 +45,8 @@ pub struct Lexer<'a> {
     iter: str::CharIndices<'a>,
     offset: usize,
     next: Option<char>,
-    line: usize,
-    column: usize,
+    line: u32,
+    column: u32,
     data: &'a str,
 }
 
@@ -147,3 +147,45 @@ impl<'a> Iterator for Lexer<'a> {
 }
 
 impl<'a> iter::FusedIterator for Lexer<'a> {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_lexer() {
+        let mut lexer = Lexer::new("ab\n ,12");
+
+        assert_eq!(
+            lexer.next(),
+            Some(Token {
+                data: "ab",
+                kind: Kind::Identifier,
+                line: 1,
+                column: 1
+            })
+        );
+
+        assert_eq!(
+            lexer.next(),
+            Some(Token {
+                data: ",",
+                kind: Kind::Operator,
+                line: 2,
+                column: 2
+            })
+        );
+
+        assert_eq!(
+            lexer.next(),
+            Some(Token {
+                data: "12",
+                kind: Kind::Integer,
+                line: 2,
+                column: 3
+            })
+        );
+
+        assert_eq!(lexer.next(), None);
+    }
+}

@@ -15,59 +15,15 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use super::Array;
 use std::{alloc, ptr, usize};
 
-#[allow(clippy::len_without_is_empty)]
-pub trait BoolArray<ELEM: Copy> {
-    /**
-     * Creates an array with the given length.
-     */
-    fn new(len: usize) -> Self;
-
-    /**
-     * Returns the length of the array.
-     */
-    fn len(self: &Self) -> usize;
-
-    /**
-     * Sets all elements in the array to the given value.
-     */
-    fn set_all(self: &mut Self, elem: ELEM);
-
-    /**
-     * Negates all elements of the array.
-     */
-    fn neg_assign(self: &mut Self);
-
-    /**
-     * Updates this array in place with using the bitwise and operation.
-     */
-    fn and_assign(self: &mut Self, rhs: &Self);
-
-    /**
-     * Updates this array in place with using the bitwise or operation.
-     */
-    fn or_assign(self: &mut Self, rhs: &Self);
-
-    /**
-     * Returns the element at the given index.
-     */
-    #[allow(non_snake_case)]
-    fn __slow_get__(self: &Self, index: usize) -> ELEM;
-
-    /**
-     * Sets the element at the given index to a new value.
-     */
-    #[allow(non_snake_case)]
-    fn __slow_set__(self: &Self, index: usize, elem: ELEM);
-}
-
-pub struct BitVec {
+pub struct Packed {
     ptr: *const u64,
     len: usize, // in bits
 }
 
-impl Drop for BitVec {
+impl Drop for Packed {
     fn drop(self: &mut Self) {
         debug_assert!(self.len <= usize::MAX - 63);
         let bytes = (self.len + 63) >> 6 << 3;
@@ -76,14 +32,14 @@ impl Drop for BitVec {
     }
 }
 
-impl BoolArray<bool> for BitVec {
+impl Array<bool> for Packed {
     #[allow(clippy::cast_ptr_alignment)]
     fn new(len: usize) -> Self {
         assert!(len <= usize::MAX - 63);
         let bytes = (len + 63) >> 6 << 3;
         let layout = unsafe { alloc::Layout::from_size_align_unchecked(bytes, 8) };
         let ptr = unsafe { alloc::alloc(layout) } as *const u64;
-        BitVec { ptr, len }
+        Packed { ptr, len }
     }
 
     #[inline]
@@ -161,7 +117,7 @@ impl BoolArray<bool> for BitVec {
     }
 }
 
-impl BitVec {
+impl Packed {
     pub fn count_ones(self: &Self) -> usize {
         let words = self.len >> 6;
         let mut ptr = self.ptr;
@@ -187,39 +143,5 @@ impl BitVec {
 
     pub fn count_zeros(self: &Self) -> usize {
         self.len - self.count_ones()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_set_all() {
-        for num in 0..100 {
-            let mut v = BitVec::new(num);
-            assert_eq!(v.len(), num);
-            v.set_all(true);
-            assert_eq!(v.count_ones(), num);
-            assert_eq!(v.count_zeros(), 0);
-            v.set_all(false);
-            assert_eq!(v.count_ones(), 0);
-            v.neg_assign();
-            assert_eq!(v.count_ones(), num);
-        }
-    }
-
-    #[test]
-    fn test_slow_set() {
-        for num in 1..100 {
-            let mut v = BitVec::new(num);
-            v.set_all(false);
-            for bit in 0..num {
-                assert_eq!(v.__slow_get__(bit), false);
-                v.__slow_set__(bit, true);
-                assert_eq!(v.__slow_get__(bit), true);
-                assert_eq!(v.count_ones(), bit + 1);
-            }
-        }
     }
 }

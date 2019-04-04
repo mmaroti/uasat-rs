@@ -15,16 +15,20 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-pub mod array;
-mod lexer;
+extern crate cfg_if;
+extern crate wasm_bindgen;
 
-fn main() {
-    println!("{}", std::mem::size_of::<lexer::Token>());
-    let data = "a\n(1234567890123456789, ab)\nHello, world! Continue";
-    // let data = &std::fs::read_to_string("LICENSE").unwrap();
+use wasm_bindgen::prelude::*;
 
-    let lexer = lexer::Lexer::new(data);
-    for item in lexer {
-        println!("{}", item);
+cfg_if::cfg_if! {
+if #[cfg(feature = "wee_alloc")] {
+        extern crate wee_alloc;
+        #[global_allocator]
+        static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
     }
+}
+
+#[wasm_bindgen]
+pub fn uasat_test(a: u32, b: u32) -> u32 {
+    a + b
 }

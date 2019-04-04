@@ -91,13 +91,13 @@ impl<'a> Lexer<'a> {
                 break;
             }
         }
-        unsafe { self.data.get_unchecked(offset..self.offset) }
+        self.data.get(offset..self.offset).unwrap()
     }
 
     fn get_single(self: &mut Self) -> &'a str {
         let offset = self.offset;
         self.read_char();
-        unsafe { self.data.get_unchecked(offset..self.offset) }
+        self.data.get(offset..self.offset).unwrap()
     }
 }
 

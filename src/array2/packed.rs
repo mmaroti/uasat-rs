@@ -53,7 +53,7 @@ impl Array<bool> for Packed {
         unsafe { ptr::write_bytes(self.ptr as *mut u8, value, bytes) };
     }
 
-    fn neg_assign(self: &mut Self) {
+    fn not_assign(self: &mut Self) {
         let words = (self.len + 63) >> 6;
         let mut ptr = self.ptr as *mut u64;
         for _ in 0..words {

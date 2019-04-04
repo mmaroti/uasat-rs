@@ -38,7 +38,7 @@ pub trait Array<ELEM: Copy> {
     /**
      * Negates all elements of the array.
      */
-    fn neg_assign(self: &mut Self);
+    fn not_assign(self: &mut Self);
 
     /**
      * Updates this array in place with using the bitwise and operation.
@@ -77,7 +77,7 @@ mod tests {
             assert_eq!(v.count_zeros(), 0);
             v.set_all(false);
             assert_eq!(v.count_ones(), 0);
-            v.neg_assign();
+            v.not_assign();
             assert_eq!(v.count_ones(), num);
         }
     }

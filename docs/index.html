@@ -8,6 +8,10 @@
 
 <body>
   <p>Test</p>
+  <script>
+    import("./index.js")
+      .catch(e => console.error("Error importing `index.js`:", e));  
+  </script>
 </body>
 
 </html>

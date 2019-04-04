@@ -8,9 +8,12 @@
 
 <body>
   <p>Test</p>
-  <script>
-    import("./index.js")
-      .catch(e => console.error("Error importing `index.js`:", e));  
+  <script type="module">
+    import * as uasat from "./uasatlib.js";
+    uasat.default("./uasatlib_bg.wasm").then(function () {
+      console.log("lodaded");
+      window.alert(uasat.test(2, 3));
+    });
   </script>
 </body>
 

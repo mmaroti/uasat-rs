@@ -19,6 +19,6 @@ extern crate wasm_bindgen;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-pub fn uasat_test(a: u32, b: u32) -> u32 {
+pub fn test(a: u32, b: u32) -> u32 {
     a + b
 }

@@ -15,10 +15,28 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#[cfg(feature = "console_error_panic_hook")]
+extern crate console_error_panic_hook;
 extern crate wasm_bindgen;
+
+mod lexer;
+
+#[cfg(feature = "console_error_panic_hook")]
+use std::panic;
 use wasm_bindgen::prelude::*;
 
+#[wasm_bindgen(start)]
+pub fn uasat_init() {
+    #[cfg(feature = "console_error_panic_hook")]
+    panic::set_hook(Box::new(console_error_panic_hook::hook));
+}
+
 #[wasm_bindgen]
-pub fn test(a: u32, b: u32) -> u32 {
-    a + b
+pub fn test(input: String) -> String {
+    let lexer = lexer::Lexer::new(input.as_str());
+    let mut output = String::new();
+    for token in lexer {
+        output.push_str(format!("{}\n", token).as_str());
+    }
+    output
 }

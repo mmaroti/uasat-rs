@@ -1,19 +1,62 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
   <meta charset="utf-8">
-  <title>UASAT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.4/css/bulma.min.css">
+  <title>UASAT Calculator</title>
 </head>
 
 <body>
-  <p>Test</p>
+  <section class="section">
+    <div class="container">
+      <form>
+        <div class="field">
+          <div class="control">
+            <textarea class="textarea" rows="5" wrap="soft" id="input"></textarea>
+          </div>
+        </div>
+        <div class="field">
+          <div class="control">
+            <input type="button" class="button" value="Run" onClick="run();" />
+          </div>
+        </div>
+        <div class="field">
+          <div class="control">
+            <textarea class="textarea" readonly rows="5" wrap="soft" id="output"></textarea>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <script>
+    var uasat = null;
+    var input = document.getElementById("input");
+    var output = document.getElementById("output");
+    function run() {
+      if (!uasat) {
+        output.value = "Uasat library could not be loaded.";
+        return;
+      } else {
+        output.value = "working...";
+        var result = uasat.test(input.value);
+        output.value = result;
+      }
+    }
+  </script>
   <script type="module">
-    import * as uasat from "./uasatlib.js";
-    uasat.default("./uasatlib_bg.wasm").then(function () {
-      console.log("lodaded");
-      window.alert(uasat.test(2, 3));
-    });
+    output.value = "Loading uasat library.";
+    import * as uasat_loader from "./uasatlib.js";
+    uasat_loader.default("./uasatlib_bg.wasm")
+      .then(() => {
+        output.value = "";
+        uasat = uasat_loader;
+      })
+      .catch(err => {
+        output.value = "Could not load uasat library.\n" + err;
+      });
   </script>
 </body>
 

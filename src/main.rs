@@ -17,7 +17,8 @@
 
 pub mod array;
 pub mod boolalg;
-mod lexer;
+pub mod solver;
+pub mod lexer;
 
 fn main() {
     println!("{}", std::mem::size_of::<lexer::Token>());

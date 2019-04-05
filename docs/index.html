@@ -14,7 +14,7 @@
       <form>
         <div class="field">
           <div class="control">
-            <textarea class="textarea" rows="5" wrap="soft" id="input"></textarea>
+            <textarea class="textarea" rows="8" wrap="soft" id="input"></textarea>
           </div>
         </div>
         <div class="field">
@@ -24,7 +24,7 @@
         </div>
         <div class="field">
           <div class="control">
-            <textarea class="textarea" readonly rows="5" wrap="soft" id="output"></textarea>
+            <textarea class="textarea" readonly rows="8" wrap="soft" id="output"></textarea>
           </div>
         </div>
       </form>
@@ -37,17 +37,18 @@
     var output = document.getElementById("output");
     function run() {
       if (!uasat) {
-        output.value = "Uasat library could not be loaded.";
-        return;
+        output.value = "Uasat library is not loaded.";
       } else {
-        output.value = "working...";
-        var result = uasat.test(input.value);
-        output.value = result;
+        output.value = "Working...";
+        window.setTimeout(function () {
+          var result = uasat.test(input.value);
+          output.value = result;
+        }, 50);
       }
     }
   </script>
   <script type="module">
-    output.value = "Loading uasat library.";
+    output.value = "Loading uasat library...";
     import * as uasat_loader from "./uasatlib.js";
     uasat_loader.default("./uasatlib_bg.wasm")
       .then(() => {

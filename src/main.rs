@@ -16,6 +16,7 @@
 */
 
 pub mod array;
+pub mod boolalg;
 mod lexer;
 
 fn main() {

@@ -35,6 +35,7 @@
     var uasat = null;
     var input = document.getElementById("input");
     var output = document.getElementById("output");
+    output.value = "Loading uasat library...";
     function run() {
       if (!uasat) {
         output.value = "Uasat library is not loaded.";
@@ -48,12 +49,11 @@
     }
   </script>
   <script type="module">
-    output.value = "Loading uasat library...";
-    import * as uasat_loader from "./uasatlib.js";
-    uasat_loader.default("./uasatlib_bg.wasm")
+    import * as uasatrs from "./uasatrs.js";
+    uasatrs.default("./uasatrs_bg.wasm")
       .then(() => {
-        output.value = "";
-        uasat = uasat_loader;
+        output.value = "Uasat library is loaded.";
+        uasat = uasatrs;
       })
       .catch(err => {
         output.value = "Could not load uasat library.\n" + err;

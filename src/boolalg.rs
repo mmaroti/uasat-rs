@@ -15,7 +15,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::solver::Solver;
+use std::iter;
 
 /// A boolean algebra supporting boolean calculation.
 pub trait BoolAlg {
@@ -60,16 +60,16 @@ pub trait BoolAlg {
 
 /// The two element boolean algebra with `bool` elements.
 #[derive(Default, Debug)]
-pub struct Booleans();
+pub struct Boolean();
 
-impl Booleans {
+impl Boolean {
     /// Creates a new two element boolean algebra.
     pub fn new() -> Self {
-        Booleans()
+        Boolean()
     }
 }
 
-impl BoolAlg for Booleans {
+impl BoolAlg for Boolean {
     type Elem = bool;
 
     fn one(self: &mut Self) -> Self::Elem {
@@ -117,27 +117,25 @@ impl<SOLVER: Solver> FreeAlg<SOLVER> {
     /// Creates a new free boolean algebra.
     pub fn new() -> Self {
         let mut solver = SOLVER::new();
-        let one = solver.add_literal();
+        let one = solver.add_variable();
         let zero = solver.negate(one);
         FreeAlg { solver, one, zero }
     }
 
     /// Adds a new free variable to the algebra
     pub fn add_variable(self: &mut Self) -> <Self as BoolAlg>::Elem {
-        self.solver.add_literal()
+        self.solver.add_variable()
     }
 
-    /// Adds a new clause (disjunctive requirement) to the solver.
-    pub fn add_clause(self: &mut Self, vars: &[<Self as BoolAlg>::Elem]) {
-        self.solver.add_clause(vars);
+    /// Runs the solver and finds a model where the given assumptions are true.
+    pub fn find_model<'a, VARS>(self: &'a mut Self, vars: VARS) -> bool
+    where
+        VARS: IntoIterator<Item = &'a <Self as BoolAlg>::Elem>,
+    {
+        self.solver.solve_with(vars)
     }
 
-    /// Runs the solver and finds a model satisfying all requirements.
-    pub fn solve(self: &mut Self) -> bool {
-        self.solver.solve()
-    }
-
-    /// Returns the logical value of the element in the last solution.
+    /// Returns the logical value of the element in the found model.
     pub fn get_value(self: &Self, elem: <Self as BoolAlg>::Elem) -> bool {
         self.solver.get_value(elem)
     }
@@ -154,7 +152,6 @@ impl<SOLVER: Solver> BoolAlg for FreeAlg<SOLVER> {
         self.zero
     }
 
-    #[inline]
     fn not(self: &mut Self, elem: Self::Elem) -> Self::Elem {
         self.solver.negate(elem)
     }
@@ -169,7 +166,7 @@ impl<SOLVER: Solver> BoolAlg for FreeAlg<SOLVER> {
         } else if elem2 == self.zero {
             elem1
         } else {
-            let elem3 = self.solver.add_literal();
+            let elem3 = self.solver.add_variable();
             let not_elem3 = self.not(elem3);
             self.solver.add_clause(&[not_elem1, elem3]);
             self.solver.add_clause(&[not_elem2, elem3]);
@@ -194,7 +191,7 @@ impl<SOLVER: Solver> BoolAlg for FreeAlg<SOLVER> {
         } else if elem1 == self.not(elem2) {
             self.one
         } else {
-            let elem3 = self.solver.add_literal();
+            let elem3 = self.solver.add_variable();
             let not_elem3 = self.not(elem3);
             self.solver.add_clause(&[not_elem1, elem2, elem3]);
             self.solver.add_clause(&[elem1, not_elem2, elem3]);
@@ -211,33 +208,179 @@ impl<SOLVER: Solver> Default for FreeAlg<SOLVER> {
     }
 }
 
+/// Generic SAT solver interface
+pub trait Solver {
+    /// The literal type for this solver.
+    type Literal: Copy + Eq;
+
+    /// Creates a new solver.
+    fn new() -> Self;
+
+    /// Adds a fresh variable to the solver.
+    fn add_variable(self: &mut Self) -> Self::Literal;
+
+    /// Negates the given literal.
+    fn negate(self: &Self, lit: Self::Literal) -> Self::Literal;
+
+    /// Adds the clause to the solver.
+    fn add_clause<'a, LITS>(self: &'a mut Self, lits: LITS)
+    where
+        LITS: IntoIterator<Item = &'a Self::Literal>;
+
+    /// Runs the solver and returns if a solution is available.
+    fn solve(self: &mut Self) -> bool {
+        self.solve_with(iter::empty())
+    }
+
+    /// Runs the solver with the given assumptions and finds a model
+    /// satisfying all requirements.
+    fn solve_with<'a, LITS>(self: &'a mut Self, lits: LITS) -> bool
+    where
+        LITS: IntoIterator<Item = &'a Self::Literal>;
+
+    /// Returns the value of the literal in the found model.
+    fn get_value(self: &Self, lit: Self::Literal) -> bool;
+
+    /// Returns the number of variables in the solver.
+    fn num_variables(self: &Self) -> usize;
+
+    /// Returns the number of clauses in the solver.
+    fn num_clauses(self: &Self) -> usize;
+}
+
+#[cfg(feature = "minisat")]
+extern crate minisat;
+
+#[cfg(feature = "minisat")]
+use minisat::sys::*;
+
+/// MiniSAT 2.1 implementation of Solver
+#[cfg(feature = "minisat")]
+pub struct MiniSat {
+    ptr: *mut minisat_solver_t,
+}
+
+#[cfg(feature = "minisat")]
+impl MiniSat {
+    fn is_true(lbool: i32) -> bool {
+        lbool > 0
+    }
+}
+
+#[cfg(feature = "minisat")]
+impl Solver for MiniSat {
+    type Literal = i32;
+
+    fn new() -> Self {
+        let ptr = unsafe { minisat_new() };
+        unsafe { minisat_eliminate(ptr, 1) };
+        MiniSat { ptr }
+    }
+
+    fn add_variable(self: &mut Self) -> Self::Literal {
+        unsafe { minisat_newLit(self.ptr) }
+    }
+
+    fn negate(self: &Self, lit: Self::Literal) -> Self::Literal {
+        unsafe { minisat_negate(lit) }
+    }
+
+    fn add_clause<'a, LITS>(self: &'a mut Self, lits: LITS)
+    where
+        LITS: IntoIterator<Item = &'a Self::Literal>,
+    {
+        unsafe { minisat_addClause_begin(self.ptr) };
+        for lit in lits {
+            unsafe { minisat_addClause_addLit(self.ptr, *lit) };
+        }
+        unsafe { minisat_addClause_commit(self.ptr) };
+    }
+
+    fn solve_with<'a, LITS>(self: &'a mut Self, lits: LITS) -> bool
+    where
+        LITS: IntoIterator<Item = &'a Self::Literal>,
+    {
+        unsafe { minisat_solve_begin(self.ptr) };
+        for lit in lits {
+            unsafe { minisat_solve_addLit(self.ptr, *lit) };
+        }
+        MiniSat::is_true(unsafe { minisat_solve_commit(self.ptr) })
+    }
+
+    fn get_value(self: &Self, lit: Self::Literal) -> bool {
+        MiniSat::is_true(unsafe { minisat_modelValue_Lit(self.ptr, lit) })
+    }
+
+    fn num_variables(self: &Self) -> usize {
+        unsafe { minisat_num_vars(self.ptr) as usize }
+    }
+
+    fn num_clauses(self: &Self) -> usize {
+        unsafe { minisat_num_clauses(self.ptr) as usize }
+    }
+}
+
+#[cfg(feature = "minisat")]
+impl Drop for MiniSat {
+    fn drop(&mut self) {
+        unsafe { minisat_delete(self.ptr) };
+    }
+}
+
+#[cfg(feature = "minisat")]
+impl std::fmt::Debug for MiniSat {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "MiniSat {{ variables: {}, clauses: {} }}",
+            self.num_variables(),
+            self.num_clauses()
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::super::solver::MiniSat;
     use super::*;
 
     #[test]
-    fn test_booleans() {
-        let mut alg = Booleans::new();
+    fn test_boolean() {
+        let mut alg = Boolean::new();
         let a = alg.one();
         let b = alg.not(a);
         assert_eq!(alg.add(a, b), a);
         assert_eq!(alg.and(a, b), b);
     }
 
+    #[cfg(feature = "minisat")]
     #[test]
     fn test_freealg() {
         let mut alg: FreeAlg<MiniSat> = FreeAlg::new();
         let a = alg.add_variable();
         let b = alg.add_variable();
         let c = alg.and(a, b);
-        alg.add_clause(&[c]);
-        assert!(alg.solve());
+        assert!(alg.find_model(&[c]));
         assert!(alg.get_value(a), true);
         assert!(alg.get_value(b), true);
-        let an = alg.not(a);
-        let bn = alg.not(b);
-        alg.add_clause(&[an, bn]);
-        assert!(!alg.solve());
+        let d = alg.not(a);
+        assert!(!alg.find_model(&[c, d]));
+    }
+
+    #[cfg(feature = "minisat")]
+    #[test]
+    fn test_minisat() {
+        let mut sat = MiniSat::new();
+        let a = sat.add_variable();
+        let b = sat.add_variable();
+        sat.add_clause(&[a, b]);
+        sat.add_clause(&[sat.negate(a), b]);
+        sat.add_clause(&[sat.negate(a), sat.negate(b)]);
+        assert_eq!(sat.num_variables(), 2);
+        assert_eq!(sat.num_clauses(), 3);
+        assert!(sat.solve());
+        assert!(!sat.get_value(a));
+        assert!(sat.get_value(b));
+        sat.add_clause(&[a, sat.negate(b)]);
+        assert!(!sat.solve());
     }
 }

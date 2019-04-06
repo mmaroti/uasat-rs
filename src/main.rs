@@ -17,8 +17,31 @@
 
 pub mod array;
 pub mod boolalg;
-pub mod solver;
 pub mod lexer;
+
+#[cfg(feature = "console_error_panic_hook")]
+extern crate console_error_panic_hook;
+extern crate wasm_bindgen;
+
+#[cfg(feature = "console_error_panic_hook")]
+use std::panic;
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen(start)]
+pub fn uasat_init() {
+    #[cfg(feature = "console_error_panic_hook")]
+    panic::set_hook(Box::new(console_error_panic_hook::hook));
+}
+
+#[wasm_bindgen]
+pub fn test(input: String) -> String {
+    let lexer = lexer::Lexer::new(input.as_str());
+    let mut output = String::new();
+    for token in lexer {
+        output.push_str(format!("{}\n", token).as_str());
+    }
+    output
+}
 
 fn main() {
     println!("{}", std::mem::size_of::<lexer::Token>());

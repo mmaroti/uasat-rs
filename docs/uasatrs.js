@@ -157,7 +157,7 @@ __exports.__wbindgen_object_drop_ref = __wbindgen_object_drop_ref;
 
 function init(module_or_path, maybe_memory) {
     let result;
-    const imports = { './uasatlib': __exports };
+    const imports = { './uasatrs': __exports };
     if (module_or_path instanceof URL || typeof module_or_path === 'string' || module_or_path instanceof Request) {
 
         const response = fetch(module_or_path);

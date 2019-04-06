@@ -42,8 +42,10 @@
       } else {
         output.value = "Working...";
         window.setTimeout(function () {
+          var elapsed = new Date()
           var result = uasat.test(input.value);
-          output.value = result;
+          elapsed = (new Date()) - elapsed
+          output.value = result + "\nFinished in " + elapsed + " ms";
         }, 50);
       }
     }

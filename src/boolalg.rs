@@ -15,7 +15,15 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use std::iter;
+//! An implementation of the free boolean algebra backed by a SAT solver.
+//! This can be used to calculate with boolean terms and ask for a model
+//! where a given set of terms are all true.
+
+#[cfg(feature = "minisat")]
+extern crate minisat;
+extern crate varisat;
+
+use std::{fmt, iter};
 
 /// A boolean algebra supporting boolean calculation.
 pub trait BoolAlg {
@@ -23,7 +31,7 @@ pub trait BoolAlg {
     type Elem: Copy + Eq;
 
     /// Returns the logical true (top) element of the algebra.
-    fn one(self: &mut Self) -> Self::Elem;
+    fn unit(self: &mut Self) -> Self::Elem;
 
     /// Returns the logical false (bottom) element of the algebra.
     fn zero(self: &mut Self) -> Self::Elem;
@@ -72,7 +80,7 @@ impl Boolean {
 impl BoolAlg for Boolean {
     type Elem = bool;
 
-    fn one(self: &mut Self) -> Self::Elem {
+    fn unit(self: &mut Self) -> Self::Elem {
         true
     }
 
@@ -107,16 +115,16 @@ impl BoolAlg for Boolean {
 
 /// The free boolean algebra backed by a SAT solver.
 #[derive(Debug)]
-pub struct FreeAlg<SOLVER: Solver> {
-    solver: SOLVER,
-    one: SOLVER::Literal,
-    zero: SOLVER::Literal,
+pub struct FreeAlg<SOL: Solver> {
+    solver: SOL,
+    one: SOL::Literal,
+    zero: SOL::Literal,
 }
 
-impl<SOLVER: Solver> FreeAlg<SOLVER> {
+impl<SOL: Solver> FreeAlg<SOL> {
     /// Creates a new free boolean algebra.
     pub fn new() -> Self {
-        let mut solver = SOLVER::new();
+        let mut solver = SOL::new();
         let one = solver.add_variable();
         let zero = solver.negate(one);
         FreeAlg { solver, one, zero }
@@ -141,10 +149,10 @@ impl<SOLVER: Solver> FreeAlg<SOLVER> {
     }
 }
 
-impl<SOLVER: Solver> BoolAlg for FreeAlg<SOLVER> {
-    type Elem = SOLVER::Literal;
+impl<SOL: Solver> BoolAlg for FreeAlg<SOL> {
+    type Elem = SOL::Literal;
 
-    fn one(self: &mut Self) -> Self::Elem {
+    fn unit(self: &mut Self) -> Self::Elem {
         self.one
     }
 
@@ -202,7 +210,7 @@ impl<SOLVER: Solver> BoolAlg for FreeAlg<SOLVER> {
     }
 }
 
-impl<SOLVER: Solver> Default for FreeAlg<SOLVER> {
+impl<SOL: Solver> Default for FreeAlg<SOL> {
     fn default() -> Self {
         Self::new()
     }
@@ -241,23 +249,20 @@ pub trait Solver {
     /// Returns the value of the literal in the found model.
     fn get_value(self: &Self, lit: Self::Literal) -> bool;
 
+    /// Returns the name of the solver
+    fn get_name(self: &Self) -> &'static str;
+
     /// Returns the number of variables in the solver.
-    fn num_variables(self: &Self) -> usize;
+    fn num_variables(self: &Self) -> u32;
 
     /// Returns the number of clauses in the solver.
-    fn num_clauses(self: &Self) -> usize;
+    fn num_clauses(self: &Self) -> u32;
 }
 
-#[cfg(feature = "minisat")]
-extern crate minisat;
-
-#[cfg(feature = "minisat")]
-use minisat::sys::*;
-
-/// MiniSAT 2.1 implementation of Solver
+/// MiniSAT 2.1 external C library based SAT solver
 #[cfg(feature = "minisat")]
 pub struct MiniSat {
-    ptr: *mut minisat_solver_t,
+    ptr: *mut minisat::sys::minisat_solver_t,
 }
 
 #[cfg(feature = "minisat")]
@@ -272,58 +277,62 @@ impl Solver for MiniSat {
     type Literal = i32;
 
     fn new() -> Self {
-        let ptr = unsafe { minisat_new() };
-        unsafe { minisat_eliminate(ptr, 1) };
+        let ptr = unsafe { minisat::sys::minisat_new() };
+        unsafe { minisat::sys::minisat_eliminate(ptr, 1) };
         MiniSat { ptr }
     }
 
     fn add_variable(self: &mut Self) -> Self::Literal {
-        unsafe { minisat_newLit(self.ptr) }
+        unsafe { minisat::sys::minisat_newLit(self.ptr) }
     }
 
     fn negate(self: &Self, lit: Self::Literal) -> Self::Literal {
-        unsafe { minisat_negate(lit) }
+        unsafe { minisat::sys::minisat_negate(lit) }
     }
 
     fn add_clause<'a, LITS>(self: &'a mut Self, lits: LITS)
     where
         LITS: IntoIterator<Item = &'a Self::Literal>,
     {
-        unsafe { minisat_addClause_begin(self.ptr) };
+        unsafe { minisat::sys::minisat_addClause_begin(self.ptr) };
         for lit in lits {
-            unsafe { minisat_addClause_addLit(self.ptr, *lit) };
+            unsafe { minisat::sys::minisat_addClause_addLit(self.ptr, *lit) };
         }
-        unsafe { minisat_addClause_commit(self.ptr) };
+        unsafe { minisat::sys::minisat_addClause_commit(self.ptr) };
     }
 
     fn solve_with<'a, LITS>(self: &'a mut Self, lits: LITS) -> bool
     where
         LITS: IntoIterator<Item = &'a Self::Literal>,
     {
-        unsafe { minisat_solve_begin(self.ptr) };
+        unsafe { minisat::sys::minisat_solve_begin(self.ptr) };
         for lit in lits {
-            unsafe { minisat_solve_addLit(self.ptr, *lit) };
+            unsafe { minisat::sys::minisat_solve_addLit(self.ptr, *lit) };
         }
-        MiniSat::is_true(unsafe { minisat_solve_commit(self.ptr) })
+        MiniSat::is_true(unsafe { minisat::sys::minisat_solve_commit(self.ptr) })
     }
 
     fn get_value(self: &Self, lit: Self::Literal) -> bool {
-        MiniSat::is_true(unsafe { minisat_modelValue_Lit(self.ptr, lit) })
+        MiniSat::is_true(unsafe { minisat::sys::minisat_modelValue_Lit(self.ptr, lit) })
     }
 
-    fn num_variables(self: &Self) -> usize {
-        unsafe { minisat_num_vars(self.ptr) as usize }
+    fn get_name(self: &Self) -> &'static str {
+        "MiniSat"
     }
 
-    fn num_clauses(self: &Self) -> usize {
-        unsafe { minisat_num_clauses(self.ptr) as usize }
+    fn num_variables(self: &Self) -> u32 {
+        unsafe { minisat::sys::minisat_num_vars(self.ptr) as u32 }
+    }
+
+    fn num_clauses(self: &Self) -> u32 {
+        unsafe { minisat::sys::minisat_num_clauses(self.ptr) as u32 }
     }
 }
 
 #[cfg(feature = "minisat")]
 impl Drop for MiniSat {
     fn drop(&mut self) {
-        unsafe { minisat_delete(self.ptr) };
+        unsafe { minisat::sys::minisat_delete(self.ptr) };
     }
 }
 
@@ -339,6 +348,98 @@ impl std::fmt::Debug for MiniSat {
     }
 }
 
+/// A modern SAT solver implemented in pure rust.
+pub struct VariSat {
+    num_variables: u32,
+    num_clauses: u32,
+    solver: varisat::solver::Solver,
+    solution: Vec<bool>,
+}
+
+impl Solver for VariSat {
+    type Literal = varisat::lit::Lit;
+
+    fn new() -> Self {
+        VariSat {
+            num_variables: 0,
+            num_clauses: 0,
+            solver: varisat::solver::Solver::new(),
+            solution: Vec::new(),
+        }
+    }
+
+    fn add_variable(self: &mut Self) -> Self::Literal {
+        let var = varisat::lit::Var::from_index(self.num_variables as usize);
+        self.num_variables += 1;
+        varisat::lit::Lit::from_var(var, false)
+    }
+
+    fn negate(self: &Self, lit: Self::Literal) -> Self::Literal {
+        !lit
+    }
+
+    fn add_clause<'a, LITS>(self: &'a mut Self, lits: LITS)
+    where
+        LITS: IntoIterator<Item = &'a Self::Literal>,
+    {
+        let mut formula = varisat::cnf::CnfFormula::new();
+        formula.add_clause(lits);
+        self.solver.add_formula(&formula);
+        self.num_clauses += 1;
+    }
+
+    fn solve_with<'a, LITS>(self: &'a mut Self, lits: LITS) -> bool
+    where
+        LITS: IntoIterator<Item = &'a Self::Literal>,
+    {
+        let mut assumptions = Vec::new();
+        assumptions.extend(lits);
+        self.solver.assume(&assumptions);
+
+        self.solution.clear();
+        let solvable = self.solver.solve().unwrap();
+        if solvable {
+            for lit in self.solver.model().unwrap() {
+                let var = lit.var().index();
+                if self.solution.len() <= var {
+                    self.solution.resize(var + 1, false);
+                }
+                self.solution[var] = lit.is_positive();
+            }
+        }
+        solvable
+    }
+
+    fn get_value(self: &Self, lit: Self::Literal) -> bool {
+        let var = lit.var().index();
+        assert!(var < self.solution.len());
+        self.solution[var] ^ lit.is_negative()
+    }
+
+    fn get_name(self: &Self) -> &'static str {
+        "VariSat"
+    }
+
+    fn num_variables(self: &Self) -> u32 {
+        self.num_variables
+    }
+
+    fn num_clauses(self: &Self) -> u32 {
+        self.num_clauses
+    }
+}
+
+impl fmt::Debug for VariSat {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "VariSat {{ variables: {}, clauses: {} }}",
+            self.num_variables(),
+            self.num_clauses()
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -346,16 +447,15 @@ mod tests {
     #[test]
     fn test_boolean() {
         let mut alg = Boolean::new();
-        let a = alg.one();
+        let a = alg.unit();
         let b = alg.not(a);
         assert_eq!(alg.add(a, b), a);
         assert_eq!(alg.and(a, b), b);
     }
 
-    #[cfg(feature = "minisat")]
     #[test]
     fn test_freealg() {
-        let mut alg: FreeAlg<MiniSat> = FreeAlg::new();
+        let mut alg: FreeAlg<VariSat> = FreeAlg::new();
         let a = alg.add_variable();
         let b = alg.add_variable();
         let c = alg.and(a, b);
@@ -370,6 +470,23 @@ mod tests {
     #[test]
     fn test_minisat() {
         let mut sat = MiniSat::new();
+        let a = sat.add_variable();
+        let b = sat.add_variable();
+        sat.add_clause(&[a, b]);
+        sat.add_clause(&[sat.negate(a), b]);
+        sat.add_clause(&[sat.negate(a), sat.negate(b)]);
+        assert_eq!(sat.num_variables(), 2);
+        assert_eq!(sat.num_clauses(), 3);
+        assert!(sat.solve());
+        assert!(!sat.get_value(a));
+        assert!(sat.get_value(b));
+        sat.add_clause(&[a, sat.negate(b)]);
+        assert!(!sat.solve());
+    }
+
+    #[test]
+    fn test_varisat() {
+        let mut sat = VariSat::new();
         let a = sat.add_variable();
         let b = sat.add_variable();
         sat.add_clause(&[a, b]);

@@ -15,6 +15,8 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+//! A SAT based discrete mathematics and universal algebra calculator.
+
 pub mod array;
 pub mod boolalg;
 pub mod lexer;
@@ -23,6 +25,7 @@ pub mod lexer;
 extern crate console_error_panic_hook;
 extern crate wasm_bindgen;
 
+use boolalg::*;
 #[cfg(feature = "console_error_panic_hook")]
 use std::panic;
 use wasm_bindgen::prelude::*;
@@ -33,6 +36,60 @@ pub fn uasat_init() {
     panic::set_hook(Box::new(console_error_panic_hook::hook));
 }
 
+pub fn test_solver<SOL: Solver>(size: usize) -> String {
+    let mut table: Vec<SOL::Literal> = Vec::with_capacity(size * size);
+    let mut sol: SOL = SOL::new();
+
+    // create literals
+    for _ in 0..(size * size) {
+        table.push(sol.add_variable());
+    }
+
+    // reflexive
+    for i in 0..size {
+        sol.add_clause(&[table[i * size + i]]);
+    }
+
+    // symmetric
+    for i in 0..size {
+        for j in 0..size {
+            sol.add_clause(&[sol.negate(table[i * size + j]), table[j * size + i]]);
+        }
+    }
+
+    // transitive
+    for i in 0..size {
+        for j in 0..size {
+            for k in 0..size {
+                sol.add_clause(&[
+                    sol.negate(table[i * size + j]),
+                    sol.negate(table[j * size + k]),
+                    table[i * size + k],
+                ]);
+            }
+        }
+    }
+
+    // find all solutions
+    let mut count = 0;
+    while sol.solve() {
+        count += 1;
+        let lits: Vec<SOL::Literal> = table
+            .iter()
+            .map(|lit| {
+                if sol.get_value(*lit) {
+                    sol.negate(*lit)
+                } else {
+                    *lit
+                }
+            })
+            .collect();
+        sol.add_clause(&lits);
+    }
+
+    format!("{} result {}", sol.get_name(), count)
+}
+
 #[wasm_bindgen]
 pub fn test(input: String) -> String {
     let lexer = lexer::Lexer::new(input.as_str());
@@ -40,16 +97,12 @@ pub fn test(input: String) -> String {
     for token in lexer {
         output.push_str(format!("{}\n", token).as_str());
     }
+    output.push_str(&test_solver::<VariSat>(9));
     output
 }
 
 fn main() {
-    println!("{}", std::mem::size_of::<lexer::Token>());
-    let data = "a\n(1234567890123456789, ab)\nHello, world! Continue";
-    // let data = &std::fs::read_to_string("LICENSE").unwrap();
-
-    let lexer = lexer::Lexer::new(data);
-    for item in lexer {
-        println!("{}", item);
-    }
+    #[cfg(feature = "minisat")]
+    println!("{}", test_solver::<MiniSat>(9));
+    println!("{}", test_solver::<VariSat>(9));
 }

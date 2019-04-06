@@ -13,6 +13,7 @@ wasm = ["console_error_panic_hook"]
 
 [dependencies]
 wasm-bindgen = "0.2"
+varisat = { git = "https://github.com/jix/varisat.git" }
 minisat = { version = "0.4", optional = true }
 console_error_panic_hook = { version = "0.1", optional = true }
 

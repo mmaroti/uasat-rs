@@ -8,12 +8,12 @@ edition = "2018"
 repository = "https://github.com/mmaroti/uasat.rs"
 
 [features]
-default = ["minisat"]
-wasm = ["console_error_panic_hook"]
+default = ["minisat", "varisat"]
+wasm = ["console_error_panic_hook", "varisat"]
 
 [dependencies]
 wasm-bindgen = "0.2"
-varisat = { git = "https://github.com/jix/varisat.git" }
+varisat = { git = "https://github.com/jix/varisat.git", optional = true }
 minisat = { version = "0.4", optional = true }
 console_error_panic_hook = { version = "0.1", optional = true }
 

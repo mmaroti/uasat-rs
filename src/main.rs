@@ -36,9 +36,9 @@ pub fn uasat_init() {
     panic::set_hook(Box::new(console_error_panic_hook::hook));
 }
 
-pub fn test_solver<SOL: Solver>(size: usize) -> String {
-    let mut table: Vec<SOL::Literal> = Vec::with_capacity(size * size);
-    let mut sol: SOL = SOL::new();
+pub fn test_solver(solver_name: &str, size: usize) -> String {
+    let mut sol = create_solver(solver_name);
+    let mut table: Vec<Literal> = Vec::with_capacity(size * size);
 
     // create literals
     for _ in 0..(size * size) {
@@ -74,7 +74,7 @@ pub fn test_solver<SOL: Solver>(size: usize) -> String {
     let mut count = 0;
     while sol.solve() {
         count += 1;
-        let lits: Vec<SOL::Literal> = table
+        let lits: Vec<Literal> = table
             .iter()
             .map(|lit| {
                 if sol.get_value(*lit) {
@@ -97,12 +97,14 @@ pub fn test(input: String) -> String {
     for token in lexer {
         output.push_str(format!("{}\n", token).as_str());
     }
-    output.push_str(&test_solver::<VariSat>(9));
+    #[cfg(feature = "varisat")]
+    output.push_str(&test_solver("varisat", 9));
     output
 }
 
 fn main() {
     #[cfg(feature = "minisat")]
-    println!("{}", test_solver::<MiniSat>(9));
-    println!("{}", test_solver::<VariSat>(9));
+    println!("MiniSat {}", test_solver("minisat", 9));
+    #[cfg(feature = "varisat")]
+    println!("VariSat {}", test_solver("varisat", 9));
 }

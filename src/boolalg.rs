@@ -65,6 +65,37 @@ pub trait BoolAlg {
         let a = self.not(elem1);
         self.or(a, elem2)
     }
+
+    /// Computes the conjunction of the elements.
+    fn all(self: &mut Self, elems: &[Self::Elem]) -> Self::Elem {
+        let mut result = self.unit();
+        for elem in elems {
+            result = self.and(result, *elem);
+        }
+        result
+    }
+
+    /// Computes the disjunction of the elements.
+    fn any(self: &mut Self, elems: &[Self::Elem]) -> Self::Elem {
+        let mut result = self.zero();
+        for elem in elems {
+            result = self.or(result, *elem);
+        }
+        result
+    }
+
+    /// Computes wether there is exactly one element that is true.
+    fn one(self: &mut Self, elems: &[Self::Elem]) -> Self::Elem {
+        let mut found = self.zero();
+        let mut error = found;
+        for elem in elems {
+            let double = self.and(found, *elem);
+            error = self.or(error, double);
+            found = self.or(found, *elem);
+        }
+        error = self.not(error);
+        self.and(found, error)
+    }
 }
 
 /// The two element boolean algebra with `bool` elements.

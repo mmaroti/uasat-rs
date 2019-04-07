@@ -4,32 +4,28 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.4/css/bulma.min.css">
+  <link rel='stylesheet' href='https://cdn.jsdelivr.net/gh/kognise/water.css@latest/dist/light.css'>
+  <style>
+    input, textarea {
+      border: 1px solid grey;
+    }
+    .floated {
+      float: left;
+      margin-right: 12px;
+    }
+  </style>
   <title>UASAT Calculator</title>
 </head>
 
 <body>
-  <section class="section">
-    <div class="container">
-      <form>
-        <div class="field">
-          <div class="control">
-            <textarea class="textarea" rows="8" wrap="soft" id="input"></textarea>
-          </div>
-        </div>
-        <div class="field">
-          <div class="control">
-            <input type="button" class="button" value="Run" onClick="run();" />
-          </div>
-        </div>
-        <div class="field">
-          <div class="control">
-            <textarea class="textarea" readonly rows="8" wrap="soft" id="output"></textarea>
-          </div>
-        </div>
-      </form>
-    </div>
-  </section>
+  <form>
+    <label for="input">Input</label>
+    <textarea rows="8" wrap="soft" id="input"></textarea>
+    <input class="floated" type="button" value="Run" onClick="run();" />
+    <input type="button" value="Stop" onClick="" disabled />
+    <label for="output">Output</label>
+    <textarea readonly rows="8" wrap="soft" id="output"></textarea>
+  </form>
 
   <script>
     var uasat = null;

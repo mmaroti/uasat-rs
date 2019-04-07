@@ -1,11 +1,11 @@
 [package]
-name = "uasatrs"
+name = "uasat"
 description = "A SAT solver based discrete mathematics and universal algebra calculator"
 license = "GPLv3"
 authors = ["Miklos Maroti <mmaroti@gmail.com>"]
 version = "0.1.0"
 edition = "2018"
-repository = "https://github.com/mmaroti/uasatrs"
+repository = "https://github.com/mmaroti/uasat.rs"
 
 [features]
 default = ["minisat"]

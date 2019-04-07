@@ -47,11 +47,11 @@
     }
   </script>
   <script type="module">
-    import * as uasatrs from "./uasatrs.js";
-    uasatrs.default("./uasatrs_bg.wasm")
+    import * as uasat from "./uasat.js";
+    uasat.default("./uasat_bg.wasm")
       .then(() => {
         output.value = "Uasat library is loaded.";
-        uasat = uasatrs;
+        window.uasat = uasat;
       })
       .catch(err => {
         output.value = "Could not load uasat library.\n" + err;

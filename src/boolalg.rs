@@ -29,16 +29,25 @@ use std::fmt;
 /// A boolean algebra supporting boolean calculation.
 pub trait BoolAlg {
     /// The element type of this bool algebra.
-    type Elem: Copy + Eq;
+    type Elem: Copy;
 
     /// Returns the logical true (top) element of the algebra.
-    fn unit(self: &mut Self) -> Self::Elem;
+    fn unit(self: &Self) -> Self::Elem;
 
     /// Returns the logical false (bottom) element of the algebra.
-    fn zero(self: &mut Self) -> Self::Elem;
+    fn zero(self: &Self) -> Self::Elem;
+
+    /// Returns either the unit or zero element depending of the argument.
+    fn lift(self: &Self, elem: bool) -> Self::Elem {
+        if elem {
+            self.unit()
+        } else {
+            self.zero()
+        }
+    }
 
     /// Return the logical negation of the element.
-    fn not(self: &mut Self, elem: Self::Elem) -> Self::Elem;
+    fn not(self: &Self, elem: Self::Elem) -> Self::Elem;
 
     /// Returns the logical or (lattice join) of a pair of elements.
     fn or(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
@@ -48,22 +57,18 @@ pub trait BoolAlg {
 
     /// Returns the logical and (lattice meet) of a pair of elements.
     fn and(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
-        let a = self.not(elem1);
-        let b = self.not(elem2);
-        let c = self.or(a, b);
-        self.not(c)
+        let tmp = self.or(self.not(elem1), self.not(elem2));
+        self.not(tmp)
     }
 
     /// Returns the logical equivalence of a pair of elements.
     fn equ(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
-        let a = self.not(elem1);
-        self.add(a, elem2)
+        self.add(elem1, self.not(elem2))
     }
 
     /// Returns the logical implication of a pair of elements.
     fn leq(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
-        let a = self.not(elem1);
-        self.or(a, elem2)
+        self.or(self.not(elem1), elem2)
     }
 
     /// Computes the conjunction of the elements.
@@ -83,19 +88,6 @@ pub trait BoolAlg {
         }
         result
     }
-
-    /// Computes wether there is exactly one element that is true.
-    fn one(self: &mut Self, elems: &[Self::Elem]) -> Self::Elem {
-        let mut found = self.zero();
-        let mut error = found;
-        for elem in elems {
-            let double = self.and(found, *elem);
-            error = self.or(error, double);
-            found = self.or(found, *elem);
-        }
-        error = self.not(error);
-        self.and(found, error)
-    }
 }
 
 /// The two element boolean algebra with `bool` elements.
@@ -112,15 +104,19 @@ impl Boolean {
 impl BoolAlg for Boolean {
     type Elem = bool;
 
-    fn unit(self: &mut Self) -> Self::Elem {
+    fn unit(self: &Self) -> Self::Elem {
         true
     }
 
-    fn zero(self: &mut Self) -> Self::Elem {
+    fn zero(self: &Self) -> Self::Elem {
         false
     }
 
-    fn not(self: &mut Self, elem: Self::Elem) -> Self::Elem {
+    fn lift(self: &Self, elem: bool) -> Self::Elem {
+        elem
+    }
+
+    fn not(self: &Self, elem: Self::Elem) -> Self::Elem {
         !elem
     }
 
@@ -181,15 +177,15 @@ impl FreeAlg {
 impl BoolAlg for FreeAlg {
     type Elem = Literal;
 
-    fn unit(self: &mut Self) -> Self::Elem {
+    fn unit(self: &Self) -> Self::Elem {
         self.unit
     }
 
-    fn zero(self: &mut Self) -> Self::Elem {
+    fn zero(self: &Self) -> Self::Elem {
         self.zero
     }
 
-    fn not(self: &mut Self, elem: Self::Elem) -> Self::Elem {
+    fn not(self: &Self, elem: Self::Elem) -> Self::Elem {
         self.solver.negate(elem)
     }
 

@@ -15,57 +15,33 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use std::marker::PhantomData;
+extern crate fixedbitset;
+use fixedbitset::FixedBitSet;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub struct Elem<'a, T: Copy> {
-    pub val: T,
-    _marker: PhantomData<&'a ()>,
+trait VecData {
+    type Data: Default;
 }
 
-impl<'a, T: Copy> Elem<'a, T> {
-    pub fn new(val: T) -> Self {
-        Elem {
-            val,
-            _marker: PhantomData,
-        }
-    }
+impl VecData for bool {
+    type Data = FixedBitSet;
 }
 
-#[derive(Default, Debug)]
-pub struct Monoid();
+impl VecData for u32 {
+    type Data = Vec<u32>;
+}
 
-impl Monoid {
-    pub fn lift(self: &Self, val: u32) -> Elem<'_, u32> {
-        Elem::new(val)
-    }
+struct GenVec<T>(<T as VecData>::Data)
+where
+    T: VecData;
 
-    pub fn unit(self: &Self) -> Elem<'_, u32> {
-        Elem::new(1)
-    }
-
-    pub fn prod(self: &Self, elem1: Elem<'_, u32>, elem2: Elem<'_, u32>) -> Elem<'_, u32> {
-        Elem::new(elem1.val * elem2.val)
+impl GenVec<bool> {
+    pub fn new() -> Self {
+        GenVec(FixedBitSet::with_capacity(0))
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_monoid() {
-        let a;
-        let alg = Monoid();
-        {
-            a = alg.lift(2);
-            let b = alg.prod(a, alg.unit());
-            assert!(a == b);
-        }
-        {
-            let alg2 = Monoid();
-            let c = alg2.prod(a, a);
-            assert!(a != c);
-        }
+impl GenVec<u32> {
+    pub fn new() -> Self {
+        GenVec(Vec::new())
     }
 }

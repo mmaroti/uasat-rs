@@ -19,6 +19,8 @@
 //! This can be used to calculate with boolean terms and ask for a model
 //! where a given set of terms are all true.
 
+#[cfg(feature = "varisat")]
+extern crate fixedbitset;
 #[cfg(feature = "minisat")]
 extern crate minisat;
 #[cfg(feature = "varisat")]
@@ -278,11 +280,11 @@ pub trait Solver {
 /// and "minisat" (not on wasm) are supported. Use "" to match the first
 /// available solver.
 pub fn create_solver(name: &str) -> Box<Solver> {
-    let mut c = 0;
+    let mut enabled_solvers = 0;
 
     #[cfg(feature = "varisat")]
     {
-        c += 1;
+        enabled_solvers += 1;
         if name == "varisat" || name == "" {
             let sat: VariSat = Default::default();
             return Box::new(sat);
@@ -291,14 +293,14 @@ pub fn create_solver(name: &str) -> Box<Solver> {
 
     #[cfg(feature = "minisat")]
     {
-        c += 1;
+        enabled_solvers += 1;
         if name == "minisat" || name == "" {
             let sat: MiniSat = Default::default();
             return Box::new(sat);
         }
     }
 
-    if c == 0 {
+    if enabled_solvers == 0 {
         panic!("No SAT solvers are available.")
     } else {
         panic!("Unknown SAT solver: {}", name);
@@ -404,28 +406,28 @@ impl Drop for MiniSat {
 
 /// A modern SAT solver implemented in pure rust.
 #[cfg(feature = "varisat")]
-pub struct VariSat {
+pub struct VariSat<'a> {
     num_variables: u32,
     num_clauses: u32,
-    solver: varisat::solver::Solver,
-    solution: Vec<bool>,
+    solver: varisat::solver::Solver<'a>,
+    solution: fixedbitset::FixedBitSet,
 }
 
 #[cfg(feature = "varisat")]
-impl Default for VariSat {
+impl<'a> Default for VariSat<'a> {
     /// Creates a new solver instance.
     fn default() -> Self {
         VariSat {
             num_variables: 0,
             num_clauses: 0,
             solver: varisat::solver::Solver::new(),
-            solution: Vec::new(),
+            solution: fixedbitset::FixedBitSet::with_capacity(0),
         }
     }
 }
 
 #[cfg(feature = "varisat")]
-impl VariSat {
+impl<'a> VariSat<'a> {
     fn encode(lit: varisat::lit::Lit) -> Literal {
         Literal {
             value: lit.code() as u32,
@@ -438,7 +440,7 @@ impl VariSat {
 }
 
 #[cfg(feature = "varisat")]
-impl Solver for VariSat {
+impl<'a> Solver for VariSat<'a> {
     fn add_variable(self: &mut Self) -> Literal {
         let var = varisat::lit::Var::from_index(self.num_variables as usize);
         self.num_variables += 1;
@@ -464,12 +466,10 @@ impl Solver for VariSat {
         self.solution.clear();
         let solvable = self.solver.solve().unwrap();
         if solvable {
+            self.solution.grow(self.num_variables() as usize);
             for lit in self.solver.model().unwrap() {
-                let idx = lit.index();
-                if self.solution.len() <= idx {
-                    self.solution.resize(idx + 1, false);
-                }
-                self.solution[idx] = lit.is_positive();
+                let var = lit.index();
+                self.solution.set(var, lit.is_positive());
             }
         }
         solvable
@@ -477,9 +477,8 @@ impl Solver for VariSat {
 
     fn get_value(self: &Self, lit: Literal) -> bool {
         let lit = VariSat::decode(lit);
-        let idx = lit.index();
-        assert!(idx < self.solution.len());
-        self.solution[idx] ^ lit.is_negative()
+        let var = lit.index();
+        self.solution[var] ^ lit.is_negative()
     }
 
     fn get_name(self: &Self) -> &'static str {

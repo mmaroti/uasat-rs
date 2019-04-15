@@ -15,13 +15,19 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//! A minimalistic bit vector for specializing the generic vector for booleans.
+//! A generic vector trait to work with regular and bit vectors.
+
+extern crate bit_vec;
+pub use bit_vec::BitVec;
 
 /// Generic interface for regular and bit vectors.
-pub trait GenVec<T: Copy>
+pub trait GenVec
 where
     Self: Default,
 {
+    /// The element type of the vector.
+    type Elem: Copy;
+
     /// Constructs a new, empty vector. The vector will not allocate until
     /// elements are pushed onto it.
     fn new() -> Self;
@@ -30,6 +36,12 @@ where
     /// will be able to hold exactly capacity elements without reallocating.
     fn with_capacity(capacity: usize) -> Self;
 
+    /// Constructs a new vector with the specified length where the value at
+    /// each index is `op(index)`.
+    fn from_fn<F>(len: usize, op: F) -> Self
+    where
+        F: FnMut(usize) -> Self::Elem;
+
     /// Clears the vector, removing all values.
     fn clear(self: &mut Self);
 
@@ -37,20 +49,20 @@ where
     /// If `new_len` is greater than `len`, the `Vec` is extended by the
     /// difference, with each additional slot filled with `value`.
     /// If `new_len` is less than `len`, the `Vec` is simply truncated.
-    fn resize(self: &mut Self, new_len: usize, value: T);
+    fn resize(self: &mut Self, new_len: usize, value: Self::Elem);
 
     /// Appends an element to the back of a collection.
-    fn push(self: &mut Self, value: T);
+    fn push(self: &mut Self, value: Self::Elem);
 
     /// Removes the last element from a vector and returns it, or `None` if
     /// it is empty.
-    fn pop(self: &mut Self) -> Option<T>;
+    fn pop(self: &mut Self) -> Option<Self::Elem>;
 
     /// Returns the element at the given index.
-    fn get(self: &Self, index: usize) -> T;
+    fn get(self: &Self, index: usize) -> Self::Elem;
 
     /// Sets the element at the given index to the new value.
-    fn set(self: &mut Self, index: usize, value: T);
+    fn set(self: &mut Self, index: usize, value: Self::Elem);
 
     /// Returns the number of elements in the vector.
     fn len(self: &Self) -> usize;
@@ -62,7 +74,9 @@ where
     fn capacity(self: &Self) -> usize;
 }
 
-impl<T: Copy> GenVec<T> for Vec<T> {
+impl<T: Copy> GenVec for Vec<T> {
+    type Elem = T;
+
     #[inline]
     fn new() -> Self {
         Vec::new()
@@ -74,32 +88,40 @@ impl<T: Copy> GenVec<T> for Vec<T> {
     }
 
     #[inline]
+    fn from_fn<F>(len: usize, op: F) -> Self
+    where
+        F: FnMut(usize) -> Self::Elem,
+    {
+        (0..len).map(op).collect()
+    }
+
+    #[inline]
     fn clear(self: &mut Self) {
         Vec::clear(self);
     }
 
     #[inline]
-    fn resize(self: &mut Self, new_len: usize, value: T) {
+    fn resize(self: &mut Self, new_len: usize, value: Self::Elem) {
         Vec::resize(self, new_len, value);
     }
 
     #[inline]
-    fn push(self: &mut Self, value: T) {
+    fn push(self: &mut Self, value: Self::Elem) {
         Vec::push(self, value);
     }
 
     #[inline]
-    fn pop(self: &mut Self) -> Option<T> {
+    fn pop(self: &mut Self) -> Option<Self::Elem> {
         Vec::pop(self)
     }
 
     #[inline]
-    fn get(self: &Self, index: usize) -> T {
+    fn get(self: &Self, index: usize) -> Self::Elem {
         self[index]
     }
 
     #[inline]
-    fn set(self: &mut Self, index: usize, value: T) {
+    fn set(self: &mut Self, index: usize, value: Self::Elem) {
         self[index] = value;
     }
 
@@ -119,107 +141,74 @@ impl<T: Copy> GenVec<T> for Vec<T> {
     }
 }
 
-/// A vector containing bools.
-#[derive(Debug)]
-pub struct BitVec {
-    vec: Vec<u32>,
-    len: usize,
-}
+impl GenVec for BitVec {
+    type Elem = bool;
 
-impl GenVec<bool> for BitVec {
+    #[inline]
     fn new() -> Self {
-        BitVec {
-            vec: Vec::new(),
-            len: 0,
-        }
+        BitVec::new()
     }
 
+    #[inline]
     fn with_capacity(capacity: usize) -> Self {
-        let c = (capacity + 31) >> 5;
-        BitVec {
-            vec: Vec::with_capacity(c),
-            len: 0,
-        }
+        BitVec::with_capacity(capacity)
     }
 
+    #[inline]
+    fn from_fn<F>(len: usize, op: F) -> Self
+    where
+        F: FnMut(usize) -> Self::Elem,
+    {
+        BitVec::from_fn(len, op)
+    }
+
+    #[inline]
     fn clear(self: &mut Self) {
-        self.vec.clear();
-        self.len = 0;
+        BitVec::clear(self);
     }
 
-    fn resize(self: &mut Self, new_len: usize, value: bool) {
-        if (self.len & 31) != 0 {
-            let m = !0 << (self.len & 31);
-            if value {
-                self.vec[self.len >> 5] |= m;
-            } else {
-                self.vec[self.len >> 5] &= !m;
-            }
-        }
-
-        self.vec
-            .resize((new_len + 31) >> 5, if value { !0 } else { 0 });
-
-        self.len = new_len;
-    }
-
-    #[allow(clippy::verbose_bit_mask)]
-    fn push(self: &mut Self, value: bool) {
-        if (self.len & 31) == 0 {
-            self.vec.push(0);
-        }
-        if value {
-            self.vec[self.len >> 5] |= 1 << (self.len & 31);
-        } else {
-            self.vec[self.len >> 5] &= !(1 << (self.len & 31));
-        }
-        self.len += 1;
-    }
-
-    #[allow(clippy::verbose_bit_mask)]
-    fn pop(self: &mut Self) -> Option<bool> {
-        if self.len == 0 {
-            None
-        } else {
-            self.len -= 1;
-            let b = self.vec[self.len >> 5] & (1 << (self.len & 31)) != 0;
-            if (self.len & 31) == 0 {
-                self.vec.pop();
-            }
-            Some(b)
+    #[inline]
+    fn resize(self: &mut Self, new_len: usize, value: Self::Elem) {
+        if new_len > self.len() {
+            BitVec::grow(self, new_len - self.len(), value);
+        } else if new_len < self.len() {
+            BitVec::truncate(self, new_len);
         }
     }
 
-    fn get(self: &Self, index: usize) -> bool {
-        assert!(index < self.len);
-        self.vec[index >> 5] & (1 << (index & 31)) != 0
+    #[inline]
+    fn push(self: &mut Self, value: Self::Elem) {
+        BitVec::push(self, value);
     }
 
-    fn set(self: &mut Self, index: usize, value: bool) {
-        assert!(index < self.len);
-        if value {
-            self.vec[index >> 5] |= 1 << (index & 31);
-        } else {
-            self.vec[index >> 5] &= !(1 << (index & 31));
-        }
+    #[inline]
+    fn pop(self: &mut Self) -> Option<Self::Elem> {
+        BitVec::pop(self)
     }
 
+    #[inline]
+    fn get(self: &Self, index: usize) -> Self::Elem {
+        BitVec::get(self, index).unwrap()
+    }
+
+    #[inline]
+    fn set(self: &mut Self, index: usize, value: Self::Elem) {
+        BitVec::set(self, index, value);
+    }
+
+    #[inline]
     fn len(self: &Self) -> usize {
-        self.len
+        BitVec::len(self)
     }
 
+    #[inline]
     fn is_empty(self: &Self) -> bool {
-        self.len == 0
+        BitVec::is_empty(self)
     }
 
+    #[inline]
     fn capacity(self: &Self) -> usize {
-        self.vec.capacity() * 32
-    }
-}
-
-impl Default for BitVec {
-    fn default() -> Self {
-        GenVec::new()
+        BitVec::capacity(self)
     }
 }
 
@@ -230,7 +219,7 @@ mod tests {
     #[test]
     fn test_bitvec_resize() {
         let mut v1: BitVec = GenVec::new();
-        let mut v2: BitVec = GenVec::new();
+        let mut v2: Vec<bool> = GenVec::new();
 
         for i in 0..50 {
             let b = i % 2 == 0;
@@ -242,7 +231,7 @@ mod tests {
 
             assert_eq!(v1.len(), v2.len());
             for j in 0..v1.len() {
-                assert_eq!(v1.get(j), v2.get(j));
+                assert_eq!(GenVec::get(&v1, j), v2.get(j));
             }
         }
 
@@ -254,7 +243,7 @@ mod tests {
 
             assert_eq!(v1.len(), v2.len());
             for j in 0..v1.len() {
-                assert_eq!(v1.get(j), v2.get(j));
+                assert_eq!(GenVec::get(&v1, j), v2.get(j));
             }
         }
     }

@@ -24,7 +24,7 @@ extern crate minisat;
 #[cfg(feature = "varisat")]
 extern crate varisat;
 
-use super::bitvec::{BitVec, GenVec};
+use super::genvec::{BitVec, GenVec};
 use std::fmt;
 
 /// A boolean algebra supporting boolean calculation.
@@ -33,62 +33,62 @@ pub trait BoolAlg {
     type Elem: Copy;
 
     /// A type that allows storing a vector of elements.
-    type Vector: GenVec<Self::Elem>;
+    type Vector: GenVec<Elem = Self::Elem>;
 
     /// Returns the logical true (top) element of the algebra.
-    fn unit(self: &Self) -> Self::Elem;
+    fn bool_unit(self: &Self) -> Self::Elem;
 
     /// Returns the logical false (bottom) element of the algebra.
-    fn zero(self: &Self) -> Self::Elem;
+    fn bool_zero(self: &Self) -> Self::Elem;
 
     /// Returns either the unit or zero element depending of the argument.
-    fn lift(self: &Self, elem: bool) -> Self::Elem {
+    fn bool_lift(self: &Self, elem: bool) -> Self::Elem {
         if elem {
-            self.unit()
+            self.bool_unit()
         } else {
-            self.zero()
+            self.bool_zero()
         }
     }
 
     /// Return the logical negation of the element.
-    fn not(self: &Self, elem: Self::Elem) -> Self::Elem;
+    fn bool_not(self: &Self, elem: Self::Elem) -> Self::Elem;
 
     /// Returns the logical or (lattice join) of a pair of elements.
-    fn or(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
+    fn bool_or(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
 
     /// Returns the exclusive or (boolean addition) of a pair of elements.
-    fn add(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
+    fn bool_add(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
 
     /// Returns the logical and (lattice meet) of a pair of elements.
-    fn and(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
-        let tmp = self.or(self.not(elem1), self.not(elem2));
-        self.not(tmp)
+    fn bool_and(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+        let tmp = self.bool_or(self.bool_not(elem1), self.bool_not(elem2));
+        self.bool_not(tmp)
     }
 
     /// Returns the logical equivalence of a pair of elements.
-    fn equ(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
-        self.add(elem1, self.not(elem2))
+    fn bool_equ(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+        self.bool_add(elem1, self.bool_not(elem2))
     }
 
     /// Returns the logical implication of a pair of elements.
-    fn leq(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
-        self.or(self.not(elem1), elem2)
+    fn bool_leq(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+        self.bool_or(self.bool_not(elem1), elem2)
     }
 
     /// Computes the conjunction of the elements.
-    fn all(self: &mut Self, elems: &[Self::Elem]) -> Self::Elem {
-        let mut result = self.unit();
+    fn bool_all(self: &mut Self, elems: &[Self::Elem]) -> Self::Elem {
+        let mut result = self.bool_unit();
         for elem in elems {
-            result = self.and(result, *elem);
+            result = self.bool_and(result, *elem);
         }
         result
     }
 
     /// Computes the disjunction of the elements.
-    fn any(self: &mut Self, elems: &[Self::Elem]) -> Self::Elem {
-        let mut result = self.zero();
+    fn bool_any(self: &mut Self, elems: &[Self::Elem]) -> Self::Elem {
+        let mut result = self.bool_zero();
         for elem in elems {
-            result = self.or(result, *elem);
+            result = self.bool_or(result, *elem);
         }
         result
     }
@@ -110,39 +110,39 @@ impl BoolAlg for Boolean {
 
     type Vector = BitVec;
 
-    fn unit(self: &Self) -> Self::Elem {
+    fn bool_unit(self: &Self) -> Self::Elem {
         true
     }
 
-    fn zero(self: &Self) -> Self::Elem {
+    fn bool_zero(self: &Self) -> Self::Elem {
         false
     }
 
-    fn lift(self: &Self, elem: bool) -> Self::Elem {
+    fn bool_lift(self: &Self, elem: bool) -> Self::Elem {
         elem
     }
 
-    fn not(self: &Self, elem: Self::Elem) -> Self::Elem {
+    fn bool_not(self: &Self, elem: Self::Elem) -> Self::Elem {
         !elem
     }
 
-    fn or(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_or(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         elem1 || elem2
     }
 
-    fn add(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_add(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         elem1 ^ elem2
     }
 
-    fn and(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_and(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         elem1 && elem2
     }
 
-    fn equ(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_equ(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         elem1 == elem2
     }
 
-    fn leq(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_leq(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         elem1 <= elem2
     }
 }
@@ -185,21 +185,21 @@ impl BoolAlg for FreeAlg {
 
     type Vector = Vec<Literal>;
 
-    fn unit(self: &Self) -> Self::Elem {
+    fn bool_unit(self: &Self) -> Self::Elem {
         self.unit
     }
 
-    fn zero(self: &Self) -> Self::Elem {
+    fn bool_zero(self: &Self) -> Self::Elem {
         self.zero
     }
 
-    fn not(self: &Self, elem: Self::Elem) -> Self::Elem {
+    fn bool_not(self: &Self, elem: Self::Elem) -> Self::Elem {
         self.solver.negate(elem)
     }
 
-    fn or(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
-        let not_elem1 = self.not(elem1);
-        let not_elem2 = self.not(elem2);
+    fn bool_or(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+        let not_elem1 = self.solver.negate(elem1);
+        let not_elem2 = self.solver.negate(elem2);
         if elem1 == self.unit || elem2 == self.unit || elem1 == not_elem2 {
             self.unit
         } else if elem1 == self.zero || elem1 == elem2 {
@@ -208,7 +208,7 @@ impl BoolAlg for FreeAlg {
             elem1
         } else {
             let elem3 = self.solver.add_variable();
-            let not_elem3 = self.not(elem3);
+            let not_elem3 = self.solver.negate(elem3);
             self.solver.add_clause(&[not_elem1, elem3]);
             self.solver.add_clause(&[not_elem2, elem3]);
             self.solver.add_clause(&[elem1, elem2, not_elem3]);
@@ -216,9 +216,9 @@ impl BoolAlg for FreeAlg {
         }
     }
 
-    fn add(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
-        let not_elem1 = self.not(elem1);
-        let not_elem2 = self.not(elem2);
+    fn bool_add(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+        let not_elem1 = self.solver.negate(elem1);
+        let not_elem2 = self.solver.negate(elem2);
         if elem1 == self.zero {
             elem2
         } else if elem1 == self.unit {
@@ -229,11 +229,11 @@ impl BoolAlg for FreeAlg {
             not_elem1
         } else if elem1 == elem2 {
             self.zero
-        } else if elem1 == self.not(elem2) {
+        } else if elem1 == not_elem2 {
             self.unit
         } else {
             let elem3 = self.solver.add_variable();
-            let not_elem3 = self.not(elem3);
+            let not_elem3 = self.solver.negate(elem3);
             self.solver.add_clause(&[not_elem1, elem2, elem3]);
             self.solver.add_clause(&[elem1, not_elem2, elem3]);
             self.solver.add_clause(&[elem1, elem2, not_elem3]);
@@ -484,7 +484,7 @@ impl<'a> Solver for VariSat<'a> {
     fn get_value(self: &Self, lit: Literal) -> bool {
         let lit = VariSat::decode(lit);
         let var = lit.index();
-        self.solution.get(var) ^ lit.is_negative()
+        GenVec::get(&self.solution, var) ^ lit.is_negative()
     }
 
     fn get_name(self: &Self) -> &'static str {
@@ -507,10 +507,10 @@ mod tests {
     #[test]
     fn test_boolean() {
         let mut alg = Boolean::new();
-        let a = alg.unit();
-        let b = alg.not(a);
-        assert_eq!(alg.add(a, b), a);
-        assert_eq!(alg.and(a, b), b);
+        let a = alg.bool_unit();
+        let b = alg.bool_not(a);
+        assert_eq!(alg.bool_add(a, b), a);
+        assert_eq!(alg.bool_and(a, b), b);
     }
 
     #[test]
@@ -518,11 +518,11 @@ mod tests {
         let mut alg = FreeAlg::new("");
         let a = alg.add_variable();
         let b = alg.add_variable();
-        let c = alg.and(a, b);
+        let c = alg.bool_and(a, b);
         assert!(alg.find_model(&[c]));
         assert!(alg.get_value(a), true);
         assert!(alg.get_value(b), true);
-        let d = alg.not(a);
+        let d = alg.bool_not(a);
         assert!(!alg.find_model(&[c, d]));
     }
 

@@ -19,14 +19,14 @@
 //! This can be used to calculate with boolean terms and ask for a model
 //! where a given set of terms are all true.
 
-#[cfg(feature = "varisat")]
-extern crate fixedbitset;
 #[cfg(feature = "minisat")]
 extern crate minisat;
 #[cfg(feature = "varisat")]
 extern crate varisat;
 
 use std::fmt;
+#[cfg(feature = "varisat")]
+use super::bitvec::{BitVec, GenVec};
 
 /// A boolean algebra supporting boolean calculation.
 pub trait BoolAlg {
@@ -410,7 +410,7 @@ pub struct VariSat<'a> {
     num_variables: u32,
     num_clauses: u32,
     solver: varisat::solver::Solver<'a>,
-    solution: fixedbitset::FixedBitSet,
+    solution: BitVec,
 }
 
 #[cfg(feature = "varisat")]
@@ -421,7 +421,7 @@ impl<'a> Default for VariSat<'a> {
             num_variables: 0,
             num_clauses: 0,
             solver: varisat::solver::Solver::new(),
-            solution: fixedbitset::FixedBitSet::with_capacity(0),
+            solution: GenVec::new(),
         }
     }
 }
@@ -466,7 +466,7 @@ impl<'a> Solver for VariSat<'a> {
         self.solution.clear();
         let solvable = self.solver.solve().unwrap();
         if solvable {
-            self.solution.grow(self.num_variables() as usize);
+            self.solution.resize(self.num_variables() as usize, false);
             for lit in self.solver.model().unwrap() {
                 let var = lit.index();
                 self.solution.set(var, lit.is_positive());
@@ -478,7 +478,7 @@ impl<'a> Solver for VariSat<'a> {
     fn get_value(self: &Self, lit: Literal) -> bool {
         let lit = VariSat::decode(lit);
         let var = lit.index();
-        self.solution[var] ^ lit.is_negative()
+        self.solution.get(var) ^ lit.is_negative()
     }
 
     fn get_name(self: &Self) -> &'static str {

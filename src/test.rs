@@ -14,34 +14,3 @@
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
-extern crate fixedbitset;
-use fixedbitset::FixedBitSet;
-
-trait VecData {
-    type Data: Default;
-}
-
-impl VecData for bool {
-    type Data = FixedBitSet;
-}
-
-impl VecData for u32 {
-    type Data = Vec<u32>;
-}
-
-struct GenVec<T>(<T as VecData>::Data)
-where
-    T: VecData;
-
-impl GenVec<bool> {
-    pub fn new() -> Self {
-        GenVec(FixedBitSet::with_capacity(0))
-    }
-}
-
-impl GenVec<u32> {
-    pub fn new() -> Self {
-        GenVec(Vec::new())
-    }
-}

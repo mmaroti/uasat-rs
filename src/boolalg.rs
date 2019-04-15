@@ -24,14 +24,16 @@ extern crate minisat;
 #[cfg(feature = "varisat")]
 extern crate varisat;
 
-use std::fmt;
-#[cfg(feature = "varisat")]
 use super::bitvec::{BitVec, GenVec};
+use std::fmt;
 
 /// A boolean algebra supporting boolean calculation.
 pub trait BoolAlg {
     /// The element type of this bool algebra.
     type Elem: Copy;
+
+    /// A type that allows storing a vector of elements.
+    type Vector: GenVec<Self::Elem>;
 
     /// Returns the logical true (top) element of the algebra.
     fn unit(self: &Self) -> Self::Elem;
@@ -106,6 +108,8 @@ impl Boolean {
 impl BoolAlg for Boolean {
     type Elem = bool;
 
+    type Vector = BitVec;
+
     fn unit(self: &Self) -> Self::Elem {
         true
     }
@@ -178,6 +182,8 @@ impl FreeAlg {
 
 impl BoolAlg for FreeAlg {
     type Elem = Literal;
+
+    type Vector = Vec<Literal>;
 
     fn unit(self: &Self) -> Self::Elem {
         self.unit

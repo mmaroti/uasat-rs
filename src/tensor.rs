@@ -17,7 +17,9 @@
 
 //! Basic multidimensional array type and operations over boolean algebras.
 
+use super::bitvec::{BitVec, GenVec};
 use super::boolalg::{BoolAlg, FreeAlg, Literal};
+use std::marker::PhantomData;
 use std::ops::Index;
 
 /// The shape of a multidimensional array.
@@ -138,18 +140,23 @@ impl Iterator for StrideIter {
 
 /// A multidimensional array of elements.
 #[derive(Debug)]
-pub struct Tensor<Elem: Copy> {
+pub struct Tensor<Elem: Copy, Vector: GenVec<Elem>> {
     shape: Shape,
-    elems: Vec<Elem>,
+    elems: Vector,
+    marker: PhantomData<Elem>,
 }
 
-impl<Elem: Copy> Tensor<Elem> {
+impl<Elem: Copy, Vector: GenVec<Elem>> Tensor<Elem, Vector> {
     /// Creates a tensor filled with constant value
     pub fn new(shape: Shape, elem: Elem) -> Self {
         let size = shape.size();
-        let mut elems = Vec::with_capacity(size);
+        let mut elems: Vector = GenVec::with_capacity(size);
         elems.resize(size, elem);
-        Tensor { shape, elems }
+        Tensor {
+            shape,
+            elems,
+            marker: PhantomData,
+        }
     }
 
     /// Returns the shape of the tensor
@@ -160,13 +167,13 @@ impl<Elem: Copy> Tensor<Elem> {
     /// Returns the element at the given index.
     #[allow(non_snake_case)]
     pub fn __slow_get__(self: &Self, coords: &[usize]) -> Elem {
-        self.elems[self.shape.index(coords)]
+        self.elems.get(self.shape.index(coords))
     }
 
     /// Sets the element at the given index.
     #[allow(non_snake_case)]
     pub fn __slow_set__(self: &mut Self, coords: &[usize], elem: Elem) {
-        self.elems[self.shape.index(coords)] = elem
+        self.elems.set(self.shape.index(coords), elem);
     }
 
     /// Creates a new tensor of the given shape from the given old tensor with
@@ -177,7 +184,7 @@ impl<Elem: Copy> Tensor<Elem> {
         assert!(mapping.len() == self.shape.len());
 
         let size = shape.size();
-        let mut elems = Vec::with_capacity(size);
+        let mut elems: Vector = GenVec::with_capacity(size);
 
         let mut iter = StrideIter::new(&shape);
         let strides = self.shape.strides();
@@ -187,11 +194,15 @@ impl<Elem: Copy> Tensor<Elem> {
         }
 
         for index in iter {
-            elems.push(self.elems[index]);
+            elems.push(self.elems.get(index));
         }
         assert!(elems.len() == size);
 
-        Tensor { shape, elems }
+        Tensor {
+            shape,
+            elems,
+            marker: PhantomData,
+        }
     }
 }
 
@@ -266,13 +277,17 @@ impl TensorAlg for ShapeCheck {
 }
 
 impl<ALG: BoolAlg> TensorAlg for ALG {
-    type Tensor = Tensor<ALG::Elem>;
+    type Tensor = Tensor<ALG::Elem, ALG::Vector>;
 
     fn constant(self: &mut Self, shape: Shape, elem: bool) -> Self::Tensor {
         let size = shape.size();
-        let mut elems = Vec::with_capacity(size);
+        let mut elems: ALG::Vector = GenVec::with_capacity(size);
         elems.resize(size, self.lift(elem));
-        Tensor { shape, elems }
+        Tensor {
+            shape,
+            elems,
+            marker: PhantomData,
+        }
     }
 
     fn diagonal(self: &mut Self, shape: Shape) -> Self::Tensor {
@@ -283,7 +298,7 @@ impl<ALG: BoolAlg> TensorAlg for ALG {
 
         let unit = self.unit();
         for idx in 0..dim {
-            tensor.elems[idx * (dim + 1)] = unit;
+            tensor.elems.set(idx * (dim + 1), unit);
         }
 
         if shape.len() == 2 {
@@ -304,22 +319,30 @@ impl<ALG: BoolAlg> TensorAlg for ALG {
 
     fn not(self: &mut Self, tensor: &Self::Tensor) -> Self::Tensor {
         let shape = tensor.shape.clone();
-        let mut elems = Vec::with_capacity(tensor.elems.len());
+        let mut elems: ALG::Vector = GenVec::with_capacity(tensor.elems.len());
         for elem in tensor.elems.iter() {
             elems.push(BoolAlg::not(self, *elem));
         }
 
-        Tensor { shape, elems }
+        Tensor {
+            shape,
+            elems,
+            marker: PhantomData,
+        }
     }
 
     fn and(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor {
         let shape = tensor1.shape.clone();
-        let mut elems = Vec::with_capacity(tensor1.elems.len());
+        let mut elems: ALG::Vector = GenVec::with_capacity(tensor1.elems.len());
         for (elem1, elem2) in tensor1.elems.iter().zip(tensor2.elems.iter()) {
             elems.push(BoolAlg::and(self, *elem1, *elem2));
         }
 
-        Tensor { shape, elems }
+        Tensor {
+            shape,
+            elems,
+            marker: PhantomData,
+        }
     }
 }
 
@@ -333,7 +356,7 @@ pub trait SolverAlg {
 }
 
 impl SolverAlg for FreeAlg {
-    type Tensor = (Tensor<Literal>, usize);
+    type Tensor = Tensor<Literal, Vec<Literal>>;
 
     fn variable(self: &mut Self, shape: Shape) -> Self::Tensor {
         let size = shape.size();
@@ -341,8 +364,11 @@ impl SolverAlg for FreeAlg {
         for _ in 0..size {
             elems.push(self.add_variable());
         }
-        let marker = self as *const Self as usize;
-        (Tensor { shape, elems }, marker)
+        Tensor {
+            shape,
+            elems,
+            marker: PhantomData,
+        }
     }
 }
 
@@ -352,7 +378,7 @@ mod tests {
 
     #[test]
     fn test_polymer() {
-        let mut tensor: Tensor<usize> = Tensor::new(Shape::new(&[2, 3]), 0);
+        let mut tensor: Tensor<usize, Vec<usize>> = Tensor::new(Shape::new(&[2, 3]), 0);
         for i in 0..2 {
             for j in 0..3 {
                 tensor.__slow_set__(&[i, j], i + 10 * j);

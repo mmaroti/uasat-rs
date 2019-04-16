@@ -19,21 +19,21 @@
 //! This can be used to calculate with boolean terms and ask for a model
 //! where a given set of terms are all true.
 
+#[cfg(feature = "varisat")]
+extern crate bit_vec;
 #[cfg(feature = "minisat")]
 extern crate minisat;
 #[cfg(feature = "varisat")]
 extern crate varisat;
 
-use super::genvec::{BitVec, GenVec};
+#[cfg(feature = "varisat")]
+use bit_vec::BitVec;
 use std::fmt;
 
 /// A boolean algebra supporting boolean calculation.
 pub trait BoolAlg {
     /// The element type of this bool algebra.
     type Elem: Copy;
-
-    /// A type that allows storing a vector of elements.
-    type Vector: GenVec<Elem = Self::Elem>;
 
     /// Returns the logical true (top) element of the algebra.
     fn bool_unit(self: &Self) -> Self::Elem;
@@ -108,8 +108,6 @@ impl Boolean {
 impl BoolAlg for Boolean {
     type Elem = bool;
 
-    type Vector = BitVec;
-
     fn bool_unit(self: &Self) -> Self::Elem {
         true
     }
@@ -182,8 +180,6 @@ impl FreeAlg {
 
 impl BoolAlg for FreeAlg {
     type Elem = Literal;
-
-    type Vector = Vec<Literal>;
 
     fn bool_unit(self: &Self) -> Self::Elem {
         self.unit
@@ -427,7 +423,7 @@ impl<'a> Default for VariSat<'a> {
             num_variables: 0,
             num_clauses: 0,
             solver: varisat::solver::Solver::new(),
-            solution: GenVec::new(),
+            solution: BitVec::new(),
         }
     }
 }
@@ -472,7 +468,7 @@ impl<'a> Solver for VariSat<'a> {
         self.solution.clear();
         let solvable = self.solver.solve().unwrap();
         if solvable {
-            self.solution.resize(self.num_variables() as usize, false);
+            self.solution.grow(self.num_variables() as usize, false);
             for lit in self.solver.model().unwrap() {
                 let var = lit.index();
                 self.solution.set(var, lit.is_positive());
@@ -484,7 +480,7 @@ impl<'a> Solver for VariSat<'a> {
     fn get_value(self: &Self, lit: Literal) -> bool {
         let lit = VariSat::decode(lit);
         let var = lit.index();
-        GenVec::get(&self.solution, var) ^ lit.is_negative()
+        self.solution.get(var).unwrap() ^ lit.is_negative()
     }
 
     fn get_name(self: &Self) -> &'static str {

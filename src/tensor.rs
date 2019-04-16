@@ -18,10 +18,10 @@
 //! Basic multidimensional array type and operations over boolean algebras.
 
 use super::boolalg::{BoolAlg, FreeAlg, Literal};
-use super::genvec::GenVec;
+use super::genvec::{GenElem, GenVec};
 use std::ops::Index;
 
-/// The shape of a multidimensional array.
+/// The shape of a tensor.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Shape {
     dims: Vec<usize>,
@@ -139,16 +139,16 @@ impl Iterator for StrideIter {
 
 /// A multidimensional array of elements.
 #[derive(Debug)]
-pub struct Tensor<Vector: GenVec> {
+pub struct Tensor<Elem: GenElem> {
     shape: Shape,
-    elems: Vector,
+    elems: Elem::Vector,
 }
 
-impl<Vector: GenVec> Tensor<Vector> {
+impl<Elem: GenElem> Tensor<Elem> {
     /// Creates a tensor filled with constant value
-    pub fn new(shape: Shape, elem: Vector::Elem) -> Self {
+    pub fn new(shape: Shape, elem: Elem) -> Self {
         let size = shape.size();
-        let mut elems: Vector = GenVec::with_capacity(size);
+        let mut elems: Elem::Vector = GenVec::with_capacity(size);
         elems.resize(size, elem);
         Tensor { shape, elems }
     }
@@ -160,13 +160,13 @@ impl<Vector: GenVec> Tensor<Vector> {
 
     /// Returns the element at the given index.
     #[allow(non_snake_case)]
-    pub fn __slow_get__(self: &Self, coords: &[usize]) -> Vector::Elem {
+    pub fn __slow_get__(self: &Self, coords: &[usize]) -> Elem {
         self.elems.get(self.shape.index(coords))
     }
 
     /// Sets the element at the given index.
     #[allow(non_snake_case)]
-    pub fn __slow_set__(self: &mut Self, coords: &[usize], elem: Vector::Elem) {
+    pub fn __slow_set__(self: &mut Self, coords: &[usize], elem: Elem) {
         self.elems.set(self.shape.index(coords), elem);
     }
 
@@ -177,9 +177,6 @@ impl<Vector: GenVec> Tensor<Vector> {
     pub fn polymer(self: &Self, shape: Shape, mapping: &[usize]) -> Self {
         assert!(mapping.len() == self.shape.len());
 
-        let size = shape.size();
-        let mut elems: Vector = GenVec::with_capacity(size);
-
         let mut iter = StrideIter::new(&shape);
         let strides = self.shape.strides();
         for (idx, val) in mapping.iter().enumerate() {
@@ -187,6 +184,8 @@ impl<Vector: GenVec> Tensor<Vector> {
             iter.add_stride(*val, strides[idx]);
         }
 
+        let size = shape.size();
+        let mut elems: Elem::Vector = GenVec::with_capacity(size);
         for index in iter {
             elems.push(self.elems.get(index));
         }
@@ -304,12 +303,13 @@ impl TensorAlg for Checker {
 
 fn boolalg_binop<A, F>(
     alg: &mut A,
-    tensor1: &Tensor<A::Vector>,
-    tensor2: &Tensor<A::Vector>,
+    tensor1: &Tensor<A::Elem>,
+    tensor2: &Tensor<A::Elem>,
     mut op: F,
-) -> Tensor<A::Vector>
+) -> Tensor<A::Elem>
 where
     A: BoolAlg,
+    A::Elem: GenElem,
     F: FnMut(&mut A, A::Elem, A::Elem) -> A::Elem,
 {
     assert!(tensor1.shape() == tensor2.shape());
@@ -320,14 +320,15 @@ where
     Tensor { shape, elems }
 }
 
-impl<A: BoolAlg> TensorAlg for A {
-    type Tensor = Tensor<A::Vector>;
+impl<A> TensorAlg for A
+where
+    A: BoolAlg,
+    A::Elem: GenElem,
+{
+    type Tensor = Tensor<A::Elem>;
 
     fn constant(self: &mut Self, shape: Shape, elem: bool) -> Self::Tensor {
-        let size = shape.size();
-        let mut elems: A::Vector = GenVec::with_capacity(size);
-        elems.resize(size, self.bool_lift(elem));
-        Tensor { shape, elems }
+        Tensor::new(shape, self.bool_lift(elem))
     }
 
     fn diagonal(self: &mut Self, shape: Shape) -> Self::Tensor {
@@ -394,7 +395,7 @@ pub trait SolverAlg {
 }
 
 impl SolverAlg for FreeAlg {
-    type Tensor = Tensor<Vec<Literal>>;
+    type Tensor = Tensor<Literal>;
 
     fn variable(self: &mut Self, shape: Shape) -> Self::Tensor {
         let size = shape.size();
@@ -406,15 +407,18 @@ impl SolverAlg for FreeAlg {
     }
 }
 
+impl GenElem for Literal {
+    type Vector = Vec<Self>;
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::boolalg::Boolean;
-    use super::super::genvec::BitVec;
     use super::*;
 
     #[test]
     fn test_polymer() {
-        let mut tensor: Tensor<Vec<usize>> = Tensor::new(Shape::new(&[2, 3]), 0);
+        let mut tensor: Tensor<usize> = Tensor::new(Shape::new(&[2, 3]), 0);
         for i in 0..2 {
             for j in 0..3 {
                 tensor.__slow_set__(&[i, j], i + 10 * j);
@@ -434,7 +438,7 @@ mod tests {
     #[test]
     fn test_bool_tensor() {
         let mut alg = Boolean();
-        let mut t1: Tensor<BitVec> = Tensor::new(Shape::new(&[2, 3]), false);
+        let mut t1: Tensor<bool> = Tensor::new(Shape::new(&[2, 3]), false);
         t1.__slow_set__(&[0, 0], true);
         t1.__slow_set__(&[1, 1], true);
         t1.__slow_set__(&[1, 2], true);

@@ -18,6 +18,7 @@
 //! A generic vector trait to work with regular and bit vectors.
 
 extern crate bit_vec;
+
 pub use bit_vec::BitVec;
 
 /// Generic interface for regular and bit vectors.
@@ -210,6 +211,20 @@ impl GenVec for BitVec {
     fn capacity(self: &Self) -> usize {
         BitVec::capacity(self)
     }
+}
+
+/// Interface for elements that can be put into generic vectors.
+pub trait GenElem: Copy {
+    /// A type that can be used for storing a vector of elements.
+    type Vector: GenVec<Elem = Self>;
+}
+
+impl GenElem for bool {
+    type Vector = BitVec;
+}
+
+impl GenElem for usize {
+    type Vector = Vec<Self>;
 }
 
 #[cfg(test)]

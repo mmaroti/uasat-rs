@@ -20,11 +20,16 @@
 pub mod boolalg;
 pub mod genvec;
 pub mod lexer;
-pub mod tensor;
+pub mod parser;
 pub mod test;
+
 
 #[cfg(feature = "console_error_panic_hook")]
 extern crate console_error_panic_hook;
+#[macro_use]
+extern crate lazy_static;
+#[macro_use]
+extern crate nom;
 extern crate wasm_bindgen;
 
 use boolalg::*;
@@ -89,7 +94,7 @@ pub fn test_solver(solver_name: &str, size: usize) -> String {
         sol.add_clause(&lits);
     }
 
-    format!("{} result {}", sol.get_name(), count)
+    format!("{} result {}\n", sol.get_name(), count)
 }
 
 #[wasm_bindgen]
@@ -100,13 +105,15 @@ pub fn test(input: String) -> String {
         output.push_str(format!("{}\n", token).as_str());
     }
     #[cfg(feature = "varisat")]
-    output.push_str(&test_solver("varisat", 9));
+    output.push_str(&test_solver("varisat", 7));
+    output.push_str(&format!("{:?}\n", parser::parse(&input)));
     output
 }
 
 fn main() {
-    #[cfg(feature = "minisat")]
-    println!("MiniSat {}", test_solver("minisat", 9));
-    #[cfg(feature = "varisat")]
-    println!("VariSat {}", test_solver("varisat", 9));
+    parser::test();
+    // #[cfg(feature = "minisat")]
+    // println!("MiniSat {}", test_solver("minisat", 9));
+    // #[cfg(feature = "varisat")]
+    // println!("VariSat {}", test_solver("varisat", 9));
 }

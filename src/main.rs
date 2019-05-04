@@ -22,7 +22,6 @@ pub mod genvec;
 pub mod lexer;
 pub mod parser;
 
-
 #[cfg(feature = "console_error_panic_hook")]
 extern crate console_error_panic_hook;
 extern crate wasm_bindgen;

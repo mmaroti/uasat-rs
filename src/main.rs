@@ -21,15 +21,10 @@ pub mod boolalg;
 pub mod genvec;
 pub mod lexer;
 pub mod parser;
-pub mod test;
 
 
 #[cfg(feature = "console_error_panic_hook")]
 extern crate console_error_panic_hook;
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate nom;
 extern crate wasm_bindgen;
 
 use boolalg::*;
@@ -106,12 +101,11 @@ pub fn test(input: String) -> String {
     }
     #[cfg(feature = "varisat")]
     output.push_str(&test_solver("varisat", 7));
-    output.push_str(&format!("{:?}\n", parser::parse(&input)));
+    // output.push_str(&format!("{:?}\n", parser::parse(&input)));
     output
 }
 
 fn main() {
-    parser::test();
     // #[cfg(feature = "minisat")]
     // println!("MiniSat {}", test_solver("minisat", 9));
     // #[cfg(feature = "varisat")]

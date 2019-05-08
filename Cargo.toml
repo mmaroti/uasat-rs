@@ -14,8 +14,8 @@ wasm = ["console_error_panic_hook", "varisat"]
 [dependencies]
 wasm-bindgen = "0.2"
 bit-vec = "0.5"
-varisat = { version = "0.2", optional = true }
 minisat = { version = "0.4", optional = true }
+varisat = { version = "0.2", optional = true }
 console_error_panic_hook = { version = "0.1", optional = true }
 
 [dev-dependencies]

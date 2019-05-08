@@ -200,13 +200,12 @@ pub trait TensorAlg {
     /// The type representing the tensor.
     type Tensor;
 
-    /// Creates a new tensor filled with the given element.
-    fn constant(self: &mut Self, shape: Shape, elem: bool) -> Self::Tensor;
+    /// Creates a new scalar tensor for the given element.
+    fn scalar(self: &mut Self, elem: bool) -> Self::Tensor;
 
-    /// Returns a diagonal tensor with true elements on the diagonal and false
-    /// everywhere else. The shape must have at least two dimensions and the
-    /// first two dimensions must be equal.
-    fn diagonal(self: &mut Self, shape: Shape) -> Self::Tensor;
+    /// Returns a diagonal tensor of rank two with true elements on the
+    /// diagonal and false everywhere else.
+    fn diagonal(self: &mut Self, dim: usize) -> Self::Tensor;
 
     /// Creates a new tensor of the given shape from the given old tensor with
     /// permuted, identified or new dummy coordinates. The mapping is a vector
@@ -254,13 +253,12 @@ fn checker_binop(tensor1: &Shape, tensor2: &Shape) -> Shape {
 impl TensorAlg for Checker {
     type Tensor = Shape;
 
-    fn constant(self: &mut Self, shape: Shape, _elem: bool) -> Self::Tensor {
-        shape
+    fn scalar(self: &mut Self, _elem: bool) -> Self::Tensor {
+        Shape::new(&[])
     }
 
-    fn diagonal(self: &mut Self, shape: Shape) -> Self::Tensor {
-        assert!(shape.len() >= 2 && shape[0] == shape[1]);
-        shape
+    fn diagonal(self: &mut Self, dim: usize) -> Self::Tensor {
+        Shape::new(&[dim, dim])
     }
 
     fn polymer(
@@ -327,26 +325,19 @@ where
 {
     type Tensor = Tensor<A::Elem>;
 
-    fn constant(self: &mut Self, shape: Shape, elem: bool) -> Self::Tensor {
-        Tensor::new(shape, self.bool_lift(elem))
+    fn scalar(self: &mut Self, elem: bool) -> Self::Tensor {
+        Tensor::new(Shape::new(&[]), self.bool_lift(elem))
     }
 
-    fn diagonal(self: &mut Self, shape: Shape) -> Self::Tensor {
-        assert!(shape.len() >= 2 && shape[0] == shape[1]);
-
-        let dim = shape[0];
-        let mut tensor = self.constant(Shape::new(&[dim, dim]), false);
+    fn diagonal(self: &mut Self, dim: usize) -> Self::Tensor {
+        let mut tensor = Tensor::new(Shape::new(&[dim, dim]), self.bool_zero());
 
         let unit = self.bool_unit();
         for idx in 0..dim {
             tensor.elems.set(idx * (dim + 1), unit);
         }
 
-        if shape.len() == 2 {
-            tensor
-        } else {
-            self.polymer(&tensor, shape, &[0, 1])
-        }
+        tensor
     }
 
     fn polymer(

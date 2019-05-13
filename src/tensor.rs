@@ -225,13 +225,13 @@ pub trait TensorAlg {
     /// elements.
     fn tensor_or(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor;
 
-    /// Returns a new tensor whose elements are the boolean additions of the
-    /// original elements.
-    fn tensor_add(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor;
-
     /// Returns a new tensor whose elements are the conjunctions of the
     /// original elements.
     fn tensor_and(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor;
+
+    /// Returns a new tensor whose elements are the boolean additions of the
+    /// original elements.
+    fn tensor_add(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor;
 
     /// Returns a new tensor whose elements are the logical equivalence of the
     /// original elements.
@@ -282,11 +282,11 @@ impl TensorAlg for Checker {
         checker_binop(tensor1, tensor2)
     }
 
-    fn tensor_add(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor {
+    fn tensor_and(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor {
         checker_binop(tensor1, tensor2)
     }
 
-    fn tensor_and(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor {
+    fn tensor_add(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor {
         checker_binop(tensor1, tensor2)
     }
 
@@ -359,12 +359,12 @@ where
         boolalg_binop(self, tensor1, tensor2, BoolAlg::bool_or)
     }
 
-    fn tensor_add(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor {
-        boolalg_binop(self, tensor1, tensor2, BoolAlg::bool_add)
-    }
-
     fn tensor_and(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor {
         boolalg_binop(self, tensor1, tensor2, BoolAlg::bool_and)
+    }
+
+    fn tensor_add(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor {
+        boolalg_binop(self, tensor1, tensor2, BoolAlg::bool_add)
     }
 
     fn tensor_equ(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor {

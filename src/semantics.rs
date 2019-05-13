@@ -19,7 +19,7 @@ use super::tensor::{Checker, Shape, TensorAlg};
 
 /// A monomorphic calculation that takes a number of tensors and
 /// produces some number (usually one) tensors as output.
-pub trait MonoCalculation {
+pub trait MonoCalc {
     /// Returns the required shape of the inputs.
     fn input_shapes(self: &Self) -> Vec<Shape>;
 
@@ -44,24 +44,30 @@ pub trait MonoCalculation {
         A: TensorAlg;
 }
 
-pub enum MonoPrimitive {
+pub enum MonoPrim {
     Scalar(bool),
     Diagonal(usize),
-    Polymer(Shape, Vec<usize>, Shape),
+    Polymer(Shape, Shape, Vec<usize>),
     TensorNot(Shape),
     TensorOr(Shape),
+    TensorAdd(Shape),
     TensorAnd(Shape),
+    TensorEqu(Shape),
+    TensorLeq(Shape),
 }
 
-impl MonoCalculation for MonoPrimitive {
+impl MonoCalc for MonoPrim {
     fn input_shapes(self: &Self) -> Vec<Shape> {
         match self {
-            MonoPrimitive::Scalar(_) => vec![],
-            MonoPrimitive::Diagonal(dim) => vec![],
-            MonoPrimitive::Polymer(shape, _, _) => vec![shape.clone()],
-            MonoPrimitive::TensorNot(shape) => vec![shape.clone()],
-            MonoPrimitive::TensorOr(shape) => vec![shape.clone(), shape.clone()],
-            MonoPrimitive::TensorAnd(shape) => vec![shape.clone(), shape.clone()],
+            MonoPrim::Scalar(_) => vec![],
+            MonoPrim::Diagonal(_) => vec![],
+            MonoPrim::Polymer(shape, _, _) => vec![shape.clone()],
+            MonoPrim::TensorNot(shape) => vec![shape.clone()],
+            MonoPrim::TensorOr(shape) => vec![shape.clone(), shape.clone()],
+            MonoPrim::TensorAnd(shape) => vec![shape.clone(), shape.clone()],
+            MonoPrim::TensorAdd(shape) => vec![shape.clone(), shape.clone()],
+            MonoPrim::TensorEqu(shape) => vec![shape.clone(), shape.clone()],
+            MonoPrim::TensorLeq(shape) => vec![shape.clone(), shape.clone()],
         }
     }
 
@@ -69,10 +75,17 @@ impl MonoCalculation for MonoPrimitive {
     where
         A: TensorAlg,
     {
+        debug_assert_eq!(self.input_arity(), input.len());
         match self {
-            MonoPrimitive::Scalar(elem) => vec![alg.scalar(*elem)],
-            MonoPrimitive::Diagonal(dim) => vec![alg.diagonal(*dim)],
-            _ => unimplemented!(),
+            MonoPrim::Scalar(elem) => vec![alg.scalar(*elem)],
+            MonoPrim::Diagonal(dim) => vec![alg.diagonal(*dim)],
+            MonoPrim::Polymer(_, shape, map) => vec![alg.polymer(&input[0], shape.clone(), map)],
+            MonoPrim::TensorNot(_) => vec![alg.tensor_not(&input[0])],
+            MonoPrim::TensorOr(_) => vec![alg.tensor_or(&input[0], &input[1])],
+            MonoPrim::TensorAnd(_) => vec![alg.tensor_and(&input[0], &input[1])],
+            MonoPrim::TensorAdd(_) => vec![alg.tensor_add(&input[0], &input[1])],
+            MonoPrim::TensorEqu(_) => vec![alg.tensor_equ(&input[0], &input[1])],
+            MonoPrim::TensorLeq(_) => vec![alg.tensor_leq(&input[0], &input[1])],
         }
     }
 }

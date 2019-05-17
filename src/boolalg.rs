@@ -501,7 +501,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_boolean() {
+    fn boolops() {
         let mut alg = Boolean::new();
         let a = alg.bool_unit();
         let b = alg.bool_not(a);
@@ -510,7 +510,7 @@ mod tests {
     }
 
     #[test]
-    fn test_freealg() {
+    fn freealg() {
         let mut alg = FreeAlg::new("");
         let a = alg.add_variable();
         let b = alg.add_variable();
@@ -524,7 +524,7 @@ mod tests {
 
     #[cfg(feature = "minisat")]
     #[test]
-    fn test_minisat() {
+    fn minisat() {
         let mut sat: MiniSat = Default::default();
         let a = sat.add_variable();
         let b = sat.add_variable();
@@ -542,7 +542,7 @@ mod tests {
 
     #[cfg(feature = "varisat")]
     #[test]
-    fn test_varisat() {
+    fn varisat() {
         let mut sat: VariSat = Default::default();
         let a = sat.add_variable();
         let b = sat.add_variable();

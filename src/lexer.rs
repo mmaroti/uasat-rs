@@ -153,7 +153,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_lexer() {
+    fn lexer() {
         let mut lexer = Lexer::new("ab\n ,12");
 
         assert_eq!(

@@ -159,7 +159,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_parser_tag() {
+    fn tag() {
         let text = &mut "212";
 
         let tag1 = Tag("1", "expected one");

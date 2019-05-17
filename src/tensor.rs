@@ -45,6 +45,19 @@ impl Shape {
         self.dims.is_empty()
     }
 
+    /// Returns the head and tail of this shape. The shape should
+    /// have at least one dimensions.
+    pub fn head_tail(self: &Self) -> (usize, Self) {
+        assert!(!self.dims.is_empty());
+
+        let head = self.dims[0];
+        let tail = Shape {
+            dims: self.dims[1..].to_vec(),
+        };
+
+        (head, tail)
+    }
+
     /// Returns the number of elements this shape represents.
     pub fn size(self: &Self) -> usize {
         let mut size = 1;
@@ -138,7 +151,7 @@ impl Iterator for StrideIter {
 }
 
 /// A multidimensional array of elements.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Tensor<Elem: GenElem> {
     shape: Shape,
     elems: Elem::Vector,
@@ -195,10 +208,18 @@ impl<Elem: GenElem> Tensor<Elem> {
     }
 }
 
+pub trait TensorOps
+where
+    Self: Clone,
+{
+    /// Returns the shape of the tensor
+    fn shape(self: &Self) -> &Shape;
+}
+
 /// A tensor algebra for tensors.
 pub trait TensorAlg {
     /// The type representing the tensor.
-    type Tensor;
+    type Tensor: TensorOps;
 
     /// Creates a new scalar tensor for the given element.
     fn scalar(self: &mut Self, elem: bool) -> Self::Tensor;
@@ -240,10 +261,24 @@ pub trait TensorAlg {
     /// Returns a new tensor whose elements are the logical implication of the
     /// original elements.
     fn tensor_leq(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor;
+
+    /// Returns a new tensor with one less dimension (the first one is removed)
+    /// where the result is the conjunction of the elements.
+    fn tensor_all(self: &mut Self, tensor: &Self::Tensor) -> Self::Tensor;
+
+    /// Returns a new tensor with one less dimension (the first one is removed)
+    /// where the result is the disjunction of the elements.
+    fn tensor_any(self: &mut Self, tensor: &Self::Tensor) -> Self::Tensor;
 }
 
 /// The tensor algebra used for checking the shapes of calculations.
 pub struct Checker();
+
+impl TensorOps for Shape {
+    fn shape(self: &Self) -> &Shape {
+        self
+    }
+}
 
 fn checker_binop(tensor1: &Shape, tensor2: &Shape) -> Shape {
     assert!(tensor1 == tensor2);
@@ -297,6 +332,23 @@ impl TensorAlg for Checker {
     fn tensor_leq(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor {
         checker_binop(tensor1, tensor2)
     }
+
+    fn tensor_all(self: &mut Self, tensor: &Self::Tensor) -> Self::Tensor {
+        tensor.head_tail().1
+    }
+
+    fn tensor_any(self: &mut Self, tensor: &Self::Tensor) -> Self::Tensor {
+        tensor.head_tail().1
+    }
+}
+
+impl<Elem> TensorOps for Tensor<Elem>
+where
+    Elem: GenElem,
+{
+    fn shape(self: &Self) -> &Shape {
+        &self.shape
+    }
 }
 
 fn boolalg_binop<A, F>(
@@ -315,6 +367,26 @@ where
     let elems = GenVec::from_fn(tensor1.elems.len(), |i| {
         op(alg, tensor1.elems.get(i), tensor2.elems.get(i))
     });
+    Tensor { shape, elems }
+}
+
+fn boolalg_fold<A, F>(alg: &mut A, tensor: &Tensor<A::Elem>, mut op: F) -> Tensor<A::Elem>
+where
+    A: BoolAlg,
+    A::Elem: GenElem,
+    F: FnMut(&mut A, &[A::Elem]) -> A::Elem,
+{
+    let (head, shape) = tensor.shape().head_tail();
+    let mut slice = Vec::with_capacity(head);
+    slice.resize(head, alg.bool_zero());
+
+    let elems = GenVec::from_fn(shape.size(), |i| {
+        for (j, item) in slice.iter_mut().enumerate().take(head) {
+            *item = tensor.elems.get(i * head + j);
+        }
+        op(alg, &slice)
+    });
+
     Tensor { shape, elems }
 }
 
@@ -374,6 +446,14 @@ where
     fn tensor_leq(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor {
         boolalg_binop(self, tensor1, tensor2, BoolAlg::bool_leq)
     }
+
+    fn tensor_all(self: &mut Self, tensor: &Self::Tensor) -> Self::Tensor {
+        boolalg_fold(self, tensor, BoolAlg::bool_all)
+    }
+
+    fn tensor_any(self: &mut Self, tensor: &Self::Tensor) -> Self::Tensor {
+        boolalg_fold(self, tensor, BoolAlg::bool_any)
+    }
 }
 
 /// The trait for solving tensor algebra problems.
@@ -408,7 +488,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_polymer() {
+    fn polymer() {
         let mut tensor: Tensor<usize> = Tensor::new(Shape::new(&[2, 3]), 0);
         for i in 0..2 {
             for j in 0..3 {
@@ -427,7 +507,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bool_tensor() {
+    fn getset() {
         let mut alg = Boolean();
         let mut t1: Tensor<bool> = Tensor::new(Shape::new(&[2, 3]), false);
         t1.__slow_set__(&[0, 0], true);
@@ -446,5 +526,22 @@ mod tests {
         assert_eq!(t3.__slow_get__(&[1, 0]), false);
         assert_eq!(t3.__slow_get__(&[1, 1]), false);
         assert_eq!(t3.__slow_get__(&[1, 2]), false);
+    }
+
+    #[test]
+    fn fold() {
+        let mut alg = Boolean();
+        let mut t1: Tensor<bool> = Tensor::new(Shape::new(&[2, 4]), false);
+        t1.__slow_set__(&[0, 1], true);
+        t1.__slow_set__(&[1, 2], true);
+        t1.__slow_set__(&[0, 3], true);
+        t1.__slow_set__(&[1, 3], true);
+
+        let t2 = alg.tensor_all(&t1);
+        assert_eq!(*t2.shape(), Shape::new(&[4]));
+        assert_eq!(t2.__slow_get__(&[0]), false);
+        assert_eq!(t2.__slow_get__(&[1]), false);
+        assert_eq!(t2.__slow_get__(&[2]), false);
+        assert_eq!(t2.__slow_get__(&[3]), true);
     }
 }

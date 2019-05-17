@@ -24,7 +24,7 @@ pub use bit_vec::BitVec;
 /// Generic interface for regular and bit vectors.
 pub trait GenVec
 where
-    Self: Default,
+    Self: Default + Clone,
 {
     /// The element type of the vector.
     type Elem: Copy;
@@ -232,7 +232,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_bitvec_resize() {
+    fn resize() {
         let mut v1: BitVec = GenVec::new();
         let mut v2: Vec<bool> = GenVec::new();
 

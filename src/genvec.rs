@@ -20,11 +20,12 @@
 extern crate bit_vec;
 
 pub use bit_vec::BitVec;
+use std::fmt::Debug;
 
 /// Generic interface for regular and bit vectors.
 pub trait GenVec
 where
-    Self: Default + Clone,
+    Self: Default + Clone + Debug,
 {
     /// The element type of the vector.
     type Elem: Copy;
@@ -75,7 +76,7 @@ where
     fn capacity(self: &Self) -> usize;
 }
 
-impl<T: Copy> GenVec for Vec<T> {
+impl<T: Copy + Debug> GenVec for Vec<T> {
     type Elem = T;
 
     #[inline]

@@ -108,6 +108,7 @@ pub fn test(input: String) -> String {
 }
 
 fn main() {
+    posets::calculate();
     // #[cfg(feature = "minisat")]
     // println!("MiniSat {}", test_solver("minisat", 9));
     // #[cfg(feature = "varisat")]

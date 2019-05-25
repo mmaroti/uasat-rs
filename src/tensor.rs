@@ -67,9 +67,36 @@ impl Shape {
         size
     }
 
+    /// Returns a new shape that is the same of this shape but a few new 
+    /// dimension are inserted into the shape at the given position.
+    pub fn insert(self: &Self, pos: usize, dims: &[usize]) -> Self {
+        assert!(pos <= self.len());
+        let mut dims2 = self.dims.clone();
+        for (idx, dim) in dims.iter().enumerate() {
+            dims2.insert(pos + idx, *dim);
+        }
+        Shape { dims: dims2 }
+    }
+
+    /// Creates a mapping suitable for a polymer operation where the initial
+    /// segment is provided and the rest is filled in starting at the rest
+    /// position.
+    pub fn mapping(self: &Self, part: &[usize], rest: usize) -> Vec<usize> {
+        assert!(part.len() <= self.len());
+        let mut mapping = Vec::with_capacity(self.len());
+        for dim in part {
+            assert!(*dim < rest);
+            mapping.push(*dim);
+        }
+        for i in 0..(self.len() - part.len()) {
+            mapping.push(rest + i);
+        }
+        mapping
+    }
+
     /// Returns the linear index of an element given by coordinates.
     fn index(self: &Self, coords: &[usize]) -> usize {
-        assert!(self.len() == coords.len());
+        assert!(coords.len() == self.len());
         let mut index = 0;
         let mut size = 1;
         for (coord, dim) in coords.iter().zip(self.dims.iter()) {
@@ -82,7 +109,7 @@ impl Shape {
 
     /// Returns the vector of strides for linear indexing
     fn strides(self: &Self) -> Vec<usize> {
-        let mut strides = Vec::with_capacity(self.dims.len());
+        let mut strides = Vec::with_capacity(self.len());
         let mut size = 1;
         for dim in self.dims.iter() {
             strides.push(size);

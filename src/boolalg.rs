@@ -30,6 +30,9 @@ extern crate varisat;
 use bit_vec::BitVec;
 use std::fmt;
 
+#[cfg(feature = "varisat")]
+use varisat::ExtendFormula;
+
 /// A boolean algebra supporting boolean calculation.
 pub trait BoolAlg {
     /// The element type of this bool algebra.
@@ -148,7 +151,7 @@ impl BoolAlg for Boolean {
 /// The free boolean algebra backed by a SAT solver.
 #[derive(Debug)]
 pub struct FreeAlg {
-    solver: Box<Solver>,
+    solver: Box<dyn Solver>,
     unit: Literal,
     zero: Literal,
 }
@@ -281,7 +284,7 @@ pub trait Solver {
 /// Tries to create a SAT solver with the given name. Currently only "varisat"
 /// and "minisat" (not on wasm) are supported. Use "" to match the first
 /// available solver.
-pub fn create_solver(name: &str) -> Box<Solver> {
+pub fn create_solver(name: &str) -> Box<dyn Solver> {
     let mut enabled_solvers = 0;
 
     #[cfg(feature = "varisat")]
@@ -309,7 +312,7 @@ pub fn create_solver(name: &str) -> Box<Solver> {
     }
 }
 
-impl fmt::Debug for Solver {
+impl fmt::Debug for dyn Solver {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
@@ -455,7 +458,9 @@ impl<'a> Solver for VariSat<'a> {
 
     fn add_clause(self: &mut Self, lits: &[Literal]) {
         let mut formula = varisat::cnf::CnfFormula::new();
-        formula.add_clause(lits.iter().map(|lit| VariSat::decode(*lit)));
+        // TODO: do we need to allocate?
+        let lits: Vec<varisat::Lit> = lits.iter().map(|lit| VariSat::decode(*lit)).collect();
+        formula.add_clause(&lits);
         self.solver.add_formula(&formula);
         self.num_clauses += 1;
     }

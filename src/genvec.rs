@@ -214,7 +214,8 @@ impl GenVec for BitVec {
     }
 }
 
-/// Interface for elements that can be put into generic vectors.
+/// Interface for elements whose vector container can be automatically
+/// derived.
 pub trait GenElem: Copy {
     /// A type that can be used for storing a vector of elements.
     type Vector: GenVec<Elem = Self>;

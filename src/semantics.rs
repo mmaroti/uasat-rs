@@ -18,7 +18,7 @@
 use super::tensor::{Checker, Shape, TensorAlg};
 
 /// A monomorphic calculation that takes a number of tensors and
-/// produces some number (usually one) tensors as output.
+/// produces some number of (usually one) tensors as output.
 pub trait MonoCalc {
     /// Returns the required shape of the inputs.
     fn input_shapes(self: &Self) -> Vec<Shape>;

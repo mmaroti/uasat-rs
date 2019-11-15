@@ -23,13 +23,14 @@ pub mod lexer;
 pub mod parser;
 pub mod posets;
 pub mod semantics;
+pub mod solver;
 pub mod tensor;
 
 #[cfg(feature = "console_error_panic_hook")]
 extern crate console_error_panic_hook;
 extern crate wasm_bindgen;
 
-use boolalg::*;
+use solver::*;
 #[cfg(feature = "console_error_panic_hook")]
 use std::panic;
 use wasm_bindgen::prelude::*;

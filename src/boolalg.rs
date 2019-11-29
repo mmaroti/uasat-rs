@@ -19,8 +19,7 @@
 //! This can be used to calculate with boolean terms and ask for a model
 //! where a given set of terms are all true.
 
-pub use super::solver::Literal;
-use super::solver::{create_solver, Solver};
+use super::solver;
 
 /// A boolean algebra supporting boolean calculation.
 pub trait BoolAlg {
@@ -43,7 +42,7 @@ pub trait BoolAlg {
     }
 
     /// Return the logical negation of the element.
-    fn bool_not(self: &Self, elem: Self::Elem) -> Self::Elem;
+    fn bool_not(self: &mut Self, elem: Self::Elem) -> Self::Elem;
 
     /// Returns the logical or (lattice join) of a pair of elements.
     fn bool_or(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
@@ -53,18 +52,22 @@ pub trait BoolAlg {
 
     /// Returns the logical and (lattice meet) of a pair of elements.
     fn bool_and(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
-        let tmp = self.bool_or(self.bool_not(elem1), self.bool_not(elem2));
-        self.bool_not(tmp)
+        let tmp1 = self.bool_not(elem1);
+        let tmp2 = self.bool_not(elem2);
+        let tmp3 = self.bool_or(tmp1, tmp2);
+        self.bool_not(tmp3)
     }
 
     /// Returns the logical equivalence of a pair of elements.
     fn bool_equ(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
-        self.bool_add(elem1, self.bool_not(elem2))
+        let tmp = self.bool_not(elem1);
+        self.bool_add(tmp, elem2)
     }
 
     /// Returns the logical implication of a pair of elements.
     fn bool_leq(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
-        self.bool_or(self.bool_not(elem1), elem2)
+        let tmp = self.bool_not(elem1);
+        self.bool_or(tmp, elem2)
     }
 
     /// Computes the conjunction of the elements.
@@ -112,7 +115,7 @@ impl BoolAlg for Boolean {
         elem
     }
 
-    fn bool_not(self: &Self, elem: Self::Elem) -> Self::Elem {
+    fn bool_not(self: &mut Self, elem: Self::Elem) -> Self::Elem {
         !elem
     }
 
@@ -139,39 +142,40 @@ impl BoolAlg for Boolean {
 
 /// The free boolean algebra backed by a SAT solver.
 #[derive(Debug)]
-pub struct FreeAlg {
-    solver: Box<dyn Solver>,
-    unit: Literal,
-    zero: Literal,
+pub struct Solver {
+    solver: Box<dyn solver::Solver>,
+    unit: solver::Literal,
+    zero: solver::Literal,
 }
 
-impl FreeAlg {
+impl Solver {
     /// Creates a new free boolean algebra.
     pub fn new(solver_name: &str) -> Self {
-        let mut solver = create_solver(solver_name);
+        let mut solver = solver::create_solver(solver_name);
         let unit = solver.add_variable();
         let zero = solver.negate(unit);
-        FreeAlg { solver, unit, zero }
+        solver.add_clause(&[unit]);
+        Solver { solver, unit, zero }
     }
 
     /// Adds a new free variable to the algebra
-    pub fn add_variable(self: &mut Self) -> Literal {
+    pub fn add_variable(self: &mut Self) -> solver::Literal {
         self.solver.add_variable()
     }
 
     /// Runs the solver and finds a model where the given assumptions are true.
-    pub fn find_model(self: &mut Self, vars: &[Literal]) -> bool {
+    pub fn find_model(self: &mut Self, vars: &[solver::Literal]) -> bool {
         self.solver.solve_with(vars)
     }
 
     /// Returns the logical value of the element in the found model.
-    pub fn get_value(self: &Self, elem: Literal) -> bool {
+    pub fn get_value(self: &Self, elem: solver::Literal) -> bool {
         self.solver.get_value(elem)
     }
 }
 
-impl BoolAlg for FreeAlg {
-    type Elem = Literal;
+impl BoolAlg for Solver {
+    type Elem = solver::Literal;
 
     fn bool_unit(self: &Self) -> Self::Elem {
         self.unit
@@ -181,7 +185,7 @@ impl BoolAlg for FreeAlg {
         self.zero
     }
 
-    fn bool_not(self: &Self, elem: Self::Elem) -> Self::Elem {
+    fn bool_not(self: &mut Self, elem: Self::Elem) -> Self::Elem {
         self.solver.negate(elem)
     }
 
@@ -246,7 +250,7 @@ mod tests {
 
     #[test]
     fn freealg() {
-        let mut alg = FreeAlg::new("");
+        let mut alg = Solver::new("");
         let a = alg.add_variable();
         let b = alg.add_variable();
         let c = alg.bool_and(a, b);

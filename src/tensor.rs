@@ -17,7 +17,7 @@
 
 //! Basic multidimensional array type and operations over boolean algebras.
 
-use super::boolalg::{BoolAlg, FreeAlg, Literal};
+use super::boolalg::{BoolAlg, Solver};
 use super::genvec::{GenElem, GenVec};
 use std::ops::Index;
 
@@ -67,7 +67,7 @@ impl Shape {
         size
     }
 
-    /// Returns a new shape that is the same of this shape but a few new 
+    /// Returns a new shape that is the same as this shape but a few new
     /// dimension are inserted into the shape at the given position.
     pub fn insert(self: &Self, pos: usize, dims: &[usize]) -> Self {
         assert!(pos <= self.len());
@@ -235,7 +235,7 @@ impl<Elem: GenElem> Tensor<Elem> {
     }
 }
 
-pub trait TensorOps
+pub trait TensorElem
 where
     Self: Clone,
 {
@@ -246,7 +246,7 @@ where
 /// A tensor algebra for tensors.
 pub trait TensorAlg {
     /// The type representing the tensor.
-    type Tensor: TensorOps;
+    type Tensor: TensorElem;
 
     /// Creates a new scalar tensor for the given element.
     fn scalar(self: &mut Self, elem: bool) -> Self::Tensor;
@@ -301,7 +301,7 @@ pub trait TensorAlg {
 /// The tensor algebra used for checking the shapes of calculations.
 pub struct Checker();
 
-impl TensorOps for Shape {
+impl TensorElem for Shape {
     fn shape(self: &Self) -> &Shape {
         self
     }
@@ -369,7 +369,7 @@ impl TensorAlg for Checker {
     }
 }
 
-impl<Elem> TensorOps for Tensor<Elem>
+impl<Elem> TensorElem for Tensor<Elem>
 where
     Elem: GenElem,
 {
@@ -492,8 +492,8 @@ pub trait SolverAlg {
     fn variable(self: &mut Self, shape: Shape) -> Self::Tensor;
 }
 
-impl SolverAlg for FreeAlg {
-    type Tensor = Tensor<Literal>;
+impl SolverAlg for Solver {
+    type Tensor = Tensor<<Solver as BoolAlg>::Elem>;
 
     fn variable(self: &mut Self, shape: Shape) -> Self::Tensor {
         let size = shape.size();
@@ -505,7 +505,7 @@ impl SolverAlg for FreeAlg {
     }
 }
 
-impl GenElem for Literal {
+impl GenElem for <Solver as BoolAlg>::Elem {
     type Vector = Vec<Self>;
 }
 

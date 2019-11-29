@@ -16,7 +16,7 @@
 */
 
 use super::boolalg::Boolean;
-use super::tensor::{Shape, Tensor, TensorAlg, TensorOps};
+use super::tensor::{Shape, Tensor, TensorAlg, TensorElem};
 
 pub fn create_hexagon_poset() -> Tensor<bool> {
     let shape = Shape::new(&[6, 6]);

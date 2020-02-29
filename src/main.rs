@@ -33,6 +33,7 @@ extern crate wasm_bindgen;
 use solver::*;
 #[cfg(feature = "console_error_panic_hook")]
 use std::panic;
+use std::time::Instant;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(start)]
@@ -42,6 +43,8 @@ pub fn uasat_init() {
 }
 
 pub fn test_solver(solver_name: &str, size: usize) -> String {
+    let start = Instant::now();
+
     let mut sol = create_solver(solver_name);
     let mut table: Vec<Literal> = Vec::with_capacity(size * size);
 
@@ -92,7 +95,8 @@ pub fn test_solver(solver_name: &str, size: usize) -> String {
         sol.add_clause(&lits);
     }
 
-    format!("{} result {}\n", sol.get_name(), count)
+    let duration = Instant::now().duration_since(start);
+    format!("{} result {} in {:?}", sol.get_name(), count, duration)
 }
 
 #[wasm_bindgen]
@@ -109,9 +113,11 @@ pub fn test(input: String) -> String {
 }
 
 fn main() {
-    posets::calculate();
-    // #[cfg(feature = "minisat")]
-    // println!("MiniSat {}", test_solver("minisat", 9));
-    // #[cfg(feature = "varisat")]
-    // println!("VariSat {}", test_solver("varisat", 9));
+    // posets::calculate();
+    #[cfg(feature = "minisat")]
+    println!("{}", test_solver("minisat", 8));
+    #[cfg(feature = "varisat")]
+    println!("{}", test_solver("varisat", 8));
+    #[cfg(feature = "cryptominisat")]
+    println!("{}", test_solver("cryptominisat", 8));
 }

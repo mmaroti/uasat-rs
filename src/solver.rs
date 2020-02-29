@@ -311,10 +311,8 @@ pub struct CryptoMiniSat {
 impl Default for CryptoMiniSat {
     /// Creates a new solver instance.
     fn default() -> Self {
-        let mut solver = cryptominisat::Solver::new();
-        solver.set_num_threads(4); // TODO: make this configurable
         CryptoMiniSat {
-            solver: solver,
+            solver: cryptominisat::Solver::new(),
             num_clauses: 0,
         }
     }

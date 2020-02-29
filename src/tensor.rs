@@ -127,6 +127,7 @@ impl Index<usize> for Shape {
     }
 }
 
+#[doc(hidden)]
 /// Iterator for implementing the polymer operation
 struct StrideIter {
     entries: Vec<(usize, usize, usize)>,
@@ -235,181 +236,155 @@ impl<Elem: GenElem> Tensor<Elem> {
     }
 }
 
-pub trait TensorElem
-where
-    Self: Clone,
-{
-    /// Returns the shape of the tensor
-    fn shape(self: &Self) -> &Shape;
-}
-
 /// A tensor algebra for tensors.
 pub trait TensorAlg {
     /// The type representing the tensor.
-    type Tensor: TensorElem;
+    type Elem: Clone;
+
+    /// Returns the shape of the tensor.
+    fn shape(tensor: &Self::Elem) -> &Shape;
 
     /// Creates a new scalar tensor for the given element.
-    fn scalar(self: &mut Self, elem: bool) -> Self::Tensor;
+    fn scalar(self: &mut Self, elem: bool) -> Self::Elem;
 
     /// Returns a diagonal tensor of rank two with true elements on the
     /// diagonal and false everywhere else.
-    fn diagonal(self: &mut Self, dim: usize) -> Self::Tensor;
+    fn diagonal(self: &mut Self, dim: usize) -> Self::Elem;
 
     /// Creates a new tensor of the given shape from the given old tensor with
     /// permuted, identified or new dummy coordinates. The mapping is a vector
     /// of length of the old tensor shape with entries identifying the
     /// coordinate in the new tensor.
-    fn polymer(
-        self: &mut Self,
-        tensor: &Self::Tensor,
-        shape: Shape,
-        mapping: &[usize],
-    ) -> Self::Tensor;
+    fn polymer(self: &mut Self, elem: &Self::Elem, shape: Shape, mapping: &[usize]) -> Self::Elem;
 
     /// Returns a new tensor whose elements are all negated of the original.
-    fn tensor_not(self: &mut Self, tensor: &Self::Tensor) -> Self::Tensor;
+    fn tensor_not(self: &mut Self, elem: &Self::Elem) -> Self::Elem;
 
     /// Returns a new tensor whose elements are disjunctions of the original
     /// elements.
-    fn tensor_or(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor;
+    fn tensor_or(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
 
     /// Returns a new tensor whose elements are the conjunctions of the
     /// original elements.
-    fn tensor_and(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor;
+    fn tensor_and(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
 
     /// Returns a new tensor whose elements are the boolean additions of the
     /// original elements.
-    fn tensor_add(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor;
+    fn tensor_add(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
 
     /// Returns a new tensor whose elements are the logical equivalence of the
     /// original elements.
-    fn tensor_equ(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor;
+    fn tensor_equ(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
 
     /// Returns a new tensor whose elements are the logical implication of the
     /// original elements.
-    fn tensor_leq(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor;
+    fn tensor_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
 
     /// Returns a new tensor with one less dimension (the first one is removed)
     /// where the result is the conjunction of the elements.
-    fn tensor_all(self: &mut Self, tensor: &Self::Tensor) -> Self::Tensor;
+    fn tensor_all(self: &mut Self, elem: &Self::Elem) -> Self::Elem;
 
     /// Returns a new tensor with one less dimension (the first one is removed)
     /// where the result is the disjunction of the elements.
-    fn tensor_any(self: &mut Self, tensor: &Self::Tensor) -> Self::Tensor;
+    fn tensor_any(self: &mut Self, elem: &Self::Elem) -> Self::Elem;
 }
 
 /// The tensor algebra used for checking the shapes of calculations.
 pub struct Checker();
 
-impl TensorElem for Shape {
-    fn shape(self: &Self) -> &Shape {
-        self
-    }
-}
-
-fn checker_binop(tensor1: &Shape, tensor2: &Shape) -> Shape {
-    assert!(tensor1 == tensor2);
-    tensor1.clone()
+fn checker_binop(elem1: &Shape, elem2: &Shape) -> Shape {
+    assert!(elem1 == elem2);
+    elem1.clone()
 }
 
 impl TensorAlg for Checker {
-    type Tensor = Shape;
+    type Elem = Shape;
 
-    fn scalar(self: &mut Self, _elem: bool) -> Self::Tensor {
+    fn shape(elem: &Self::Elem) -> &Shape {
+        elem
+    }
+
+    fn scalar(self: &mut Self, _elem: bool) -> Self::Elem {
         Shape::new(&[])
     }
 
-    fn diagonal(self: &mut Self, dim: usize) -> Self::Tensor {
+    fn diagonal(self: &mut Self, dim: usize) -> Self::Elem {
         Shape::new(&[dim, dim])
     }
 
-    fn polymer(
-        self: &mut Self,
-        tensor: &Self::Tensor,
-        shape: Shape,
-        mapping: &[usize],
-    ) -> Self::Tensor {
-        assert!(mapping.len() == tensor.len());
+    fn polymer(self: &mut Self, elem: &Self::Elem, shape: Shape, mapping: &[usize]) -> Self::Elem {
+        assert!(mapping.len() == elem.len());
         for (idx, val) in mapping.iter().enumerate() {
-            assert!(tensor[idx] == shape[*val]);
+            assert!(elem[idx] == shape[*val]);
         }
         shape
     }
 
-    fn tensor_not(self: &mut Self, tensor: &Self::Tensor) -> Self::Tensor {
-        tensor.clone()
+    fn tensor_not(self: &mut Self, elem: &Self::Elem) -> Self::Elem {
+        elem.clone()
     }
 
-    fn tensor_or(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor {
-        checker_binop(tensor1, tensor2)
+    fn tensor_or(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+        checker_binop(elem1, elem2)
     }
 
-    fn tensor_and(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor {
-        checker_binop(tensor1, tensor2)
+    fn tensor_and(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+        checker_binop(elem1, elem2)
     }
 
-    fn tensor_add(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor {
-        checker_binop(tensor1, tensor2)
+    fn tensor_add(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+        checker_binop(elem1, elem2)
     }
 
-    fn tensor_equ(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor {
-        checker_binop(tensor1, tensor2)
+    fn tensor_equ(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+        checker_binop(elem1, elem2)
     }
 
-    fn tensor_leq(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor {
-        checker_binop(tensor1, tensor2)
+    fn tensor_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+        checker_binop(elem1, elem2)
     }
 
-    fn tensor_all(self: &mut Self, tensor: &Self::Tensor) -> Self::Tensor {
+    fn tensor_all(self: &mut Self, tensor: &Self::Elem) -> Self::Elem {
         tensor.head_tail().1
     }
 
-    fn tensor_any(self: &mut Self, tensor: &Self::Tensor) -> Self::Tensor {
+    fn tensor_any(self: &mut Self, tensor: &Self::Elem) -> Self::Elem {
         tensor.head_tail().1
     }
 }
 
-impl<Elem> TensorElem for Tensor<Elem>
+fn boolalg_binop<ALG, OP>(
+    alg: &mut ALG,
+    elem1: &Tensor<ALG::Elem>,
+    elem2: &Tensor<ALG::Elem>,
+    mut op: OP,
+) -> Tensor<ALG::Elem>
 where
-    Elem: GenElem,
+    ALG: BoolAlg,
+    ALG::Elem: GenElem,
+    OP: FnMut(&mut ALG, ALG::Elem, ALG::Elem) -> ALG::Elem,
 {
-    fn shape(self: &Self) -> &Shape {
-        &self.shape
-    }
-}
-
-fn boolalg_binop<A, F>(
-    alg: &mut A,
-    tensor1: &Tensor<A::Elem>,
-    tensor2: &Tensor<A::Elem>,
-    mut op: F,
-) -> Tensor<A::Elem>
-where
-    A: BoolAlg,
-    A::Elem: GenElem,
-    F: FnMut(&mut A, A::Elem, A::Elem) -> A::Elem,
-{
-    assert!(tensor1.shape() == tensor2.shape());
-    let shape = tensor1.shape.clone();
-    let elems = GenVec::from_fn(tensor1.elems.len(), |i| {
-        op(alg, tensor1.elems.get(i), tensor2.elems.get(i))
+    assert!(elem1.shape() == elem2.shape());
+    let shape = elem1.shape.clone();
+    let elems = GenVec::from_fn(elem1.elems.len(), |i| {
+        op(alg, elem1.elems.get(i), elem2.elems.get(i))
     });
     Tensor { shape, elems }
 }
 
-fn boolalg_fold<A, F>(alg: &mut A, tensor: &Tensor<A::Elem>, mut op: F) -> Tensor<A::Elem>
+fn boolalg_fold<ALG, OP>(alg: &mut ALG, elem: &Tensor<ALG::Elem>, mut op: OP) -> Tensor<ALG::Elem>
 where
-    A: BoolAlg,
-    A::Elem: GenElem,
-    F: FnMut(&mut A, &[A::Elem]) -> A::Elem,
+    ALG: BoolAlg,
+    ALG::Elem: GenElem,
+    OP: FnMut(&mut ALG, &[ALG::Elem]) -> ALG::Elem,
 {
-    let (head, shape) = tensor.shape().head_tail();
+    let (head, shape) = elem.shape().head_tail();
     let mut slice = Vec::with_capacity(head);
     slice.resize(head, alg.bool_zero());
 
     let elems = GenVec::from_fn(shape.size(), |i| {
         for (j, item) in slice.iter_mut().enumerate().take(head) {
-            *item = tensor.elems.get(i * head + j);
+            *item = elem.elems.get(i * head + j);
         }
         op(alg, &slice)
     });
@@ -417,18 +392,22 @@ where
     Tensor { shape, elems }
 }
 
-impl<A> TensorAlg for A
+impl<ALG> TensorAlg for ALG
 where
-    A: BoolAlg,
-    A::Elem: GenElem,
+    ALG: BoolAlg,
+    ALG::Elem: GenElem,
 {
-    type Tensor = Tensor<A::Elem>;
+    type Elem = Tensor<ALG::Elem>;
 
-    fn scalar(self: &mut Self, elem: bool) -> Self::Tensor {
+    fn shape(tensor: &Self::Elem) -> &Shape {
+        &tensor.shape
+    }
+
+    fn scalar(self: &mut Self, elem: bool) -> Self::Elem {
         Tensor::new(Shape::new(&[]), self.bool_lift(elem))
     }
 
-    fn diagonal(self: &mut Self, dim: usize) -> Self::Tensor {
+    fn diagonal(self: &mut Self, dim: usize) -> Self::Elem {
         let mut tensor = Tensor::new(Shape::new(&[dim, dim]), self.bool_zero());
 
         let unit = self.bool_unit();
@@ -441,44 +420,44 @@ where
 
     fn polymer(
         self: &mut Self,
-        tensor: &Self::Tensor,
+        tensor: &Self::Elem,
         shape: Shape,
         mapping: &[usize],
-    ) -> Self::Tensor {
+    ) -> Self::Elem {
         tensor.polymer(shape, mapping)
     }
 
-    fn tensor_not(self: &mut Self, tensor: &Self::Tensor) -> Self::Tensor {
+    fn tensor_not(self: &mut Self, tensor: &Self::Elem) -> Self::Elem {
         let shape = tensor.shape.clone();
         let elems = GenVec::from_fn(tensor.elems.len(), |i| self.bool_not(tensor.elems.get(i)));
         Tensor { shape, elems }
     }
 
-    fn tensor_or(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor {
-        boolalg_binop(self, tensor1, tensor2, BoolAlg::bool_or)
+    fn tensor_or(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+        boolalg_binop(self, elem1, elem2, BoolAlg::bool_or)
     }
 
-    fn tensor_and(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor {
-        boolalg_binop(self, tensor1, tensor2, BoolAlg::bool_and)
+    fn tensor_and(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+        boolalg_binop(self, elem1, elem2, BoolAlg::bool_and)
     }
 
-    fn tensor_add(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor {
-        boolalg_binop(self, tensor1, tensor2, BoolAlg::bool_add)
+    fn tensor_add(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+        boolalg_binop(self, elem1, elem2, BoolAlg::bool_add)
     }
 
-    fn tensor_equ(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor {
-        boolalg_binop(self, tensor1, tensor2, BoolAlg::bool_equ)
+    fn tensor_equ(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+        boolalg_binop(self, elem1, elem2, BoolAlg::bool_equ)
     }
 
-    fn tensor_leq(self: &mut Self, tensor1: &Self::Tensor, tensor2: &Self::Tensor) -> Self::Tensor {
-        boolalg_binop(self, tensor1, tensor2, BoolAlg::bool_leq)
+    fn tensor_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+        boolalg_binop(self, elem1, elem2, BoolAlg::bool_leq)
     }
 
-    fn tensor_all(self: &mut Self, tensor: &Self::Tensor) -> Self::Tensor {
+    fn tensor_all(self: &mut Self, tensor: &Self::Elem) -> Self::Elem {
         boolalg_fold(self, tensor, BoolAlg::bool_all)
     }
 
-    fn tensor_any(self: &mut Self, tensor: &Self::Tensor) -> Self::Tensor {
+    fn tensor_any(self: &mut Self, tensor: &Self::Elem) -> Self::Elem {
         boolalg_fold(self, tensor, BoolAlg::bool_any)
     }
 }
@@ -486,16 +465,16 @@ where
 /// The trait for solving tensor algebra problems.
 pub trait SolverAlg {
     /// The type representing the tensor.
-    type Tensor;
+    type Elem: Clone;
 
     /// Creates a new tensor with fresh variables.
-    fn variable(self: &mut Self, shape: Shape) -> Self::Tensor;
+    fn variable(self: &mut Self, shape: Shape) -> Self::Elem;
 }
 
 impl SolverAlg for Solver {
-    type Tensor = Tensor<<Solver as BoolAlg>::Elem>;
+    type Elem = Tensor<<Solver as BoolAlg>::Elem>;
 
-    fn variable(self: &mut Self, shape: Shape) -> Self::Tensor {
+    fn variable(self: &mut Self, shape: Shape) -> Self::Elem {
         let size = shape.size();
         let mut elems = Vec::with_capacity(size);
         for _ in 0..size {

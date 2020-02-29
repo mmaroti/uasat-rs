@@ -76,8 +76,11 @@ where
     fn capacity(self: &Self) -> usize;
 }
 
-impl<T: Copy + Debug> GenVec for Vec<T> {
-    type Elem = T;
+impl<ELEM> GenVec for Vec<ELEM>
+where
+    ELEM: Copy + Debug,
+{
+    type Elem = ELEM;
 
     #[inline]
     fn new() -> Self {

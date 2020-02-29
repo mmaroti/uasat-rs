@@ -16,7 +16,7 @@
 */
 
 use super::boolalg::Boolean;
-use super::tensor::{Shape, Tensor, TensorAlg, TensorElem};
+use super::tensor::{Shape, Tensor, TensorAlg};
 
 pub fn create_hexagon_poset() -> Tensor<bool> {
     let shape = Shape::new(&[6, 6]);
@@ -45,8 +45,8 @@ pub fn create_hexagon_poset() -> Tensor<bool> {
     poset
 }
 
-pub fn binrel_diagonal_like<A: TensorAlg>(alg: &mut A, binrel: &A::Tensor) -> A::Tensor {
-    let shape = binrel.shape();
+pub fn binrel_diagonal_like<A: TensorAlg>(alg: &mut A, binrel: &A::Elem) -> A::Elem {
+    let shape = A::shape(binrel);
     assert!(shape.len() >= 2 && shape[0] == shape[1]);
 
     let diagonal = alg.diagonal(shape[0]);
@@ -55,50 +55,46 @@ pub fn binrel_diagonal_like<A: TensorAlg>(alg: &mut A, binrel: &A::Tensor) -> A:
 
 pub fn binrel_is_subset<A: TensorAlg>(
     alg: &mut A,
-    binrel1: &A::Tensor,
-    binrel2: &A::Tensor,
-) -> A::Tensor {
+    binrel1: &A::Elem,
+    binrel2: &A::Elem,
+) -> A::Elem {
     let result = alg.tensor_leq(binrel1, binrel2);
     let result = alg.tensor_all(&result);
     alg.tensor_all(&result)
 }
 
-pub fn binrel_is_reflexive<A: TensorAlg>(alg: &mut A, binrel: &A::Tensor) -> A::Tensor {
+pub fn binrel_is_reflexive<A: TensorAlg>(alg: &mut A, binrel: &A::Elem) -> A::Elem {
     let diagonal = binrel_diagonal_like(alg, binrel);
     binrel_is_subset(alg, &diagonal, binrel)
 }
 
-pub fn binrel_inverse<A: TensorAlg>(alg: &mut A, binrel: &A::Tensor) -> A::Tensor {
-    let shape = binrel.shape();
+pub fn binrel_inverse<A: TensorAlg>(alg: &mut A, binrel: &A::Elem) -> A::Elem {
+    let shape = A::shape(binrel);
     assert!(shape.len() >= 2 && shape[0] == shape[1]);
 
     let map = shape.mapping(&[1, 0], 2);
     alg.polymer(binrel, shape.clone(), &map)
 }
 
-pub fn binrel_is_symmetric<A: TensorAlg>(alg: &mut A, binrel: &A::Tensor) -> A::Tensor {
+pub fn binrel_is_symmetric<A: TensorAlg>(alg: &mut A, binrel: &A::Elem) -> A::Elem {
     let inverse = binrel_inverse(alg, binrel);
     binrel_is_subset(alg, &inverse, binrel)
 }
 
-pub fn binrel_symmetric_edges<A: TensorAlg>(alg: &mut A, binrel: &A::Tensor) -> A::Tensor {
+pub fn binrel_symmetric_edges<A: TensorAlg>(alg: &mut A, binrel: &A::Elem) -> A::Elem {
     let result = binrel_inverse(alg, binrel);
     alg.tensor_and(&result, binrel)
 }
 
-pub fn binrel_is_antisymmetric<A: TensorAlg>(alg: &mut A, binrel: &A::Tensor) -> A::Tensor {
+pub fn binrel_is_antisymmetric<A: TensorAlg>(alg: &mut A, binrel: &A::Elem) -> A::Elem {
     let symmetric = binrel_symmetric_edges(alg, binrel);
     let diagonal = binrel_diagonal_like(alg, binrel);
     binrel_is_subset(alg, &symmetric, &diagonal)
 }
 
-pub fn binrel_compose<A: TensorAlg>(
-    alg: &mut A,
-    binrel1: &A::Tensor,
-    binrel2: &A::Tensor,
-) -> A::Tensor {
-    let shape = binrel1.shape();
-    assert!(shape == binrel2.shape());
+pub fn binrel_compose<A: TensorAlg>(alg: &mut A, binrel1: &A::Elem, binrel2: &A::Elem) -> A::Elem {
+    let shape = A::shape(binrel1);
+    assert!(shape == A::shape(binrel2));
     assert!(shape.len() >= 2 && shape[0] == shape[1]);
 
     let shape2 = shape.insert(2, &[shape[0]]);
@@ -111,13 +107,13 @@ pub fn binrel_compose<A: TensorAlg>(
     alg.tensor_any(&result)
 }
 
-pub fn binrel_is_transitive<A: TensorAlg>(alg: &mut A, binrel: &A::Tensor) -> A::Tensor {
+pub fn binrel_is_transitive<A: TensorAlg>(alg: &mut A, binrel: &A::Elem) -> A::Elem {
     let composition = binrel_compose(alg, binrel, binrel);
     binrel_is_subset(alg, &composition, binrel)
 }
 
-pub fn create_x_obstruction<A: TensorAlg>(alg: &mut A, poset: &A::Tensor) -> A::Tensor {
-    let shape = poset.shape();
+pub fn create_x_obstruction<A: TensorAlg>(alg: &mut A, poset: &A::Elem) -> A::Elem {
+    let shape = A::shape(poset);
     assert!(shape.len() >= 2 && shape[0] == shape[1]);
 
     let shape2 = shape.insert(2, &[shape[0], shape[0], shape[0]]);

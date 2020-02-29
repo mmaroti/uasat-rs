@@ -39,7 +39,7 @@ pub trait MonoCalc {
     }
 
     /// Evaluates the calculation within the given tensor algebra.
-    fn calculate<A>(self: &Self, alg: &mut A, input: &[A::Tensor]) -> Vec<A::Tensor>
+    fn calculate<A>(self: &Self, alg: &mut A, input: &[A::Elem]) -> Vec<A::Elem>
     where
         A: TensorAlg;
 }
@@ -71,7 +71,7 @@ impl MonoCalc for MonoPrim {
         }
     }
 
-    fn calculate<A>(self: &Self, alg: &mut A, input: &[A::Tensor]) -> Vec<A::Tensor>
+    fn calculate<A>(self: &Self, alg: &mut A, input: &[A::Elem]) -> Vec<A::Elem>
     where
         A: TensorAlg,
     {

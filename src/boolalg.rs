@@ -140,6 +140,21 @@ impl BoolAlg for Boolean {
     }
 }
 
+/// A boolean algebra supporting boolean calculation.
+pub trait BoolSat {
+    /// The element type of this bool algebra.
+    type Elem: Copy;
+
+    /// Adds a new variable to the solver
+    fn bool_variable(self: &mut Self) -> Self::Elem;
+
+    /// Return the logical negation of the element.
+    fn bool_negate(self: &mut Self, elem: Self::Elem) -> Self::Elem;
+
+    /// Runs the solver and finds a model where the given assumptions are true.
+    fn bool_solve(self: &mut Self, vars: &[Self::Elem]) -> bool;
+}
+
 /// The free boolean algebra backed by a SAT solver.
 #[derive(Debug)]
 pub struct Solver {

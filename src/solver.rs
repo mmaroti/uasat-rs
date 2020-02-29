@@ -19,6 +19,8 @@
 
 #[cfg(feature = "varisat")]
 extern crate bit_vec;
+#[cfg(feature = "cryptominisat")]
+extern crate cryptominisat;
 #[cfg(feature = "minisat")]
 extern crate minisat;
 #[cfg(feature = "varisat")]
@@ -70,9 +72,9 @@ pub trait Solver {
     fn num_clauses(self: &Self) -> u32;
 }
 
-/// Tries to create a SAT solver with the given name. Currently only "varisat"
-/// and "minisat" (not on wasm) are supported. Use "" to match the first
-/// available solver.
+/// Tries to create a SAT solver with the given name. Currently "varisat",
+/// "minisat" and "cryptominisat" (not on wasm) are supported. Use "" to
+/// match the first available solver.
 pub fn create_solver(name: &str) -> Box<dyn Solver> {
     let mut enabled_solvers = 0;
 
@@ -90,6 +92,15 @@ pub fn create_solver(name: &str) -> Box<dyn Solver> {
         enabled_solvers += 1;
         if name == "minisat" || name == "" {
             let sat: MiniSat = Default::default();
+            return Box::new(sat);
+        }
+    }
+
+    #[cfg(feature = "cryptominisat")]
+    {
+        enabled_solvers += 1;
+        if name == "cryptominisat" || name == "" {
+            let sat: CryptoMiniSat = Default::default();
             return Box::new(sat);
         }
     }
@@ -290,6 +301,80 @@ impl<'a> Solver for VariSat<'a> {
     }
 }
 
+#[cfg(feature = "cryptominisat")]
+pub struct CryptoMiniSat {
+    solver: cryptominisat::Solver,
+    num_clauses: u32,
+}
+
+#[cfg(feature = "cryptominisat")]
+impl Default for CryptoMiniSat {
+    /// Creates a new solver instance.
+    fn default() -> Self {
+        let mut solver = cryptominisat::Solver::new();
+        solver.set_num_threads(4); // TODO: make this configurable
+        CryptoMiniSat {
+            solver: solver,
+            num_clauses: 0,
+        }
+    }
+}
+
+#[cfg(feature = "cryptominisat")]
+impl CryptoMiniSat {
+    fn encode(lit: cryptominisat::Lit) -> Literal {
+        Literal {
+            value: (lit.var() << 1) | (lit.isneg() as u32),
+        }
+    }
+
+    fn decode(lit: Literal) -> cryptominisat::Lit {
+        cryptominisat::Lit::new(lit.value >> 1, (lit.value & 1) != 0).unwrap()
+    }
+}
+
+#[cfg(feature = "cryptominisat")]
+impl Solver for CryptoMiniSat {
+    fn add_variable(self: &mut Self) -> Literal {
+        CryptoMiniSat::encode(self.solver.new_var())
+    }
+
+    fn negate(self: &Self, lit: Literal) -> Literal {
+        Literal {
+            value: lit.value ^ 1,
+        }
+    }
+
+    fn add_clause(self: &mut Self, lits: &[Literal]) {
+        let lits: Vec<cryptominisat::Lit> =
+            lits.iter().map(|lit| CryptoMiniSat::decode(*lit)).collect();
+        self.solver.add_clause(&lits);
+        self.num_clauses += 1;
+    }
+
+    fn solve_with(self: &mut Self, lits: &[Literal]) -> bool {
+        let lits: Vec<cryptominisat::Lit> =
+            lits.iter().map(|lit| CryptoMiniSat::decode(*lit)).collect();
+        self.solver.solve_with_assumptions(&lits) == cryptominisat::Lbool::True
+    }
+
+    fn get_value(self: &Self, lit: Literal) -> bool {
+        self.solver.is_true(CryptoMiniSat::decode(lit))
+    }
+
+    fn get_name(self: &Self) -> &'static str {
+        "CryptoMiniSat"
+    }
+
+    fn num_variables(self: &Self) -> u32 {
+        self.solver.nvars()
+    }
+
+    fn num_clauses(self: &Self) -> u32 {
+        self.num_clauses
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -301,6 +386,9 @@ mod tests {
         let a = sat.add_variable();
         let b = sat.add_variable();
         sat.add_clause(&[a, b]);
+        assert!(sat.solve_with(&[sat.negate(b)]));
+        assert!(sat.get_value(a));
+        assert!(!sat.get_value(b));
         sat.add_clause(&[sat.negate(a), b]);
         sat.add_clause(&[sat.negate(a), sat.negate(b)]);
         assert_eq!(sat.num_variables(), 2);
@@ -319,6 +407,30 @@ mod tests {
         let a = sat.add_variable();
         let b = sat.add_variable();
         sat.add_clause(&[a, b]);
+        assert!(sat.solve_with(&[sat.negate(b)]));
+        assert!(sat.get_value(a));
+        assert!(!sat.get_value(b));
+        sat.add_clause(&[sat.negate(a), b]);
+        sat.add_clause(&[sat.negate(a), sat.negate(b)]);
+        assert_eq!(sat.num_variables(), 2);
+        assert_eq!(sat.num_clauses(), 3);
+        assert!(sat.solve());
+        assert!(!sat.get_value(a));
+        assert!(sat.get_value(b));
+        sat.add_clause(&[a, sat.negate(b)]);
+        assert!(!sat.solve());
+    }
+
+    #[cfg(feature = "cryptominisat")]
+    #[test]
+    fn cryptominisat() {
+        let mut sat: CryptoMiniSat = Default::default();
+        let a = sat.add_variable();
+        let b = sat.add_variable();
+        sat.add_clause(&[a, b]);
+        assert!(sat.solve_with(&[sat.negate(b)]));
+        assert!(sat.get_value(a));
+        assert!(!sat.get_value(b));
         sat.add_clause(&[sat.negate(a), b]);
         sat.add_clause(&[sat.negate(a), sat.negate(b)]);
         assert_eq!(sat.num_variables(), 2);

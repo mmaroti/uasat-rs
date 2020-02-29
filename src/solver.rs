@@ -73,8 +73,8 @@ pub trait Solver {
 }
 
 /// Tries to create a SAT solver with the given name. Currently "varisat",
-/// "minisat" and "cryptominisat" (not on wasm) are supported. Use "" to
-/// match the first available solver.
+/// "minisat" and "cryptominisat" (not on wasm) are supported. Use the empty
+/// string to match the first available solver.
 pub fn create_solver(name: &str) -> Box<dyn Solver> {
     let mut enabled_solvers = 0;
 
@@ -301,6 +301,7 @@ impl<'a> Solver for VariSat<'a> {
     }
 }
 
+/// An advanced SAT solver supporting XOR clauses.
 #[cfg(feature = "cryptominisat")]
 pub struct CryptoMiniSat {
     solver: cryptominisat::Solver,

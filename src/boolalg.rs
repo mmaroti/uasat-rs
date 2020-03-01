@@ -89,6 +89,21 @@ pub trait BoolAlg {
     }
 }
 
+/// Constraint solving over a boolean algebra.
+pub trait BoolSat: BoolAlg {
+    /// Adds a new variable to the solver
+    fn add_variable(self: &mut Self) -> Self::Elem;
+
+    /// Adds the given (disjunctive) clause to the solver.
+    fn add_clause(self: &mut Self, elems: &[Self::Elem]);
+
+    /// Runs the solver and finds a model where the given assumptions are true.
+    fn find_model(self: &mut Self, elems: &[Self::Elem]) -> bool;
+
+    /// Returns the logical value of the element in the found model.
+    fn get_value(self: &Self, elem: solver::Literal) -> bool;
+}
+
 /// The two element boolean algebra with `bool` elements.
 #[derive(Default, Debug)]
 pub struct Boolean();
@@ -140,21 +155,6 @@ impl BoolAlg for Boolean {
     }
 }
 
-/// A boolean algebra supporting boolean calculation.
-pub trait BoolSat {
-    /// The element type of this bool algebra.
-    type Elem: Copy;
-
-    /// Adds a new variable to the solver
-    fn bool_variable(self: &mut Self) -> Self::Elem;
-
-    /// Return the logical negation of the element.
-    fn bool_negate(self: &mut Self, elem: Self::Elem) -> Self::Elem;
-
-    /// Runs the solver and finds a model where the given assumptions are true.
-    fn bool_solve(self: &mut Self, vars: &[Self::Elem]) -> bool;
-}
-
 /// The free boolean algebra backed by a SAT solver.
 #[derive(Debug)]
 pub struct Solver {
@@ -171,21 +171,6 @@ impl Solver {
         let zero = solver.negate(unit);
         solver.add_clause(&[unit]);
         Solver { solver, unit, zero }
-    }
-
-    /// Adds a new free variable to the algebra
-    pub fn add_variable(self: &mut Self) -> solver::Literal {
-        self.solver.add_variable()
-    }
-
-    /// Runs the solver and finds a model where the given assumptions are true.
-    pub fn find_model(self: &mut Self, vars: &[solver::Literal]) -> bool {
-        self.solver.solve_with(vars)
-    }
-
-    /// Returns the logical value of the element in the found model.
-    pub fn get_value(self: &Self, elem: solver::Literal) -> bool {
-        self.solver.get_value(elem)
     }
 }
 
@@ -247,6 +232,24 @@ impl BoolAlg for Solver {
             self.solver.add_clause(&[not_elem1, not_elem2, not_elem3]);
             elem3
         }
+    }
+}
+
+impl BoolSat for Solver {
+    fn add_variable(self: &mut Self) -> Self::Elem {
+        self.solver.add_variable()
+    }
+
+    fn add_clause(self: &mut Self, elems: &[Self::Elem]) {
+        self.solver.add_clause(&elems)
+    }
+
+    fn find_model(self: &mut Self, elems: &[Self::Elem]) -> bool {
+        self.solver.solve_with(elems)
+    }
+
+    fn get_value(self: &Self, elem: solver::Literal) -> bool {
+        self.solver.get_value(elem)
     }
 }
 

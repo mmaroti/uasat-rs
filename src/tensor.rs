@@ -17,7 +17,7 @@
 
 //! Basic multidimensional array type and operations over boolean algebras.
 
-use super::boolalg::{BoolAlg, Solver};
+use super::boolalg::{BoolAlg, BoolSat, Solver};
 use super::genvec::{GenElem, GenVec};
 use std::ops::Index;
 

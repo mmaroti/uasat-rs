@@ -78,20 +78,20 @@ pub trait Solver {
 pub fn create_solver(name: &str) -> Box<dyn Solver> {
     let mut enabled_solvers = 0;
 
-    #[cfg(feature = "varisat")]
-    {
-        enabled_solvers += 1;
-        if name == "varisat" || name == "" {
-            let sat: VariSat = Default::default();
-            return Box::new(sat);
-        }
-    }
-
     #[cfg(feature = "minisat")]
     {
         enabled_solvers += 1;
         if name == "minisat" || name == "" {
             let sat: MiniSat = Default::default();
+            return Box::new(sat);
+        }
+    }
+
+    #[cfg(feature = "varisat")]
+    {
+        enabled_solvers += 1;
+        if name == "varisat" || name == "" {
+            let sat: VariSat = Default::default();
             return Box::new(sat);
         }
     }

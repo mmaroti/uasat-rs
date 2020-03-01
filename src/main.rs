@@ -22,7 +22,6 @@ pub mod genvec;
 pub mod lexer;
 pub mod parser;
 pub mod posets;
-pub mod semantics;
 pub mod solver;
 pub mod tensor;
 

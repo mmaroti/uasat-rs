@@ -18,10 +18,10 @@
 //! A SAT based discrete mathematics and universal algebra calculator.
 
 pub mod boolalg;
+pub mod clone;
 pub mod genvec;
 pub mod lexer;
 pub mod parser;
-pub mod posets;
 pub mod solver;
 pub mod tensor;
 
@@ -112,7 +112,6 @@ pub fn test(input: String) -> String {
 }
 
 fn main() {
-    // posets::calculate();
     #[cfg(feature = "minisat")]
     println!("{}", test_solver("minisat", 8));
     #[cfg(feature = "varisat")]

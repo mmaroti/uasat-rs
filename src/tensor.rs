@@ -24,7 +24,7 @@ use std::ops::Index;
 /// The shape of a tensor.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Shape {
-    dims: Vec<usize>,
+    pub dims: Vec<usize>,
 }
 
 impl Shape {
@@ -43,6 +43,11 @@ impl Shape {
     /// Checks if the number of dimensions is zero.
     pub fn is_empty(self: &Self) -> bool {
         self.dims.is_empty()
+    }
+
+    /// Checks if all dimensions are equal to the given one.
+    pub fn is_rectangular(self: &Self, dim: usize) -> bool {
+        self.dims.iter().all(|d| *d == dim)
     }
 
     /// Returns the head and tail of this shape. The shape should
@@ -242,7 +247,7 @@ pub trait TensorAlg {
     type Elem: Clone;
 
     /// Returns the shape of the tensor.
-    fn shape(tensor: &Self::Elem) -> &Shape;
+    fn shape(elem: &Self::Elem) -> &Shape;
 
     /// Creates a new scalar tensor for the given element.
     fn scalar(self: &mut Self, elem: bool) -> Self::Elem;
@@ -399,8 +404,8 @@ where
 {
     type Elem = Tensor<ALG::Elem>;
 
-    fn shape(tensor: &Self::Elem) -> &Shape {
-        &tensor.shape
+    fn shape(elem: &Self::Elem) -> &Shape {
+        &elem.shape
     }
 
     fn scalar(self: &mut Self, elem: bool) -> Self::Elem {

@@ -19,6 +19,7 @@
 
 extern crate bit_vec;
 
+use super::solver::Literal;
 pub use bit_vec::BitVec;
 use std::fmt::Debug;
 
@@ -229,6 +230,10 @@ impl GenElem for bool {
 }
 
 impl GenElem for usize {
+    type Vector = Vec<Self>;
+}
+
+impl GenElem for Literal {
     type Vector = Vec<Self>;
 }
 

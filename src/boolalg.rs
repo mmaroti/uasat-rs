@@ -89,21 +89,6 @@ pub trait BoolAlg {
     }
 }
 
-/// Constraint solving over a boolean algebra.
-pub trait BoolSat: BoolAlg {
-    /// Adds a new variable to the solver
-    fn add_variable(self: &mut Self) -> Self::Elem;
-
-    /// Adds the given (disjunctive) clause to the solver.
-    fn add_clause(self: &mut Self, elems: &[Self::Elem]);
-
-    /// Runs the solver and finds a model where the given assumptions are true.
-    fn find_model(self: &mut Self, elems: &[Self::Elem]) -> bool;
-
-    /// Returns the logical value of the element in the found model.
-    fn get_value(self: &Self, elem: solver::Literal) -> bool;
-}
-
 /// The two element boolean algebra with `bool` elements.
 #[derive(Default, Debug)]
 pub struct Boolean();
@@ -233,6 +218,21 @@ impl BoolAlg for Solver {
             elem3
         }
     }
+}
+
+/// Constraint solving over a boolean algebra.
+pub trait BoolSat: BoolAlg {
+    /// Adds a new variable to the solver
+    fn add_variable(self: &mut Self) -> Self::Elem;
+
+    /// Adds the given (disjunctive) clause to the solver.
+    fn add_clause(self: &mut Self, elems: &[Self::Elem]);
+
+    /// Runs the solver and finds a model where the given assumptions are true.
+    fn find_model(self: &mut Self, elems: &[Self::Elem]) -> bool;
+
+    /// Returns the logical value of the element in the found model.
+    fn get_value(self: &Self, elem: solver::Literal) -> bool;
 }
 
 impl BoolSat for Solver {

@@ -463,29 +463,38 @@ where
 }
 
 /// The trait for solving tensor algebra problems.
-pub trait SolverAlg {
-    /// The type representing the tensor.
-    type Elem: Clone;
-
+pub trait TensorSat: TensorAlg {
     /// Creates a new tensor with fresh variables.
-    fn variable(self: &mut Self, shape: Shape) -> Self::Elem;
+    fn add_variable(self: &mut Self, shape: Shape) -> Self::Elem;
+
+    /// Runs the solver and finds a model where the given assumptions are true.
+    fn find_model(self: &mut Self) -> bool;
+
+    /// Returns the logical value of the tensor in the found model.
+    fn get_value(self: &Self, elem: &Self::Elem) -> Tensor<bool>;
 }
 
-impl SolverAlg for Solver {
-    type Elem = Tensor<<Solver as BoolAlg>::Elem>;
-
-    fn variable(self: &mut Self, shape: Shape) -> Self::Elem {
-        let size = shape.size();
-        let mut elems = Vec::with_capacity(size);
-        for _ in 0..size {
-            elems.push(self.add_variable());
-        }
+impl TensorSat for Solver {
+    fn add_variable(self: &mut Self, shape: Shape) -> Self::Elem {
+        let elems = (0..shape.size())
+            .map(|_| BoolSat::add_variable(self))
+            .collect();
         Tensor { shape, elems }
     }
-}
 
-impl GenElem for <Solver as BoolAlg>::Elem {
-    type Vector = Vec<Self>;
+    fn find_model(self: &mut Self) -> bool {
+        BoolSat::find_model(self, &[])
+    }
+
+    fn get_value(self: &Self, elem: &Self::Elem) -> Tensor<bool> {
+        let shape = elem.shape.clone();
+        let elems = elem
+            .elems
+            .iter()
+            .map(|b| BoolSat::get_value(self, *b))
+            .collect();
+        Tensor { shape, elems }
+    }
 }
 
 #[cfg(test)]

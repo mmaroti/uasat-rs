@@ -17,9 +17,11 @@
 
 //! Basic multidimensional array type and operations over boolean algebras.
 
-use super::boolalg::{BoolAlg, BoolSat, Solver};
+use super::boolalg::{BoolAlg, BoolSat};
 use super::genvec::{GenElem, GenVec};
 use std::ops::Index;
+
+pub use super::boolalg::Solver;
 
 /// The shape of a tensor.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -29,10 +31,8 @@ pub struct Shape {
 
 impl Shape {
     /// Creates a new shape object.
-    pub fn new(dims: &[usize]) -> Self {
-        Shape {
-            dims: Vec::from(dims),
-        }
+    pub fn new(dims: Vec<usize>) -> Self {
+        Shape { dims }
     }
 
     /// The number of dimensions.
@@ -310,11 +310,11 @@ impl TensorAlg for Checker {
     }
 
     fn scalar(self: &mut Self, _elem: bool) -> Self::Elem {
-        Shape::new(&[])
+        Shape::new(vec![])
     }
 
     fn diagonal(self: &mut Self, dim: usize) -> Self::Elem {
-        Shape::new(&[dim, dim])
+        Shape::new(vec![dim, dim])
     }
 
     fn polymer(self: &mut Self, elem: &Self::Elem, shape: Shape, mapping: &[usize]) -> Self::Elem {
@@ -409,11 +409,11 @@ where
     }
 
     fn scalar(self: &mut Self, elem: bool) -> Self::Elem {
-        Tensor::new(Shape::new(&[]), self.bool_lift(elem))
+        Tensor::new(Shape::new(vec![]), self.bool_lift(elem))
     }
 
     fn diagonal(self: &mut Self, dim: usize) -> Self::Elem {
-        let mut tensor = Tensor::new(Shape::new(&[dim, dim]), self.bool_zero());
+        let mut tensor = Tensor::new(Shape::new(vec![dim, dim]), self.bool_zero());
 
         let unit = self.bool_unit();
         for idx in 0..dim {
@@ -509,14 +509,14 @@ mod tests {
 
     #[test]
     fn polymer() {
-        let mut tensor: Tensor<usize> = Tensor::new(Shape::new(&[2, 3]), 0);
+        let mut tensor: Tensor<usize> = Tensor::new(Shape::new(vec![2, 3]), 0);
         for i in 0..2 {
             for j in 0..3 {
                 tensor.__slow_set__(&[i, j], i + 10 * j);
             }
         }
-        let tensor = tensor.polymer(Shape::new(&[3, 4, 2]), &[2, 0]);
-        assert_eq!(*tensor.shape(), Shape::new(&[3, 4, 2]));
+        let tensor = tensor.polymer(Shape::new(vec![3, 4, 2]), &[2, 0]);
+        assert_eq!(*tensor.shape(), Shape::new(vec![3, 4, 2]));
         for i in 0..2 {
             for j in 0..3 {
                 for k in 0..4 {
@@ -529,7 +529,7 @@ mod tests {
     #[test]
     fn getset() {
         let mut alg = Boolean();
-        let mut t1: Tensor<bool> = Tensor::new(Shape::new(&[2, 3]), false);
+        let mut t1: Tensor<bool> = Tensor::new(Shape::new(vec![2, 3]), false);
         t1.__slow_set__(&[0, 0], true);
         t1.__slow_set__(&[1, 1], true);
         t1.__slow_set__(&[1, 2], true);
@@ -551,14 +551,14 @@ mod tests {
     #[test]
     fn fold() {
         let mut alg = Boolean();
-        let mut t1: Tensor<bool> = Tensor::new(Shape::new(&[2, 4]), false);
+        let mut t1: Tensor<bool> = Tensor::new(Shape::new(vec![2, 4]), false);
         t1.__slow_set__(&[0, 1], true);
         t1.__slow_set__(&[1, 2], true);
         t1.__slow_set__(&[0, 3], true);
         t1.__slow_set__(&[1, 3], true);
 
         let t2 = alg.tensor_all(&t1);
-        assert_eq!(*t2.shape(), Shape::new(&[4]));
+        assert_eq!(*t2.shape(), Shape::new(vec![4]));
         assert_eq!(t2.__slow_get__(&[0]), false);
         assert_eq!(t2.__slow_get__(&[1]), false);
         assert_eq!(t2.__slow_get__(&[2]), false);

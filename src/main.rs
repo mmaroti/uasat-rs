@@ -35,6 +35,8 @@ use std::panic;
 use std::time::Instant;
 use wasm_bindgen::prelude::*;
 
+use tensor::{Shape, Solver, TensorAlg, TensorSat};
+
 #[wasm_bindgen(start)]
 pub fn uasat_init() {
     #[cfg(feature = "console_error_panic_hook")]
@@ -96,6 +98,37 @@ pub fn test_solver(solver_name: &str, size: usize) -> String {
 
     let duration = Instant::now().duration_since(start);
     format!("{} result {} in {:?}", sol.get_name(), count, duration)
+}
+
+pub fn test_solver2(solver_name: &str, size: usize) -> String {
+    let start = Instant::now();
+
+    let mut solver = Solver::new(solver_name);
+    let relation = solver.add_variable(Shape::new(vec![size, size]));
+
+    let reflexive = solver.polymer(&relation, Shape::new(vec![size]), &[0, 0]);
+    let reflexive = solver.tensor_all(&reflexive);
+
+    let inverse = solver.polymer(&relation, relation.shape().clone(), &[1, 0]);
+    let symmetric = solver.tensor_leq(&relation, &inverse);
+    let symmetric = solver.tensor_all(&symmetric);
+    let symmetric = solver.tensor_all(&symmetric);
+
+    let relation10 = solver.polymer(&relation, Shape::new(vec![size, size, size]), &[1, 0]);
+    let relation02 = solver.polymer(&relation, Shape::new(vec![size, size, size]), &[0, 2]);
+    let relation12 = solver.tensor_and(&relation10, &relation02);
+    let relation12 = solver.tensor_any(&relation12);
+    let transitive = solver.tensor_leq(&relation12, &relation);
+    let transitive = solver.tensor_all(&transitive);
+    let transitive = solver.tensor_all(&transitive);
+
+    let equivalence = solver.tensor_and(&reflexive, &symmetric);
+    let equivalence = solver.tensor_and(&equivalence, &transitive);
+
+    let count = 0;
+
+    let duration = Instant::now().duration_since(start);
+    format!("{} result {} in {:?}", solver.get_name(), count, duration)
 }
 
 #[wasm_bindgen]

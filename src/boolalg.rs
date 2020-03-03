@@ -157,6 +157,10 @@ impl Solver {
         solver.add_clause(&[unit]);
         Solver { solver, unit, zero }
     }
+
+    pub fn get_name(self: &Self) -> &'static str {
+        self.solver.get_name()
+    }
 }
 
 impl BoolAlg for Solver {

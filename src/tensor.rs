@@ -53,7 +53,7 @@ impl Shape {
     /// Returns the head and tail of this shape. The shape should
     /// have at least one dimensions.
     pub fn head_tail(self: &Self) -> (usize, Self) {
-        assert!(!self.dims.is_empty());
+        assert!(!self.is_empty());
 
         let head = self.dims[0];
         let tail = Shape {
@@ -472,6 +472,9 @@ pub trait TensorSat: TensorAlg {
     /// Creates a new tensor with fresh variables.
     fn add_variable(self: &mut Self, shape: Shape) -> Self::Elem;
 
+    /// Adds the given (disjunctive) clause to the solver.
+    fn add_clause(self: &mut Self, elems: &[Self::Elem]);
+
     /// Runs the solver and finds a model where the given assumptions are true.
     fn find_model(self: &mut Self) -> bool;
 
@@ -479,12 +482,23 @@ pub trait TensorSat: TensorAlg {
     fn get_value(self: &Self, elem: &Self::Elem) -> Tensor<bool>;
 }
 
-impl TensorSat for Solver {
+impl<SAT> TensorSat for SAT
+where
+    SAT: BoolSat,
+    SAT::Elem: GenElem,
+{
     fn add_variable(self: &mut Self, shape: Shape) -> Self::Elem {
-        let elems = (0..shape.size())
-            .map(|_| BoolSat::add_variable(self))
-            .collect();
+        let elems = GenVec::from_fn(shape.size(), |_| BoolSat::add_variable(self));
         Tensor { shape, elems }
+    }
+
+    fn add_clause(self: &mut Self, elems: &[Self::Elem]) {
+        if !elems.is_empty() {
+            let shape = elems[0].shape();
+            for i in 1..elems.len() {
+                assert!(elems[i].shape() == shape);
+            }
+        }
     }
 
     fn find_model(self: &mut Self) -> bool {
@@ -493,11 +507,9 @@ impl TensorSat for Solver {
 
     fn get_value(self: &Self, elem: &Self::Elem) -> Tensor<bool> {
         let shape = elem.shape.clone();
-        let elems = elem
-            .elems
-            .iter()
-            .map(|b| BoolSat::get_value(self, *b))
-            .collect();
+        let elems = GenVec::from_fn(shape.size(), |i| {
+            BoolSat::get_value(self, elem.elems.get(i))
+        });
         Tensor { shape, elems }
     }
 }

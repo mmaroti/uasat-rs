@@ -236,7 +236,7 @@ pub trait BoolSat: BoolAlg {
     fn find_model(self: &mut Self, elems: &[Self::Elem]) -> bool;
 
     /// Returns the logical value of the element in the found model.
-    fn get_value(self: &Self, elem: solver::Literal) -> bool;
+    fn get_value(self: &Self, elem: Self::Elem) -> bool;
 }
 
 impl BoolSat for Solver {

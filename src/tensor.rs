@@ -482,22 +482,39 @@ pub trait TensorSat: TensorAlg {
     fn get_value(self: &Self, elem: &Self::Elem) -> Tensor<bool>;
 }
 
-impl<SAT> TensorSat for SAT
+impl<ALG> TensorSat for ALG
 where
-    SAT: BoolSat,
-    SAT::Elem: GenElem,
+    ALG: BoolSat,
+    ALG::Elem: GenElem,
 {
     fn add_variable(self: &mut Self, shape: Shape) -> Self::Elem {
         let elems = GenVec::from_fn(shape.size(), |_| BoolSat::add_variable(self));
         Tensor { shape, elems }
     }
 
-    fn add_clause(self: &mut Self, elems: &[Self::Elem]) {
-        if !elems.is_empty() {
-            let shape = elems[0].shape();
-            for i in 1..elems.len() {
-                assert!(elems[i].shape() == shape);
+    fn add_clause(self: &mut Self, tensors: &[Self::Elem]) {
+        if tensors.is_empty() {
+            BoolSat::add_clause(self, &[]);
+            return;
+        }
+
+        let shape = tensors[0].shape();
+        for i in 1..tensors.len() {
+            assert!(tensors[i].shape() == shape);
+        }
+
+        if shape.size() == 0 {
+            return;
+        }
+
+        let mut clause: Vec<ALG::Elem> = tensors.iter().map(|t| t.elems.get(0)).collect();
+        BoolSat::add_clause(self, &clause);
+
+        for i in 1..shape.size() {
+            for j in 0..tensors.len() {
+                clause[j] = tensors[i].elems.get(i);
             }
+            BoolSat::add_clause(self, &clause);
         }
     }
 
@@ -505,10 +522,10 @@ where
         BoolSat::find_model(self, &[])
     }
 
-    fn get_value(self: &Self, elem: &Self::Elem) -> Tensor<bool> {
-        let shape = elem.shape.clone();
+    fn get_value(self: &Self, tensor: &Self::Elem) -> Tensor<bool> {
+        let shape = tensor.shape.clone();
         let elems = GenVec::from_fn(shape.size(), |i| {
-            BoolSat::get_value(self, elem.elems.get(i))
+            BoolSat::get_value(self, tensor.elems.get(i))
         });
         Tensor { shape, elems }
     }

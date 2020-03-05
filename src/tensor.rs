@@ -50,14 +50,16 @@ impl Shape {
         self.dims.iter().all(|d| *d == dim)
     }
 
-    /// Returns the head and tail of this shape. The shape should
-    /// have at least one dimensions.
-    pub fn head_tail(self: &Self) -> (usize, Self) {
-        assert!(!self.is_empty());
+    /// Returns count many dimensions and the rest of this shape.
+    /// The shape should have at least count many dimensions.
+    pub fn split(self: &Self, count: usize) -> (Self, Self) {
+        assert!(self.len() >= count);
 
-        let head = self.dims[0];
+        let head = Shape {
+            dims: self.dims[..count].to_vec(),
+        };
         let tail = Shape {
-            dims: self.dims[1..].to_vec(),
+            dims: self.dims[count..].to_vec(),
         };
 
         (head, tail)
@@ -285,13 +287,13 @@ pub trait TensorAlg {
     /// original elements.
     fn tensor_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
 
-    /// Returns a new tensor with one less dimension (the first one is removed)
-    /// where the result is the conjunction of the elements.
-    fn tensor_all(self: &mut Self, elem: &Self::Elem) -> Self::Elem;
+    /// Returns a new tensor with fewer dimension (the first count ones are
+    /// removed) where the result is the conjunction of the elements.
+    fn tensor_all(self: &mut Self, elem: &Self::Elem, count: usize) -> Self::Elem;
 
-    /// Returns a new tensor with one less dimension (the first one is removed)
-    /// where the result is the disjunction of the elements.
-    fn tensor_any(self: &mut Self, elem: &Self::Elem) -> Self::Elem;
+    /// Returns a new tensor with fewer dimension (the first count ones are
+    /// removed) where the result is the disjunction of the elements.
+    fn tensor_any(self: &mut Self, elem: &Self::Elem, count: usize) -> Self::Elem;
 }
 
 /// The tensor algebra used for checking the shapes of calculations.
@@ -349,12 +351,12 @@ impl TensorAlg for Checker {
         checker_binop(elem1, elem2)
     }
 
-    fn tensor_all(self: &mut Self, tensor: &Self::Elem) -> Self::Elem {
-        tensor.head_tail().1
+    fn tensor_all(self: &mut Self, tensor: &Self::Elem, count: usize) -> Self::Elem {
+        tensor.split(count).1
     }
 
-    fn tensor_any(self: &mut Self, tensor: &Self::Elem) -> Self::Elem {
-        tensor.head_tail().1
+    fn tensor_any(self: &mut Self, tensor: &Self::Elem, count: usize) -> Self::Elem {
+        tensor.split(count).1
     }
 }
 
@@ -377,18 +379,24 @@ where
     Tensor { shape, elems }
 }
 
-fn boolalg_fold<ALG, OP>(alg: &mut ALG, elem: &Tensor<ALG::Elem>, mut op: OP) -> Tensor<ALG::Elem>
+fn boolalg_fold<ALG, OP>(
+    alg: &mut ALG,
+    elem: &Tensor<ALG::Elem>,
+    count: usize,
+    mut op: OP,
+) -> Tensor<ALG::Elem>
 where
     ALG: BoolAlg,
     ALG::Elem: GenElem,
     OP: FnMut(&mut ALG, &[ALG::Elem]) -> ALG::Elem,
 {
-    let (head, shape) = elem.shape().head_tail();
+    let (head, shape) = elem.shape().split(count);
+    let head = head.size();
     let mut slice = Vec::with_capacity(head);
     slice.resize(head, alg.bool_zero());
 
     let elems = GenVec::from_fn(shape.size(), |i| {
-        for (j, item) in slice.iter_mut().enumerate().take(head) {
+        for (j, item) in slice.iter_mut().enumerate() {
             *item = elem.elems.get(i * head + j);
         }
         op(alg, &slice)
@@ -458,12 +466,12 @@ where
         boolalg_binop(self, elem1, elem2, BoolAlg::bool_leq)
     }
 
-    fn tensor_all(self: &mut Self, tensor: &Self::Elem) -> Self::Elem {
-        boolalg_fold(self, tensor, BoolAlg::bool_all)
+    fn tensor_all(self: &mut Self, tensor: &Self::Elem, count: usize) -> Self::Elem {
+        boolalg_fold(self, tensor, count, BoolAlg::bool_all)
     }
 
-    fn tensor_any(self: &mut Self, tensor: &Self::Elem) -> Self::Elem {
-        boolalg_fold(self, tensor, BoolAlg::bool_any)
+    fn tensor_any(self: &mut Self, tensor: &Self::Elem, count: usize) -> Self::Elem {
+        boolalg_fold(self, tensor, count, BoolAlg::bool_any)
     }
 }
 
@@ -586,11 +594,15 @@ mod tests {
         t1.__slow_set__(&[0, 3], true);
         t1.__slow_set__(&[1, 3], true);
 
-        let t2 = alg.tensor_all(&t1);
+        let t2 = alg.tensor_all(&t1, 1);
         assert_eq!(*t2.shape(), Shape::new(vec![4]));
         assert_eq!(t2.__slow_get__(&[0]), false);
         assert_eq!(t2.__slow_get__(&[1]), false);
         assert_eq!(t2.__slow_get__(&[2]), false);
         assert_eq!(t2.__slow_get__(&[3]), true);
+
+        let t3 = alg.tensor_all(&t1, 2);
+        assert_eq!(*t3.shape(), Shape::new(vec![]));
+        assert_eq!(t3.__slow_get__(&[]), false);
     }
 }

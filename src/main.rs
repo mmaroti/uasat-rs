@@ -113,15 +113,14 @@ pub fn test_solver2(solver_name: &str, size: usize) -> String {
     let rel = sol.add_variable(Shape::new(vec![size, size]));
 
     let rfl = sol.polymer(&rel, Shape::new(vec![size]), &[0, 0]);
-    let rfl = sol.tensor_all(&rfl);
+    let rfl = sol.tensor_all(&rfl, 1);
     sol.add_clause(&[&rfl]);
 
     let inv = sol.polymer(&rel, Shape::new(vec![size, size]), &[1, 0]);
     //let neg = sol.tensor_not(&rel);
     //sol.add_clause(&[&neg, &inv]);
     let imp = sol.tensor_leq(&rel, &inv);
-    let imp = sol.tensor_all(&imp);
-    let imp = sol.tensor_all(&imp);
+    let imp = sol.tensor_all(&imp, 2);
     sol.add_clause(&[&imp]);
 
     let r01 = sol.polymer(&rel, Shape::new(vec![size, size, size]), &[0, 1]);

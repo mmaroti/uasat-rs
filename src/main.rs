@@ -35,6 +35,7 @@ use std::panic;
 use std::time::Instant;
 use wasm_bindgen::prelude::*;
 
+use boolalg::BoolAlg;
 use tensor::{Shape, Solver, TensorAlg, TensorSat};
 
 #[wasm_bindgen(start)]
@@ -97,38 +98,61 @@ pub fn test_solver(solver_name: &str, size: usize) -> String {
     }
 
     let duration = Instant::now().duration_since(start);
-    format!("{} result {} in {:?}", sol.get_name(), count, duration)
+    format!(
+        "Test1 {} result {} in {:?}",
+        sol.get_name(),
+        count,
+        duration
+    )
 }
 
 pub fn test_solver2(solver_name: &str, size: usize) -> String {
     let start = Instant::now();
 
-    let mut solver = Solver::new(solver_name);
-    let relation = solver.add_variable(Shape::new(vec![size, size]));
+    let mut sol = Solver::new(solver_name);
+    let rel = sol.add_variable(Shape::new(vec![size, size]));
 
-    let reflexive = solver.polymer(&relation, Shape::new(vec![size]), &[0, 0]);
-    let reflexive = solver.tensor_all(&reflexive);
+    let rfl = sol.polymer(&rel, Shape::new(vec![size]), &[0, 0]);
+    sol.add_clause(&[&rfl]);
 
-    let inverse = solver.polymer(&relation, relation.shape().clone(), &[1, 0]);
-    let symmetric = solver.tensor_leq(&relation, &inverse);
-    let symmetric = solver.tensor_all(&symmetric);
-    let symmetric = solver.tensor_all(&symmetric);
+    let inv = sol.polymer(&rel, Shape::new(vec![size, size]), &[1, 0]);
+    let neg = sol.tensor_not(&rel);
+    sol.add_clause(&[&neg, &inv]);
 
-    let relation10 = solver.polymer(&relation, Shape::new(vec![size, size, size]), &[1, 0]);
-    let relation02 = solver.polymer(&relation, Shape::new(vec![size, size, size]), &[0, 2]);
-    let relation12 = solver.tensor_and(&relation10, &relation02);
-    let relation12 = solver.tensor_any(&relation12);
-    let transitive = solver.tensor_leq(&relation12, &relation);
-    let transitive = solver.tensor_all(&transitive);
-    let transitive = solver.tensor_all(&transitive);
+    let r01 = sol.polymer(&rel, Shape::new(vec![size, size, size]), &[0, 1]);
+    let r01 = sol.tensor_not(&r01);
+    let r12 = sol.polymer(&rel, Shape::new(vec![size, size, size]), &[1, 2]);
+    let r12 = sol.tensor_not(&r12);
+    let r02 = sol.polymer(&rel, Shape::new(vec![size, size, size]), &[0, 2]);
+    sol.add_clause(&[&r01, &r12, &r02]);
 
-    let equivalence = solver.tensor_and(&reflexive, &symmetric);
-    let equivalence = solver.tensor_and(&equivalence, &transitive);
-
-    let count = 0;
+    // find all solutions
+    let mut count = 0;
+    while sol.find_model() {
+        count += 1;
+        let rel2 = sol.get_value(&rel);
+        let mut lits = Vec::new();
+        lits.resize(size * size, rel.__slow_get__(&[0, 0]));
+        for i in 0..size {
+            for j in 0..size {
+                let lit = rel.__slow_get__(&[i, j]);
+                if rel2.__slow_get__(&[i, j]) {
+                    lits[i * size + j] = sol.bool_not(lit)
+                } else {
+                    lits[i * size + j] = lit;
+                }
+            }
+        }
+        boolalg::BoolSat::add_clause(&mut sol, &lits);
+    }
 
     let duration = Instant::now().duration_since(start);
-    format!("{} result {} in {:?}", solver.get_name(), count, duration)
+    format!(
+        "Test2 {} result {} in {:?}",
+        sol.get_name(),
+        count,
+        duration
+    )
 }
 
 #[wasm_bindgen]
@@ -147,8 +171,14 @@ pub fn test(input: String) -> String {
 fn main() {
     #[cfg(feature = "minisat")]
     println!("{}", test_solver("minisat", 8));
+    #[cfg(feature = "minisat")]
+    println!("{}", test_solver2("minisat", 8));
     #[cfg(feature = "varisat")]
     println!("{}", test_solver("varisat", 8));
+    #[cfg(feature = "varisat")]
+    println!("{}", test_solver2("varisat", 8));
     #[cfg(feature = "cryptominisat")]
     println!("{}", test_solver("cryptominisat", 8));
+    #[cfg(feature = "cryptominisat")]
+    println!("{}", test_solver2("cryptominisat", 8));
 }

@@ -473,7 +473,7 @@ pub trait TensorSat: TensorAlg {
     fn add_variable(self: &mut Self, shape: Shape) -> Self::Elem;
 
     /// Adds the given (disjunctive) clause to the solver.
-    fn add_clause(self: &mut Self, elems: &[Self::Elem]);
+    fn add_clause(self: &mut Self, elems: &[&Self::Elem]);
 
     /// Runs the solver and finds a model where the given assumptions are true.
     fn find_model(self: &mut Self) -> bool;
@@ -492,7 +492,7 @@ where
         Tensor { shape, elems }
     }
 
-    fn add_clause(self: &mut Self, tensors: &[Self::Elem]) {
+    fn add_clause(self: &mut Self, tensors: &[&Self::Elem]) {
         if tensors.is_empty() {
             BoolSat::add_clause(self, &[]);
             return;
@@ -512,7 +512,7 @@ where
 
         for i in 1..shape.size() {
             for j in 0..tensors.len() {
-                clause[j] = tensors[i].elems.get(i);
+                clause[j] = tensors[j].elems.get(i);
             }
             BoolSat::add_clause(self, &clause);
         }

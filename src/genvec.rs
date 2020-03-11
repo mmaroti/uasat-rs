@@ -20,7 +20,7 @@
 extern crate bit_vec;
 
 use super::solver::Literal;
-pub use bit_vec::BitVec;
+use bit_vec::BitVec;
 use std::fmt::Debug;
 
 /// Generic interface for regular and bit vectors.
@@ -64,8 +64,21 @@ where
     /// Returns the element at the given index.
     fn get(self: &Self, index: usize) -> Self::Elem;
 
+    /// Returns the element at the given index without bound checks.
+    #[allow(non_snake_case)]
+    unsafe fn __get_unchecked__(self: &Self, index: usize) -> Self::Elem {
+        self.get(index)
+    }
+
     /// Sets the element at the given index to the new value.
     fn set(self: &mut Self, index: usize, value: Self::Elem);
+
+    /// Sets the element at the given index to the new value without bound
+    /// checks.
+    #[allow(non_snake_case)]
+    unsafe fn __set_unchecked__(self: &mut Self, index: usize, value: Self::Elem) {
+        self.set(index, value);
+    }
 
     /// Returns the number of elements in the vector.
     fn len(self: &Self) -> usize;
@@ -127,8 +140,18 @@ where
     }
 
     #[inline]
+    unsafe fn __get_unchecked__(self: &Self, index: usize) -> Self::Elem {
+        *self.get_unchecked(index)
+    }
+
+    #[inline]
     fn set(self: &mut Self, index: usize, value: Self::Elem) {
         self[index] = value;
+    }
+
+    #[inline]
+    unsafe fn __set_unchecked__(self: &mut Self, index: usize, value: Self::Elem) {
+        *self.get_unchecked_mut(index) = value;
     }
 
     #[inline]

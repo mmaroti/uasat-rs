@@ -18,6 +18,7 @@
 //! A SAT based discrete mathematics and universal algebra calculator.
 
 pub mod boolalg;
+pub mod boolvec;
 pub mod clone;
 pub mod genvec;
 pub mod lexer;

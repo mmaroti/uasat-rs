@@ -61,6 +61,12 @@ where
     /// it is empty.
     fn pop(self: &mut Self) -> Option<Self::Elem>;
 
+    /// Extends this vector by copying all elements from the other vector.
+    fn extend(self: &mut Self, other: &Self);
+
+    /// Extends this vector by moving all elements from the other vector.
+    fn append(self: &mut Self, other: &mut Self);
+
     /// Returns the element at the given index.
     fn get(self: &Self, index: usize) -> Self::Elem;
 
@@ -96,17 +102,14 @@ where
 {
     type Elem = ELEM;
 
-    #[inline]
     fn new() -> Self {
         Vec::new()
     }
 
-    #[inline]
     fn with_capacity(capacity: usize) -> Self {
         Vec::with_capacity(capacity)
     }
 
-    #[inline]
     fn from_fn<F>(len: usize, op: F) -> Self
     where
         F: FnMut(usize) -> Self::Elem,
@@ -114,57 +117,54 @@ where
         (0..len).map(op).collect()
     }
 
-    #[inline]
     fn clear(self: &mut Self) {
         Vec::clear(self);
     }
 
-    #[inline]
     fn resize(self: &mut Self, new_len: usize, value: Self::Elem) {
         Vec::resize(self, new_len, value);
     }
 
-    #[inline]
     fn push(self: &mut Self, value: Self::Elem) {
         Vec::push(self, value);
     }
 
-    #[inline]
     fn pop(self: &mut Self) -> Option<Self::Elem> {
         Vec::pop(self)
     }
 
-    #[inline]
+    fn extend(self: &mut Self, other: &Self) {
+        std::iter::Extend::extend(self, other.iter());
+    }
+
+    fn append(self: &mut Self, other: &mut Self) {
+        Vec::append(self, other);
+    }
+
     fn get(self: &Self, index: usize) -> Self::Elem {
         self[index]
     }
 
-    #[inline]
     unsafe fn __get_unchecked__(self: &Self, index: usize) -> Self::Elem {
         *self.get_unchecked(index)
     }
 
-    #[inline]
     fn set(self: &mut Self, index: usize, value: Self::Elem) {
         self[index] = value;
     }
 
-    #[inline]
     unsafe fn __set_unchecked__(self: &mut Self, index: usize, value: Self::Elem) {
         *self.get_unchecked_mut(index) = value;
     }
 
-    #[inline]
     fn len(self: &Self) -> usize {
         Vec::len(self)
     }
 
-    #[inline]
     fn is_empty(self: &Self) -> bool {
         Vec::is_empty(self)
     }
 
-    #[inline]
     fn capacity(self: &Self) -> usize {
         Vec::capacity(self)
     }
@@ -173,17 +173,14 @@ where
 impl GenVec for BitVec {
     type Elem = bool;
 
-    #[inline]
     fn new() -> Self {
         BitVec::new()
     }
 
-    #[inline]
     fn with_capacity(capacity: usize) -> Self {
         BitVec::with_capacity(capacity)
     }
 
-    #[inline]
     fn from_fn<F>(len: usize, op: F) -> Self
     where
         F: FnMut(usize) -> Self::Elem,
@@ -191,12 +188,10 @@ impl GenVec for BitVec {
         BitVec::from_fn(len, op)
     }
 
-    #[inline]
     fn clear(self: &mut Self) {
         BitVec::clear(self);
     }
 
-    #[inline]
     fn resize(self: &mut Self, new_len: usize, value: Self::Elem) {
         if new_len > self.len() {
             BitVec::grow(self, new_len - self.len(), value);
@@ -205,37 +200,38 @@ impl GenVec for BitVec {
         }
     }
 
-    #[inline]
     fn push(self: &mut Self, value: Self::Elem) {
         BitVec::push(self, value);
     }
 
-    #[inline]
     fn pop(self: &mut Self) -> Option<Self::Elem> {
         BitVec::pop(self)
     }
 
-    #[inline]
+    fn extend(self: &mut Self, other: &Self) {
+        std::iter::Extend::extend(self, other.iter());
+    }
+
+    fn append(self: &mut Self, other: &mut Self) {
+        BitVec::append(self, other);
+    }
+
     fn get(self: &Self, index: usize) -> Self::Elem {
         BitVec::get(self, index).unwrap()
     }
 
-    #[inline]
     fn set(self: &mut Self, index: usize, value: Self::Elem) {
         BitVec::set(self, index, value);
     }
 
-    #[inline]
     fn len(self: &Self) -> usize {
         BitVec::len(self)
     }
 
-    #[inline]
     fn is_empty(self: &Self) -> bool {
         BitVec::is_empty(self)
     }
 
-    #[inline]
     fn capacity(self: &Self) -> usize {
         BitVec::capacity(self)
     }

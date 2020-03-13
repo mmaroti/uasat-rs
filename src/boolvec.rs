@@ -51,17 +51,15 @@ pub trait BoolVecAlg {
     /// of the original elements.
     fn bit_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
 
+    /// Concatenates the given vectors into a single one.
+    fn concat(self: &Self, elems: &[&Self::Elem]) -> Self::Elem;
+
     /// Creates a new vector of the given length representing the given binary
     /// number.
     fn num_lift(self: &Self, len: usize, elem: i64) -> Self::Elem;
 }
 
 pub type Checker = ();
-
-fn checker_binop(elem1: &usize, elem2: &usize) -> usize {
-    assert!(*elem1 == *elem2);
-    *elem1
-}
 
 impl BoolVecAlg for Checker {
     type Elem = usize;
@@ -79,43 +77,37 @@ impl BoolVecAlg for Checker {
     }
 
     fn bit_or(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        checker_binop(elem1, elem2)
+        assert!(*elem1 == *elem2);
+        *elem1
     }
 
     fn bit_and(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        checker_binop(elem1, elem2)
+        assert!(*elem1 == *elem2);
+        *elem1
     }
 
     fn bit_add(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        checker_binop(elem1, elem2)
+        assert!(*elem1 == *elem2);
+        *elem1
     }
 
     fn bit_equ(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        checker_binop(elem1, elem2)
+        assert!(*elem1 == *elem2);
+        *elem1
     }
 
     fn bit_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        checker_binop(elem1, elem2)
+        assert!(*elem1 == *elem2);
+        *elem1
+    }
+
+    fn concat(self: &Self, elems: &[&Self::Elem]) -> Self::Elem {
+        elems.iter().fold(0, |sum, elem| sum + *elem)
     }
 
     fn num_lift(self: &Self, len: usize, _elem: i64) -> Self::Elem {
         len
     }
-}
-
-fn bvec_binop<ALG, OP>(
-    alg: &mut ALG,
-    elem1: &<ALG::Elem as GenElem>::Vector,
-    elem2: &<ALG::Elem as GenElem>::Vector,
-    mut op: OP,
-) -> <ALG::Elem as GenElem>::Vector
-where
-    ALG: BoolAlg,
-    ALG::Elem: GenElem,
-    OP: FnMut(&mut ALG, ALG::Elem, ALG::Elem) -> ALG::Elem,
-{
-    assert!(elem1.len() == elem2.len());
-    GenVec::from_fn(elem1.len(), |i| op(alg, elem1.get(i), elem2.get(i)))
 }
 
 impl<ALG> BoolVecAlg for ALG
@@ -138,23 +130,37 @@ where
     }
 
     fn bit_or(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        bvec_binop(self, elem1, elem2, BoolAlg::bool_or)
+        assert!(elem1.len() == elem2.len());
+        GenVec::from_fn(elem1.len(), |i| self.bool_or(elem1.get(i), elem2.get(i)))
     }
 
     fn bit_and(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        bvec_binop(self, elem1, elem2, BoolAlg::bool_and)
+        assert!(elem1.len() == elem2.len());
+        GenVec::from_fn(elem1.len(), |i| self.bool_and(elem1.get(i), elem2.get(i)))
     }
 
     fn bit_add(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        bvec_binop(self, elem1, elem2, BoolAlg::bool_add)
+        assert!(elem1.len() == elem2.len());
+        GenVec::from_fn(elem1.len(), |i| self.bool_add(elem1.get(i), elem2.get(i)))
     }
 
     fn bit_equ(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        bvec_binop(self, elem1, elem2, BoolAlg::bool_equ)
+        assert!(elem1.len() == elem2.len());
+        GenVec::from_fn(elem1.len(), |i| self.bool_equ(elem1.get(i), elem2.get(i)))
     }
 
     fn bit_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        bvec_binop(self, elem1, elem2, BoolAlg::bool_leq)
+        assert!(elem1.len() == elem2.len());
+        GenVec::from_fn(elem1.len(), |i| self.bool_leq(elem1.get(i), elem2.get(i)))
+    }
+
+    fn concat(self: &Self, elems: &[&Self::Elem]) -> Self::Elem {
+        let size = elems.iter().fold(0, |sum, elem| sum + elem.len());
+        let mut result: Self::Elem = GenVec::with_capacity(size);
+        for elem in elems {
+            result.extend(elem);
+        }
+        result
     }
 
     fn num_lift(self: &Self, len: usize, elem: i64) -> Self::Elem {
@@ -176,5 +182,15 @@ mod tests {
 
         let v3 = alg.num_lift(4, -3);
         assert_eq!(v1, v3);
+    }
+
+    #[test]
+    fn concat() {
+        let alg = Boolean::new();
+        let v1 = alg.num_lift(4, 0x3);
+        let v2 = alg.num_lift(4, 0xd);
+        let v3 = alg.num_lift(8, 0xd3);
+        let v4 = alg.concat(&[&v1, &v2]);
+        assert_eq!(v3, v4);
     }
 }

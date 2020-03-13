@@ -368,7 +368,6 @@ fn boolalg_binop<ALG, OP>(
 ) -> Tensor<ALG::Elem>
 where
     ALG: BoolAlg,
-    ALG::Elem: GenElem,
     OP: FnMut(&mut ALG, ALG::Elem, ALG::Elem) -> ALG::Elem,
 {
     assert!(elem1.shape() == elem2.shape());
@@ -387,7 +386,6 @@ fn boolalg_fold<ALG, OP>(
 ) -> Tensor<ALG::Elem>
 where
     ALG: BoolAlg,
-    ALG::Elem: GenElem,
     OP: FnMut(&mut ALG, &[ALG::Elem]) -> ALG::Elem,
 {
     let (head, shape) = elem.shape().split(count);
@@ -408,7 +406,6 @@ where
 impl<ALG> TensorAlg for ALG
 where
     ALG: BoolAlg,
-    ALG::Elem: GenElem,
 {
     type Elem = Tensor<ALG::Elem>;
 
@@ -493,7 +490,6 @@ pub trait TensorSat: TensorAlg {
 impl<ALG> TensorSat for ALG
 where
     ALG: BoolSat,
-    ALG::Elem: GenElem,
 {
     fn add_variable(self: &mut Self, shape: Shape) -> Self::Elem {
         let elems = GenVec::from_fn(shape.size(), |_| BoolSat::add_variable(self));

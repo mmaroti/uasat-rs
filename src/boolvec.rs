@@ -113,7 +113,6 @@ impl BoolVecAlg for Checker {
 impl<ALG> BoolVecAlg for ALG
 where
     ALG: BoolAlg,
-    ALG::Elem: GenElem,
 {
     type Elem = <ALG::Elem as GenElem>::Vector;
 

@@ -19,12 +19,13 @@
 //! This can be used to calculate with boolean terms and ask for a model
 //! where a given set of terms are all true.
 
+use super::genvec::GenElem;
 use super::solver;
 
 /// A boolean algebra supporting boolean calculation.
 pub trait BoolAlg {
     /// The element type of this bool algebra.
-    type Elem: Copy;
+    type Elem: GenElem;
 
     /// Returns the logical true (top) element of the algebra.
     fn bool_unit(self: &Self) -> Self::Elem;

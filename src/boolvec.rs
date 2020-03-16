@@ -57,6 +57,17 @@ pub trait BoolVecAlg {
     /// Creates a new vector of the given length representing the given binary
     /// number.
     fn num_lift(self: &Self, len: usize, elem: i64) -> Self::Elem;
+
+    /// Returns the negative of the given binary number in two's complement.
+    fn num_neg(self: &mut Self, elem: &Self::Elem) -> Self::Elem;
+
+    /// Returns the sum of the two binary numbers of the same length in
+    /// two's complement.
+    fn num_add(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
+
+    /// Returns the difference of the two binary numbers of the same length in
+    /// two's complement.
+    fn num_sub(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
 }
 
 pub type Checker = ();
@@ -107,6 +118,20 @@ impl BoolVecAlg for Checker {
 
     fn num_lift(self: &Self, len: usize, _elem: i64) -> Self::Elem {
         len
+    }
+
+    fn num_neg(self: &mut Self, elem: &Self::Elem) -> Self::Elem {
+        *elem
+    }
+
+    fn num_add(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+        assert!(*elem1 == *elem2);
+        *elem1
+    }
+
+    fn num_sub(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+        assert!(*elem1 == *elem2);
+        *elem1
     }
 }
 
@@ -165,6 +190,40 @@ where
     fn num_lift(self: &Self, len: usize, elem: i64) -> Self::Elem {
         GenVec::from_fn(len, |i| self.bool_lift((elem >> i) & 1 != 0))
     }
+
+    fn num_neg(self: &mut Self, elem: &Self::Elem) -> Self::Elem {
+        let mut carry = self.bool_unit();
+        let mut result: Self::Elem = GenVec::with_capacity(elem.len());
+        for i in 0..elem.len() {
+            let not_elem = self.bool_not(elem.get(i));
+            result.push(self.bool_add(not_elem, carry));
+            carry = self.bool_and(not_elem, carry);
+        }
+        result
+    }
+
+    fn num_add(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+        assert!(elem1.len() == elem2.len());
+        let mut carry = self.bool_zero();
+        let mut result: Self::Elem = GenVec::with_capacity(elem1.len());
+        for i in 0..elem1.len() {
+            result.push(self.bool_ad3(elem1.get(i), elem2.get(i), carry));
+            carry = self.bool_maj(elem1.get(i), elem2.get(i), carry);
+        }
+        result
+    }
+
+    fn num_sub(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+        assert!(elem1.len() == elem2.len());
+        let mut carry = self.bool_unit();
+        let mut result: Self::Elem = GenVec::with_capacity(elem1.len());
+        for i in 0..elem1.len() {
+            let not_elem2 = self.bool_not(elem2.get(i));
+            result.push(self.bool_ad3(elem1.get(i), not_elem2, carry));
+            carry = self.bool_maj(elem1.get(i), not_elem2, carry);
+        }
+        result
+    }
 }
 
 #[cfg(test)]
@@ -191,5 +250,21 @@ mod tests {
         let v3 = alg.num_lift(8, 0xd3);
         let v4 = alg.concat(&[&v1, &v2]);
         assert_eq!(v3, v4);
+    }
+
+    #[test]
+    fn numops() {
+        let mut alg = Boolean::new();
+        let v1 = alg.num_lift(8, 17);
+        let v2 = alg.num_lift(8, 73);
+        let v3 = alg.num_lift(8, 90);
+        let v4 = alg.num_add(&v1, &v2);
+        assert_eq!(v3, v4);
+        let v5 = alg.num_lift(8, -17);
+        let v6 = alg.num_neg(&v1);
+        assert_eq!(v5, v6);
+        let v7 = alg.num_lift(8, -56);
+        let v8 = alg.num_sub(&v1, &v2);
+        assert_eq!(v7, v8);
     }
 }

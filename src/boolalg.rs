@@ -21,11 +21,12 @@
 
 use super::genvec::GenElem;
 use super::solver;
+use std::fmt::Debug;
 
 /// A boolean algebra supporting boolean calculation.
 pub trait BoolAlg {
     /// The element type of this bool algebra.
-    type Elem: GenElem;
+    type Elem: GenElem + Debug;
 
     /// Returns the logical true (top) element of the algebra.
     fn bool_unit(self: &Self) -> Self::Elem;
@@ -69,6 +70,31 @@ pub trait BoolAlg {
     fn bool_leq(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         let tmp = self.bool_not(elem1);
         self.bool_or(tmp, elem2)
+    }
+
+    /// Returns the boolean sum of three values.
+    fn bool_ad3(
+        self: &mut Self,
+        elem1: Self::Elem,
+        elem2: Self::Elem,
+        elem3: Self::Elem,
+    ) -> Self::Elem {
+        let tmp = self.bool_add(elem1, elem2);
+        self.bool_add(tmp, elem3)
+    }
+
+    /// Returns the majority of the given values.
+    fn bool_maj(
+        self: &mut Self,
+        elem1: Self::Elem,
+        elem2: Self::Elem,
+        elem3: Self::Elem,
+    ) -> Self::Elem {
+        let tmp1 = self.bool_and(elem1, elem2);
+        let tmp2 = self.bool_and(elem1, elem3);
+        let tmp3 = self.bool_and(elem2, elem3);
+        let tmp4 = self.bool_or(tmp1, tmp2);
+        self.bool_or(tmp3, tmp4)
     }
 
     /// Computes the conjunction of the elements.
@@ -272,7 +298,7 @@ mod tests {
     }
 
     #[test]
-    fn freealg() {
+    fn solver() {
         let mut alg = Solver::new("");
         let a = alg.add_variable();
         let b = alg.add_variable();

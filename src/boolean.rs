@@ -19,14 +19,14 @@
 //! This can be used to calculate with boolean terms and ask for a model
 //! where a given set of terms are all true.
 
-use super::genvec::GenElem;
+use super::genvec;
 use super::solver;
-use std::fmt::Debug;
+use std::fmt;
 
 /// A boolean algebra supporting boolean calculation.
 pub trait BoolAlg {
     /// The element type of this bool algebra.
-    type Elem: GenElem + Debug;
+    type Elem: genvec::GenElem + fmt::Debug;
 
     /// Returns the logical true (top) element of the algebra.
     fn bool_unit(self: &Self) -> Self::Elem;
@@ -116,7 +116,34 @@ pub trait BoolAlg {
     }
 }
 
-/// The two element boolean algebra with `bool` elements.
+/// The trivial 1-element boolean algebra.
+pub struct Trivial();
+
+impl BoolAlg for Trivial {
+    type Elem = ();
+
+    fn bool_unit(self: &Self) -> Self::Elem {
+        ()
+    }
+
+    fn bool_zero(self: &Self) -> Self::Elem {
+        ()
+    }
+
+    fn bool_not(self: &mut Self, _elem: Self::Elem) -> Self::Elem {
+        ()
+    }
+
+    fn bool_or(self: &mut Self, _elem1: Self::Elem, _elem2: Self::Elem) -> Self::Elem {
+        ()
+    }
+
+    fn bool_add(self: &mut Self, _elem1: Self::Elem, _elem2: Self::Elem) -> Self::Elem {
+        ()
+    }
+}
+
+/// The two element boolean algebra with native `bool` elements.
 #[derive(Default, Debug)]
 pub struct Boolean();
 

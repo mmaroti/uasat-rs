@@ -15,7 +15,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::tensor::TensorAlg;
+use super::tensor;
 
 pub trait RelationAlg {
     /// The type representing the relations.
@@ -44,7 +44,7 @@ pub trait RelationAlg {
 
 pub struct Relations<ALG>
 where
-    ALG: TensorAlg,
+    ALG: tensor::TensorAlg,
 {
     alg: ALG,
     size: usize,
@@ -52,7 +52,7 @@ where
 
 impl<ALG> Relations<ALG>
 where
-    ALG: TensorAlg,
+    ALG: tensor::TensorAlg,
 {
     pub fn is_member(self: &Self, elem: &ALG::Elem) -> bool {
         ALG::shape(elem).is_rectangular(self.size)
@@ -61,7 +61,7 @@ where
 
 impl<ALG> RelationAlg for Relations<ALG>
 where
-    ALG: TensorAlg,
+    ALG: tensor::TensorAlg,
 {
     type Elem = ALG::Elem;
 

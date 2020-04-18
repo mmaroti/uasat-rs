@@ -26,12 +26,9 @@ extern crate minisat;
 #[cfg(feature = "varisat")]
 extern crate varisat;
 
-#[cfg(feature = "varisat")]
-use bit_vec::BitVec;
 use std::fmt;
-
 #[cfg(feature = "varisat")]
-use varisat::ExtendFormula;
+use varisat::ExtendFormula as _;
 
 /// Uniform literal to allow runtime solver selection.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -215,7 +212,7 @@ pub struct VariSat<'a> {
     num_variables: u32,
     num_clauses: u32,
     solver: varisat::solver::Solver<'a>,
-    solution: BitVec,
+    solution: bit_vec::BitVec,
 }
 
 #[cfg(feature = "varisat")]
@@ -226,7 +223,7 @@ impl<'a> Default for VariSat<'a> {
             num_variables: 0,
             num_clauses: 0,
             solver: varisat::solver::Solver::new(),
-            solution: BitVec::new(),
+            solution: bit_vec::BitVec::new(),
         }
     }
 }

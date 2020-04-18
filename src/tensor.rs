@@ -297,14 +297,14 @@ pub trait TensorAlg {
 }
 
 /// The tensor algebra used for checking the shapes of calculations.
-pub struct Checker();
+pub struct Trivial();
 
 fn checker_binop(elem1: &Shape, elem2: &Shape) -> Shape {
     assert!(elem1 == elem2);
     elem1.clone()
 }
 
-impl TensorAlg for Checker {
+impl TensorAlg for Trivial {
     type Elem = Shape;
 
     fn shape(elem: &Self::Elem) -> &Shape {

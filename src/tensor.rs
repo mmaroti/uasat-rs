@@ -362,13 +362,13 @@ impl TensorAlg for Trivial {
 
 fn boolalg_binop<ALG, OP>(
     alg: &mut ALG,
-    elem1: &Tensor<ALG::Elem>,
-    elem2: &Tensor<ALG::Elem>,
+    elem1: &Tensor<ALG::Bool>,
+    elem2: &Tensor<ALG::Bool>,
     mut op: OP,
-) -> Tensor<ALG::Elem>
+) -> Tensor<ALG::Bool>
 where
     ALG: BoolAlg,
-    OP: FnMut(&mut ALG, ALG::Elem, ALG::Elem) -> ALG::Elem,
+    OP: FnMut(&mut ALG, ALG::Bool, ALG::Bool) -> ALG::Bool,
 {
     assert!(elem1.shape() == elem2.shape());
     let shape = elem1.shape.clone();
@@ -380,13 +380,13 @@ where
 
 fn boolalg_fold<ALG, OP>(
     alg: &mut ALG,
-    elem: &Tensor<ALG::Elem>,
+    elem: &Tensor<ALG::Bool>,
     count: usize,
     mut op: OP,
-) -> Tensor<ALG::Elem>
+) -> Tensor<ALG::Bool>
 where
     ALG: BoolAlg,
-    OP: FnMut(&mut ALG, &[ALG::Elem]) -> ALG::Elem,
+    OP: FnMut(&mut ALG, &[ALG::Bool]) -> ALG::Bool,
 {
     let (head, shape) = elem.shape().split(count);
     let head = head.size();
@@ -407,7 +407,7 @@ impl<ALG> TensorAlg for ALG
 where
     ALG: BoolAlg,
 {
-    type Elem = Tensor<ALG::Elem>;
+    type Elem = Tensor<ALG::Bool>;
 
     fn shape(elem: &Self::Elem) -> &Shape {
         &elem.shape
@@ -511,7 +511,7 @@ where
             return;
         }
 
-        let mut clause: Vec<ALG::Elem> = tensors.iter().map(|t| t.elems.get(0)).collect();
+        let mut clause: Vec<ALG::Bool> = tensors.iter().map(|t| t.elems.get(0)).collect();
         self.bool_add_clause(&clause);
 
         for i in 1..shape.size() {

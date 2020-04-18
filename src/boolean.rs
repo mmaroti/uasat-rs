@@ -26,16 +26,16 @@ use std::fmt;
 /// A boolean algebra supporting boolean calculation.
 pub trait BoolAlg {
     /// The element type of this bool algebra.
-    type Elem: genvec::GenElem + fmt::Debug;
+    type Bool: genvec::GenElem + fmt::Debug;
 
     /// Returns the logical true (top) element of the algebra.
-    fn bool_unit(self: &Self) -> Self::Elem;
+    fn bool_unit(self: &Self) -> Self::Bool;
 
     /// Returns the logical false (bottom) element of the algebra.
-    fn bool_zero(self: &Self) -> Self::Elem;
+    fn bool_zero(self: &Self) -> Self::Bool;
 
     /// Returns either the unit or zero element depending of the argument.
-    fn bool_lift(self: &Self, elem: bool) -> Self::Elem {
+    fn bool_lift(self: &Self, elem: bool) -> Self::Bool {
         if elem {
             self.bool_unit()
         } else {
@@ -44,16 +44,16 @@ pub trait BoolAlg {
     }
 
     /// Return the logical negation of the element.
-    fn bool_not(self: &mut Self, elem: Self::Elem) -> Self::Elem;
+    fn bool_not(self: &mut Self, elem: Self::Bool) -> Self::Bool;
 
     /// Returns the logical or (lattice join) of a pair of elements.
-    fn bool_or(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
+    fn bool_or(self: &mut Self, elem1: Self::Bool, elem2: Self::Bool) -> Self::Bool;
 
     /// Returns the exclusive or (boolean addition) of a pair of elements.
-    fn bool_add(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
+    fn bool_add(self: &mut Self, elem1: Self::Bool, elem2: Self::Bool) -> Self::Bool;
 
     /// Returns the logical and (lattice meet) of a pair of elements.
-    fn bool_and(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_and(self: &mut Self, elem1: Self::Bool, elem2: Self::Bool) -> Self::Bool {
         let tmp1 = self.bool_not(elem1);
         let tmp2 = self.bool_not(elem2);
         let tmp3 = self.bool_or(tmp1, tmp2);
@@ -61,13 +61,13 @@ pub trait BoolAlg {
     }
 
     /// Returns the logical equivalence of a pair of elements.
-    fn bool_equ(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_equ(self: &mut Self, elem1: Self::Bool, elem2: Self::Bool) -> Self::Bool {
         let tmp = self.bool_not(elem1);
         self.bool_add(tmp, elem2)
     }
 
     /// Returns the logical implication of a pair of elements.
-    fn bool_leq(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_leq(self: &mut Self, elem1: Self::Bool, elem2: Self::Bool) -> Self::Bool {
         let tmp = self.bool_not(elem1);
         self.bool_or(tmp, elem2)
     }
@@ -75,10 +75,10 @@ pub trait BoolAlg {
     /// Returns the boolean sum of three values.
     fn bool_ad3(
         self: &mut Self,
-        elem1: Self::Elem,
-        elem2: Self::Elem,
-        elem3: Self::Elem,
-    ) -> Self::Elem {
+        elem1: Self::Bool,
+        elem2: Self::Bool,
+        elem3: Self::Bool,
+    ) -> Self::Bool {
         let tmp = self.bool_add(elem1, elem2);
         self.bool_add(tmp, elem3)
     }
@@ -86,10 +86,10 @@ pub trait BoolAlg {
     /// Returns the majority of the given values.
     fn bool_maj(
         self: &mut Self,
-        elem1: Self::Elem,
-        elem2: Self::Elem,
-        elem3: Self::Elem,
-    ) -> Self::Elem {
+        elem1: Self::Bool,
+        elem2: Self::Bool,
+        elem3: Self::Bool,
+    ) -> Self::Bool {
         let tmp1 = self.bool_and(elem1, elem2);
         let tmp2 = self.bool_and(elem1, elem3);
         let tmp3 = self.bool_and(elem2, elem3);
@@ -98,7 +98,7 @@ pub trait BoolAlg {
     }
 
     /// Computes the conjunction of the elements.
-    fn bool_all(self: &mut Self, elems: &[Self::Elem]) -> Self::Elem {
+    fn bool_all(self: &mut Self, elems: &[Self::Bool]) -> Self::Bool {
         let mut result = self.bool_unit();
         for elem in elems {
             result = self.bool_and(result, *elem);
@@ -107,7 +107,7 @@ pub trait BoolAlg {
     }
 
     /// Computes the disjunction of the elements.
-    fn bool_any(self: &mut Self, elems: &[Self::Elem]) -> Self::Elem {
+    fn bool_any(self: &mut Self, elems: &[Self::Bool]) -> Self::Bool {
         let mut result = self.bool_zero();
         for elem in elems {
             result = self.bool_or(result, *elem);
@@ -120,25 +120,25 @@ pub trait BoolAlg {
 pub struct Trivial();
 
 impl BoolAlg for Trivial {
-    type Elem = ();
+    type Bool = ();
 
-    fn bool_unit(self: &Self) -> Self::Elem {
+    fn bool_unit(self: &Self) -> Self::Bool {
         ()
     }
 
-    fn bool_zero(self: &Self) -> Self::Elem {
+    fn bool_zero(self: &Self) -> Self::Bool {
         ()
     }
 
-    fn bool_not(self: &mut Self, _elem: Self::Elem) -> Self::Elem {
+    fn bool_not(self: &mut Self, _elem: Self::Bool) -> Self::Bool {
         ()
     }
 
-    fn bool_or(self: &mut Self, _elem1: Self::Elem, _elem2: Self::Elem) -> Self::Elem {
+    fn bool_or(self: &mut Self, _elem1: Self::Bool, _elem2: Self::Bool) -> Self::Bool {
         ()
     }
 
-    fn bool_add(self: &mut Self, _elem1: Self::Elem, _elem2: Self::Elem) -> Self::Elem {
+    fn bool_add(self: &mut Self, _elem1: Self::Bool, _elem2: Self::Bool) -> Self::Bool {
         ()
     }
 }
@@ -147,49 +147,42 @@ impl BoolAlg for Trivial {
 #[derive(Default, Debug)]
 pub struct Boolean();
 
-impl Boolean {
-    /// Creates a new two element boolean algebra.
-    pub fn new() -> Self {
-        Boolean()
-    }
-}
-
 impl BoolAlg for Boolean {
-    type Elem = bool;
+    type Bool = bool;
 
-    fn bool_unit(self: &Self) -> Self::Elem {
+    fn bool_unit(self: &Self) -> Self::Bool {
         true
     }
 
-    fn bool_zero(self: &Self) -> Self::Elem {
+    fn bool_zero(self: &Self) -> Self::Bool {
         false
     }
 
-    fn bool_lift(self: &Self, elem: bool) -> Self::Elem {
+    fn bool_lift(self: &Self, elem: bool) -> Self::Bool {
         elem
     }
 
-    fn bool_not(self: &mut Self, elem: Self::Elem) -> Self::Elem {
+    fn bool_not(self: &mut Self, elem: Self::Bool) -> Self::Bool {
         !elem
     }
 
-    fn bool_or(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_or(self: &mut Self, elem1: Self::Bool, elem2: Self::Bool) -> Self::Bool {
         elem1 || elem2
     }
 
-    fn bool_add(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_add(self: &mut Self, elem1: Self::Bool, elem2: Self::Bool) -> Self::Bool {
         elem1 ^ elem2
     }
 
-    fn bool_and(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_and(self: &mut Self, elem1: Self::Bool, elem2: Self::Bool) -> Self::Bool {
         elem1 && elem2
     }
 
-    fn bool_equ(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_equ(self: &mut Self, elem1: Self::Bool, elem2: Self::Bool) -> Self::Bool {
         elem1 == elem2
     }
 
-    fn bool_leq(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_leq(self: &mut Self, elem1: Self::Bool, elem2: Self::Bool) -> Self::Bool {
         elem1 <= elem2
     }
 }
@@ -218,21 +211,21 @@ impl Solver {
 }
 
 impl BoolAlg for Solver {
-    type Elem = solver::Literal;
+    type Bool = solver::Literal;
 
-    fn bool_unit(self: &Self) -> Self::Elem {
+    fn bool_unit(self: &Self) -> Self::Bool {
         self.unit
     }
 
-    fn bool_zero(self: &Self) -> Self::Elem {
+    fn bool_zero(self: &Self) -> Self::Bool {
         self.zero
     }
 
-    fn bool_not(self: &mut Self, elem: Self::Elem) -> Self::Elem {
+    fn bool_not(self: &mut Self, elem: Self::Bool) -> Self::Bool {
         self.solver.negate(elem)
     }
 
-    fn bool_or(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_or(self: &mut Self, elem1: Self::Bool, elem2: Self::Bool) -> Self::Bool {
         let not_elem1 = self.solver.negate(elem1);
         let not_elem2 = self.solver.negate(elem2);
         if elem1 == self.unit || elem2 == self.unit || elem1 == not_elem2 {
@@ -251,7 +244,7 @@ impl BoolAlg for Solver {
         }
     }
 
-    fn bool_add(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_add(self: &mut Self, elem1: Self::Bool, elem2: Self::Bool) -> Self::Bool {
         let not_elem1 = self.solver.negate(elem1);
         let not_elem2 = self.solver.negate(elem2);
         if elem1 == self.zero {
@@ -281,32 +274,32 @@ impl BoolAlg for Solver {
 /// Constraint solving over a boolean algebra.
 pub trait BoolSat: BoolAlg {
     /// Adds a new variable to the solver
-    fn bool_add_variable(self: &mut Self) -> Self::Elem;
+    fn bool_add_variable(self: &mut Self) -> Self::Bool;
 
     /// Adds the given (disjunctive) clause to the solver.
-    fn bool_add_clause(self: &mut Self, elems: &[Self::Elem]);
+    fn bool_add_clause(self: &mut Self, elems: &[Self::Bool]);
 
     /// Runs the solver and finds a model where the given assumptions are true.
-    fn bool_find_model(self: &mut Self, elems: &[Self::Elem]) -> bool;
+    fn bool_find_model(self: &mut Self, elems: &[Self::Bool]) -> bool;
 
     /// Returns the logical value of the element in the found model.
-    fn bool_get_value(self: &Self, elem: Self::Elem) -> bool;
+    fn bool_get_value(self: &Self, elem: Self::Bool) -> bool;
 }
 
 impl BoolSat for Solver {
-    fn bool_add_variable(self: &mut Self) -> Self::Elem {
+    fn bool_add_variable(self: &mut Self) -> Self::Bool {
         self.solver.add_variable()
     }
 
-    fn bool_add_clause(self: &mut Self, elems: &[Self::Elem]) {
+    fn bool_add_clause(self: &mut Self, elems: &[Self::Bool]) {
         self.solver.add_clause(&elems)
     }
 
-    fn bool_find_model(self: &mut Self, elems: &[Self::Elem]) -> bool {
+    fn bool_find_model(self: &mut Self, elems: &[Self::Bool]) -> bool {
         self.solver.solve_with(elems)
     }
 
-    fn bool_get_value(self: &Self, elem: Self::Elem) -> bool {
+    fn bool_get_value(self: &Self, elem: Self::Bool) -> bool {
         self.solver.get_value(elem)
     }
 }
@@ -317,7 +310,7 @@ mod tests {
 
     #[test]
     fn boolops() {
-        let mut alg = Boolean::new();
+        let mut alg = Boolean();
         let a = alg.bool_unit();
         let b = alg.bool_not(a);
         assert_eq!(alg.bool_add(a, b), a);

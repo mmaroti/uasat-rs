@@ -17,8 +17,8 @@
 
 //! A SAT based discrete mathematics and universal algebra calculator.
 
-pub mod boolalg;
-pub mod boolvec;
+pub mod binary;
+pub mod boolean;
 pub mod clone;
 pub mod genvec;
 pub mod lexer;
@@ -36,7 +36,7 @@ use std::panic;
 use std::time::Instant;
 use wasm_bindgen::prelude::*;
 
-use boolalg::BoolAlg;
+use boolean::{BoolAlg, BoolSat};
 use tensor::{Shape, Solver, TensorAlg, TensorSat};
 
 #[wasm_bindgen(start)]
@@ -111,31 +111,31 @@ pub fn test_solver2(solver_name: &str, size: usize) -> String {
     let start = Instant::now();
 
     let mut sol = Solver::new(solver_name);
-    let rel = sol.add_variable(Shape::new(vec![size, size]));
+    let rel = sol.tensor_add_variable(Shape::new(vec![size, size]));
 
     let rfl = sol.polymer(&rel, Shape::new(vec![size]), &[0, 0]);
     let rfl = sol.tensor_all(&rfl, 1);
-    sol.add_clause(&[&rfl]);
+    sol.tensor_add_clause(&[&rfl]);
 
     let inv = sol.polymer(&rel, Shape::new(vec![size, size]), &[1, 0]);
     //let neg = sol.tensor_not(&rel);
     //sol.add_clause(&[&neg, &inv]);
     let imp = sol.tensor_leq(&rel, &inv);
     let imp = sol.tensor_all(&imp, 2);
-    sol.add_clause(&[&imp]);
+    sol.tensor_add_clause(&[&imp]);
 
     let r01 = sol.polymer(&rel, Shape::new(vec![size, size, size]), &[0, 1]);
     let r01 = sol.tensor_not(&r01);
     let r12 = sol.polymer(&rel, Shape::new(vec![size, size, size]), &[1, 2]);
     let r12 = sol.tensor_not(&r12);
     let r02 = sol.polymer(&rel, Shape::new(vec![size, size, size]), &[0, 2]);
-    sol.add_clause(&[&r01, &r12, &r02]);
+    sol.tensor_add_clause(&[&r01, &r12, &r02]);
 
     // find all solutions
     let mut count = 0;
-    while sol.find_model() {
+    while sol.tensor_find_model() {
         count += 1;
-        let rel2 = sol.get_value(&rel);
+        let rel2 = sol.tensor_get_value(&rel);
         let mut lits = Vec::new();
         lits.resize(size * size, rel.__slow_get__(&[0, 0]));
         for i in 0..size {
@@ -148,7 +148,7 @@ pub fn test_solver2(solver_name: &str, size: usize) -> String {
                 }
             }
         }
-        boolalg::BoolSat::add_clause(&mut sol, &lits);
+        sol.bool_add_clause(&lits);
     }
 
     let duration = Instant::now().duration_since(start);

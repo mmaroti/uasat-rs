@@ -254,32 +254,32 @@ impl BoolAlg for Solver {
 /// Constraint solving over a boolean algebra.
 pub trait BoolSat: BoolAlg {
     /// Adds a new variable to the solver
-    fn add_variable(self: &mut Self) -> Self::Elem;
+    fn bool_add_variable(self: &mut Self) -> Self::Elem;
 
     /// Adds the given (disjunctive) clause to the solver.
-    fn add_clause(self: &mut Self, elems: &[Self::Elem]);
+    fn bool_add_clause(self: &mut Self, elems: &[Self::Elem]);
 
     /// Runs the solver and finds a model where the given assumptions are true.
-    fn find_model(self: &mut Self, elems: &[Self::Elem]) -> bool;
+    fn bool_find_model(self: &mut Self, elems: &[Self::Elem]) -> bool;
 
     /// Returns the logical value of the element in the found model.
-    fn get_value(self: &Self, elem: Self::Elem) -> bool;
+    fn bool_get_value(self: &Self, elem: Self::Elem) -> bool;
 }
 
 impl BoolSat for Solver {
-    fn add_variable(self: &mut Self) -> Self::Elem {
+    fn bool_add_variable(self: &mut Self) -> Self::Elem {
         self.solver.add_variable()
     }
 
-    fn add_clause(self: &mut Self, elems: &[Self::Elem]) {
+    fn bool_add_clause(self: &mut Self, elems: &[Self::Elem]) {
         self.solver.add_clause(&elems)
     }
 
-    fn find_model(self: &mut Self, elems: &[Self::Elem]) -> bool {
+    fn bool_find_model(self: &mut Self, elems: &[Self::Elem]) -> bool {
         self.solver.solve_with(elems)
     }
 
-    fn get_value(self: &Self, elem: solver::Literal) -> bool {
+    fn bool_get_value(self: &Self, elem: Self::Elem) -> bool {
         self.solver.get_value(elem)
     }
 }
@@ -300,13 +300,13 @@ mod tests {
     #[test]
     fn solver() {
         let mut alg = Solver::new("");
-        let a = alg.add_variable();
-        let b = alg.add_variable();
+        let a = alg.bool_add_variable();
+        let b = alg.bool_add_variable();
         let c = alg.bool_and(a, b);
-        assert!(alg.find_model(&[c]));
-        assert!(alg.get_value(a), true);
-        assert!(alg.get_value(b), true);
+        assert!(alg.bool_find_model(&[c]));
+        assert!(alg.bool_get_value(a), true);
+        assert!(alg.bool_get_value(b), true);
         let d = alg.bool_not(a);
-        assert!(!alg.find_model(&[c, d]));
+        assert!(!alg.bool_find_model(&[c, d]));
     }
 }

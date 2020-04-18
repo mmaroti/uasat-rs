@@ -45,6 +45,15 @@ where
     where
         F: FnMut(usize) -> Self::Elem;
 
+    /// Constructs a new vector containing the given elements.
+    fn from_elems(elems: &[Self::Elem]) -> Self {
+        let mut result = Self::with_capacity(elems.len());
+        for elem in elems {
+            result.push(*elem);
+        }
+        result
+    }
+
     /// Clears the vector, removing all values.
     fn clear(self: &mut Self);
 

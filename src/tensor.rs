@@ -17,11 +17,11 @@
 
 //! Basic multidimensional array type and operations over boolean algebras.
 
-use super::boolalg::{BoolAlg, BoolSat};
+use super::boolean::{BoolAlg, BoolSat};
 use super::genvec::{GenElem, GenVec};
 use std::ops::Index;
 
-pub use super::boolalg::Solver;
+pub use super::boolean::Solver;
 
 /// The shape of a tensor.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -475,30 +475,30 @@ where
 /// The trait for solving tensor algebra problems.
 pub trait TensorSat: TensorAlg {
     /// Creates a new tensor with fresh variables.
-    fn add_variable(self: &mut Self, shape: Shape) -> Self::Elem;
+    fn tensor_add_variable(self: &mut Self, shape: Shape) -> Self::Elem;
 
     /// Adds the given (disjunctive) clause to the solver.
-    fn add_clause(self: &mut Self, elems: &[&Self::Elem]);
+    fn tensor_add_clause(self: &mut Self, elems: &[&Self::Elem]);
 
     /// Runs the solver and finds a model where the given assumptions are true.
-    fn find_model(self: &mut Self) -> bool;
+    fn tensor_find_model(self: &mut Self) -> bool;
 
     /// Returns the logical value of the tensor in the found model.
-    fn get_value(self: &Self, elem: &Self::Elem) -> Tensor<bool>;
+    fn tensor_get_value(self: &Self, elem: &Self::Elem) -> Tensor<bool>;
 }
 
 impl<ALG> TensorSat for ALG
 where
     ALG: BoolSat,
 {
-    fn add_variable(self: &mut Self, shape: Shape) -> Self::Elem {
-        let elems = GenVec::from_fn(shape.size(), |_| BoolSat::add_variable(self));
+    fn tensor_add_variable(self: &mut Self, shape: Shape) -> Self::Elem {
+        let elems = GenVec::from_fn(shape.size(), |_| self.bool_add_variable());
         Tensor { shape, elems }
     }
 
-    fn add_clause(self: &mut Self, tensors: &[&Self::Elem]) {
+    fn tensor_add_clause(self: &mut Self, tensors: &[&Self::Elem]) {
         if tensors.is_empty() {
-            BoolSat::add_clause(self, &[]);
+            self.bool_add_clause(&[]);
             return;
         }
 
@@ -512,32 +512,30 @@ where
         }
 
         let mut clause: Vec<ALG::Elem> = tensors.iter().map(|t| t.elems.get(0)).collect();
-        BoolSat::add_clause(self, &clause);
+        self.bool_add_clause(&clause);
 
         for i in 1..shape.size() {
             for j in 0..tensors.len() {
                 clause[j] = tensors[j].elems.get(i);
             }
-            BoolSat::add_clause(self, &clause);
+            self.bool_add_clause(&clause);
         }
     }
 
-    fn find_model(self: &mut Self) -> bool {
-        BoolSat::find_model(self, &[])
+    fn tensor_find_model(self: &mut Self) -> bool {
+        self.bool_find_model(&[])
     }
 
-    fn get_value(self: &Self, tensor: &Self::Elem) -> Tensor<bool> {
+    fn tensor_get_value(self: &Self, tensor: &Self::Elem) -> Tensor<bool> {
         let shape = tensor.shape.clone();
-        let elems = GenVec::from_fn(shape.size(), |i| {
-            BoolSat::get_value(self, tensor.elems.get(i))
-        });
+        let elems = GenVec::from_fn(shape.size(), |i| self.bool_get_value(tensor.elems.get(i)));
         Tensor { shape, elems }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::super::boolalg::Boolean;
+    use super::super::boolean::Boolean;
     use super::*;
 
     #[test]

@@ -19,10 +19,10 @@
 
 pub mod binary;
 pub mod boolean;
-pub mod clone;
 pub mod genvec;
 pub mod lexer;
 pub mod parser;
+pub mod relation;
 pub mod solver;
 pub mod tensor;
 

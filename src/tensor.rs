@@ -277,7 +277,7 @@ pub trait TensorAlg {
 
     /// Returns a new tensor whose elements are the boolean additions of the
     /// original elements.
-    fn tensor_add(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
+    fn tensor_xor(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
 
     /// Returns a new tensor whose elements are the logical equivalence of the
     /// original elements.
@@ -339,7 +339,7 @@ impl TensorAlg for Trivial {
         checker_binop(elem1, elem2)
     }
 
-    fn tensor_add(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+    fn tensor_xor(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
         checker_binop(elem1, elem2)
     }
 
@@ -362,13 +362,13 @@ impl TensorAlg for Trivial {
 
 fn boolalg_binop<ALG, OP>(
     alg: &mut ALG,
-    elem1: &Tensor<ALG::Bool>,
-    elem2: &Tensor<ALG::Bool>,
+    elem1: &Tensor<ALG::Elem>,
+    elem2: &Tensor<ALG::Elem>,
     mut op: OP,
-) -> Tensor<ALG::Bool>
+) -> Tensor<ALG::Elem>
 where
     ALG: BoolAlg,
-    OP: FnMut(&mut ALG, ALG::Bool, ALG::Bool) -> ALG::Bool,
+    OP: FnMut(&mut ALG, ALG::Elem, ALG::Elem) -> ALG::Elem,
 {
     assert!(elem1.shape() == elem2.shape());
     let shape = elem1.shape.clone();
@@ -380,13 +380,13 @@ where
 
 fn boolalg_fold<ALG, OP>(
     alg: &mut ALG,
-    elem: &Tensor<ALG::Bool>,
+    elem: &Tensor<ALG::Elem>,
     count: usize,
     mut op: OP,
-) -> Tensor<ALG::Bool>
+) -> Tensor<ALG::Elem>
 where
     ALG: BoolAlg,
-    OP: FnMut(&mut ALG, &[ALG::Bool]) -> ALG::Bool,
+    OP: FnMut(&mut ALG, &[ALG::Elem]) -> ALG::Elem,
 {
     let (head, shape) = elem.shape().split(count);
     let head = head.size();
@@ -407,7 +407,7 @@ impl<ALG> TensorAlg for ALG
 where
     ALG: BoolAlg,
 {
-    type Elem = Tensor<ALG::Bool>;
+    type Elem = Tensor<ALG::Elem>;
 
     fn shape(elem: &Self::Elem) -> &Shape {
         &elem.shape
@@ -451,8 +451,8 @@ where
         boolalg_binop(self, elem1, elem2, BoolAlg::bool_and)
     }
 
-    fn tensor_add(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        boolalg_binop(self, elem1, elem2, BoolAlg::bool_add)
+    fn tensor_xor(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+        boolalg_binop(self, elem1, elem2, BoolAlg::bool_xor)
     }
 
     fn tensor_equ(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
@@ -511,7 +511,7 @@ where
             return;
         }
 
-        let mut clause: Vec<ALG::Bool> = tensors.iter().map(|t| t.elems.get(0)).collect();
+        let mut clause: Vec<ALG::Elem> = tensors.iter().map(|t| t.elems.get(0)).collect();
         self.bool_add_clause(&clause);
 
         for i in 1..shape.size() {

@@ -17,12 +17,13 @@
 
 use super::boolean;
 use super::genvec;
-
 use super::genvec::GenVec as _;
 
+pub use boolean::{Boolean, Solver, Trivial};
+
 /// Boolean array algebra representing bit vectors and binary numbers.
-pub trait BinaryAlg: boolean::BoolAlg {
-    type Elem: Clone;
+pub trait BinaryAlg {
+    type Elem;
 
     /// Returns the length of the array.
     fn len(elem: &Self::Elem) -> usize;
@@ -43,7 +44,7 @@ pub trait BinaryAlg: boolean::BoolAlg {
 
     /// Returns a new vector whose elements are the exclusive or of the
     /// original elements.
-    fn bit_add(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
+    fn bit_xor(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
 
     /// Returns a new vector whose elements are the are the logical equivalence
     /// of the original elements.
@@ -71,34 +72,34 @@ pub trait BinaryAlg: boolean::BoolAlg {
     /// two's complement.
     fn num_sub(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
 
-    /// Returns whether the first binary number is equal to the second one.
-    fn num_equ(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Bool;
+    /// Returns whether the first binary number is equal to the second one
+    /// as a 1-element vector.
+    fn num_equ(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
 
-    /// Returns whether the first binary number is not equal to the second one.
-    fn num_neq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Bool {
+    /// Returns whether the first binary number is not equal to the second one
+    /// as a 1-element vector.
+    fn num_neq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
         let temp = self.num_equ(elem1, elem2);
-        self.bool_not(temp)
+        self.bit_not(&temp)
     }
 
     /// Returns whether the first unsigned binary number is less than or equal
-    /// to the second one.
-    fn num_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Bool;
+    /// to the second one as a 1-element vector.
+    fn num_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
 
     /// Returns whether the first unsigned binary number is less than the
-    /// second one.
-    fn num_ltn(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Bool {
+    /// second one as a 1-element vector.
+    fn num_lth(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
         let temp = self.num_leq(elem2, elem1);
-        self.bool_not(temp)
+        self.bit_not(&temp)
     }
 }
-
-pub type Trivial = boolean::Trivial;
 
 impl<ALG> BinaryAlg for ALG
 where
     ALG: boolean::BoolAlg,
 {
-    type Elem = <ALG::Bool as genvec::GenElem>::Vector;
+    type Elem = <ALG::Elem as genvec::GenElem>::Vector;
 
     fn len(elem: &Self::Elem) -> usize {
         elem.len()
@@ -122,9 +123,9 @@ where
         genvec::GenVec::from_fn(elem1.len(), |i| self.bool_and(elem1.get(i), elem2.get(i)))
     }
 
-    fn bit_add(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+    fn bit_xor(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
         assert!(elem1.len() == elem2.len());
-        genvec::GenVec::from_fn(elem1.len(), |i| self.bool_add(elem1.get(i), elem2.get(i)))
+        genvec::GenVec::from_fn(elem1.len(), |i| self.bool_xor(elem1.get(i), elem2.get(i)))
     }
 
     fn bit_equ(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
@@ -155,7 +156,7 @@ where
         let mut result: Self::Elem = genvec::GenVec::with_capacity(elem.len());
         for i in 0..elem.len() {
             let not_elem = self.bool_not(elem.get(i));
-            result.push(self.bool_add(not_elem, carry));
+            result.push(self.bool_xor(not_elem, carry));
             carry = self.bool_and(not_elem, carry);
         }
         result
@@ -184,83 +185,106 @@ where
         result
     }
 
-    fn num_equ(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Bool {
+    fn num_equ(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
         assert!(elem1.len() == elem2.len());
         let mut result = self.bool_unit();
         for i in 0..elem1.len() {
             let temp = self.bool_equ(elem1.get(i), elem2.get(i));
             result = self.bool_and(result, temp);
         }
-        result
+        let mut vec: Self::Elem = genvec::GenVec::with_capacity(1);
+        vec.push(result);
+        vec
     }
 
-    fn num_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Bool {
+    fn num_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
         assert!(elem1.len() == elem2.len());
         let mut result = self.bool_unit();
         for i in 0..elem1.len() {
             let not_elem1 = self.bool_not(elem1.get(i));
             result = self.bool_maj(not_elem1, elem2.get(i), result);
         }
-        result
+        let mut vec: Self::Elem = genvec::GenVec::with_capacity(1);
+        vec.push(result);
+        vec
+    }
+}
+
+/// Constraint solving over a boolean algebra.
+pub trait BinarySat: BinaryAlg {
+    /// Adds a new bit vector variable to the solver
+    fn bit_add_variable(self: &mut Self, len: usize) -> Self::Elem;
+
+    /// Adds the given (disjunctive) clause of bits to the solver.
+    fn bit_add_clause(self: &mut Self, elem: Self::Elem);
+
+    /// Runs the solver and finds a model where the given bit assumptions
+    /// are all true.
+    fn bit_find_model(self: &mut Self, elem: Self::Elem) -> bool;
+
+    /// Returns the logical value of the element in the found model.
+    fn bit_get_value(self: &Self, elem: Self::Elem) -> <bool as genvec::GenElem>::Vector;
+}
+
+impl<ALG> BinarySat for ALG
+where
+    ALG: boolean::BoolSat,
+{
+    fn bit_add_variable(self: &mut Self, len: usize) -> Self::Elem {
+        // TODO: implement bulk variable addition
+        genvec::GenVec::from_fn(len, |_| self.bool_add_variable())
+    }
+
+    fn bit_add_clause(self: &mut Self, elem: Self::Elem) {
+        // let vec: Vec<ALG::Elem> = elem.iter().collect();
+        // self.bool_add_clause(elem.iter());
+    }
+
+    fn bit_find_model(self: &mut Self, elem: Self::Elem) -> bool {
+        // self.bool_find_model()
+        false
+    }
+
+    fn bit_get_value(self: &Self, elem: Self::Elem) -> <bool as genvec::GenElem>::Vector {
+        genvec::GenVec::new()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::super::boolean;
     use super::*;
 
     #[test]
-    fn num_lift() {
-        let alg = boolean::Boolean();
-        let v1 = alg.bit_lift(&[true, false, true, true]);
-        let v2 = alg.num_lift(4, 13);
-        assert_eq!(v1, v2);
-
-        let v3 = alg.num_lift(4, -3);
-        assert_eq!(v1, v3);
-    }
-
-    #[test]
-    fn concat() {
-        let alg = boolean::Boolean();
-        let v1 = alg.num_lift(4, 0x3);
-        let v2 = alg.num_lift(4, 0xd);
-        let v3 = alg.num_lift(8, 0xd3);
-        let v4 = alg.concat(&[&v1, &v2]);
-        assert_eq!(v3, v4);
-    }
-
-    #[test]
-    fn num_ops() {
-        let mut alg = boolean::Boolean();
-        let v1 = alg.num_lift(8, 17);
-        let v2 = alg.num_lift(8, 73);
-        let v3 = alg.num_lift(8, 90);
-        assert_eq!(v3, alg.num_add(&v1, &v2));
-        assert_eq!(alg.num_lift(8, -17), alg.num_neg(&v1));
-        assert_eq!(alg.num_lift(8, -56), alg.num_sub(&v1, &v2));
-        assert_eq!(alg.num_lift(8, 56), alg.num_sub(&v2, &v1));
-    }
-
-    #[test]
-    fn num_rel() {
-        let mut alg = boolean::Boolean();
-        let v1 = alg.num_lift(8, -5);
-        let v2 = alg.num_lift(8, -6);
-        let v3 = alg.num_lift(8, 3);
-        assert_eq!(alg.num_equ(&v1, &v1), true);
-        assert_eq!(alg.num_equ(&v1, &v2), false);
-        assert_eq!(alg.num_leq(&v1, &v1), true);
-        assert_eq!(alg.num_leq(&v2, &v1), true);
-        assert_eq!(alg.num_leq(&v1, &v2), false);
-        assert_eq!(alg.num_leq(&v3, &v2), true);
-    }
-
-    #[test]
-    fn trivial() {
-        let alg = boolean::Trivial();
+    fn opers() {
+        let alg = Trivial();
         let v1 = alg.num_lift(3, 13);
         assert_eq!(v1, 3);
+
+        let mut alg = Boolean();
+        for a1 in 0..15 {
+            let a2 = alg.num_lift(4, a1);
+            assert_eq!(a2, alg.num_lift(4, a1 - 16));
+            assert_eq!(alg.bit_not(&a2), alg.num_lift(4, !a1));
+            assert_eq!(alg.num_neg(&a2), alg.num_lift(4, -a1));
+            assert_eq!(alg.concat(&[&a2]), a2);
+
+            for b1 in 0..15 {
+                let b2 = alg.num_lift(4, b1);
+                assert_eq!(alg.bit_and(&a2, &b2), alg.num_lift(4, a1 & b1));
+                assert_eq!(alg.bit_or(&a2, &b2), alg.num_lift(4, a1 | b1));
+                assert_eq!(alg.bit_xor(&a2, &b2), alg.num_lift(4, a1 ^ b1));
+                assert_eq!(alg.bit_equ(&a2, &b2), alg.num_lift(4, !a1 ^ b1));
+                assert_eq!(alg.bit_leq(&a2, &b2), alg.num_lift(4, !a1 | b1));
+
+                assert_eq!(alg.num_add(&a2, &b2), alg.num_lift(4, a1 + b1));
+                assert_eq!(alg.num_sub(&a2, &b2), alg.num_lift(4, a1 - b1));
+                assert_eq!(alg.num_equ(&a2, &b2), alg.bit_lift(&[a1 == b1]));
+                assert_eq!(alg.num_neq(&a2, &b2), alg.bit_lift(&[a1 != b1]));
+                assert_eq!(alg.num_leq(&a2, &b2), alg.bit_lift(&[a1 <= b1]));
+                assert_eq!(alg.num_lth(&a2, &b2), alg.bit_lift(&[a1 < b1]));
+
+                assert_eq!(alg.concat(&[&a2, &b2]), alg.num_lift(8, a1 + 16 * b1));
+            }
+        }
     }
 }

@@ -109,6 +109,59 @@ where
 
     /// Returns the number of elements the vector can hold without reallocating.
     fn capacity(self: &Self) -> usize;
+
+    /// Returns an iterator for the given range of elements.
+    fn range(self: &Self, start: usize, end: usize) -> GenIter<'_, ELEM, Self> {
+        assert!(start <= end && end <= self.len());
+        GenIter {
+            pos: start,
+            len: end,
+            vec: self,
+            phantom: Default::default(),
+        }
+    }
+
+    /// Returns an iterator over the elements of the vector.
+    fn gen_iter(self: &Self) -> GenIter<'_, ELEM, Self> {
+        self.range(0, self.len())
+    }
+}
+
+/// Generic read only iterator over the vector.
+pub struct GenIter<'a, ELEM, VEC>
+where
+    ELEM: Copy + fmt::Debug,
+    VEC: GenVec<ELEM>,
+{
+    pos: usize,
+    len: usize,
+    vec: &'a VEC,
+    phantom: std::marker::PhantomData<ELEM>,
+}
+
+impl<'a, ELEM, VEC> Iterator for GenIter<'a, ELEM, VEC>
+where
+    ELEM: Copy + fmt::Debug,
+    VEC: GenVec<ELEM>,
+{
+    type Item = ELEM;
+
+    fn next(self: &mut Self) -> Option<Self::Item> {
+        if self.pos < self.len {
+            let elem = unsafe { self.vec.__get_unchecked__(self.pos) };
+            self.pos += 1;
+            Some(elem)
+        } else {
+            None
+        }
+    }
+}
+
+impl<'a, ELEM, VEC> iter::FusedIterator for GenIter<'a, ELEM, VEC>
+where
+    ELEM: Copy + fmt::Debug,
+    VEC: GenVec<ELEM>,
+{
 }
 
 impl<ELEM> GenVec<ELEM> for Vec<ELEM>
@@ -471,7 +524,7 @@ mod tests {
 
     #[test]
     fn iters() {
-        let e1 = vec![true, false];
+        let e1 = vec![true, false, true];
         let e2 = e1.clone();
         let v1: <bool as GenElem>::Vector = e1.into_iter().collect();
         let mut v2: <bool as GenElem>::Vector = GenVec::new();
@@ -479,6 +532,11 @@ mod tests {
             GenVec::push(&mut v2, b);
         }
         assert_eq!(v1, v2);
+
+        let mut iter = GenVec::range(&v1, 1, 3);
+        assert_eq!(iter.next(), Some(false));
+        assert_eq!(iter.next(), Some(true));
+        assert_eq!(iter.next(), None);
 
         let e1 = [true, false];
         let v1: <bool as GenElem>::Vector = e1.iter().cloned().collect();

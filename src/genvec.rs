@@ -22,13 +22,13 @@ use super::solver;
 use std::{fmt, iter};
 
 /// Generic interface for regular and bit vectors.
-pub trait GenVec
+pub trait GenVec<ELEM>
 where
     Self: Default + Clone + fmt::Debug,
+    ELEM: Copy + fmt::Debug,
+    Self: IntoIterator<Item = ELEM>,
+    Self: iter::FromIterator<ELEM>,
 {
-    /// The element type of the vector.
-    type Elem: Copy;
-
     /// Constructs a new, empty vector. The vector will not allocate until
     /// elements are pushed onto it.
     fn new() -> Self;
@@ -41,12 +41,16 @@ where
     /// each index is `op(index)`.
     fn from_fn<F>(len: usize, op: F) -> Self
     where
-        F: FnMut(usize) -> Self::Elem;
+        F: FnMut(usize) -> ELEM;
 
     /// Constructs a new vector containing the given elements.
-    fn from_elems(elems: &[Self::Elem]) -> Self {
-        let mut result = Self::with_capacity(elems.len());
-        for elem in elems {
+    fn from_iter<'a, ITER>(iter: ITER) -> Self
+    where
+        ITER: Iterator<Item = &'a ELEM>,
+        ELEM: 'a,
+    {
+        let mut result = Self::with_capacity(iter.size_hint().0);
+        for elem in iter {
             result.push(*elem);
         }
         result
@@ -57,16 +61,16 @@ where
 
     /// Resizes the `Vec` in-place so that `len` is equal to `new_len`.
     /// If `new_len` is greater than `len`, the `Vec` is extended by the
-    /// difference, with each additional slot filled with `value`.
+    /// difference, with each additional slot filled with `elem`.
     /// If `new_len` is less than `len`, the `Vec` is simply truncated.
-    fn resize(self: &mut Self, new_len: usize, value: Self::Elem);
+    fn resize(self: &mut Self, new_len: usize, elem: ELEM);
 
     /// Appends an element to the back of a collection.
-    fn push(self: &mut Self, value: Self::Elem);
+    fn push(self: &mut Self, elem: ELEM);
 
     /// Removes the last element from a vector and returns it, or `None` if
     /// it is empty.
-    fn pop(self: &mut Self) -> Option<Self::Elem>;
+    fn pop(self: &mut Self) -> Option<ELEM>;
 
     /// Extends this vector by copying all elements from the other vector.
     fn extend(self: &mut Self, other: &Self);
@@ -75,22 +79,22 @@ where
     fn append(self: &mut Self, other: &mut Self);
 
     /// Returns the element at the given index.
-    fn get(self: &Self, index: usize) -> Self::Elem;
+    fn get(self: &Self, index: usize) -> ELEM;
 
     /// Returns the element at the given index without bound checks.
     #[allow(non_snake_case)]
-    unsafe fn __get_unchecked__(self: &Self, index: usize) -> Self::Elem {
+    unsafe fn __get_unchecked__(self: &Self, index: usize) -> ELEM {
         self.get(index)
     }
 
     /// Sets the element at the given index to the new value.
-    fn set(self: &mut Self, index: usize, value: Self::Elem);
+    fn set(self: &mut Self, index: usize, elem: ELEM);
 
     /// Sets the element at the given index to the new value without bound
     /// checks.
     #[allow(non_snake_case)]
-    unsafe fn __set_unchecked__(self: &mut Self, index: usize, value: Self::Elem) {
-        self.set(index, value);
+    unsafe fn __set_unchecked__(self: &mut Self, index: usize, elem: ELEM) {
+        self.set(index, elem);
     }
 
     /// Returns the number of elements in the vector.
@@ -103,12 +107,10 @@ where
     fn capacity(self: &Self) -> usize;
 }
 
-impl<ELEM> GenVec for Vec<ELEM>
+impl<ELEM> GenVec<ELEM> for Vec<ELEM>
 where
     ELEM: Copy + fmt::Debug,
 {
-    type Elem = ELEM;
-
     fn new() -> Self {
         Vec::new()
     }
@@ -119,7 +121,7 @@ where
 
     fn from_fn<F>(len: usize, op: F) -> Self
     where
-        F: FnMut(usize) -> Self::Elem,
+        F: FnMut(usize) -> ELEM,
     {
         (0..len).map(op).collect()
     }
@@ -128,15 +130,15 @@ where
         Vec::clear(self);
     }
 
-    fn resize(self: &mut Self, new_len: usize, value: Self::Elem) {
-        Vec::resize(self, new_len, value);
+    fn resize(self: &mut Self, new_len: usize, elem: ELEM) {
+        Vec::resize(self, new_len, elem);
     }
 
-    fn push(self: &mut Self, value: Self::Elem) {
-        Vec::push(self, value);
+    fn push(self: &mut Self, elem: ELEM) {
+        Vec::push(self, elem);
     }
 
-    fn pop(self: &mut Self) -> Option<Self::Elem> {
+    fn pop(self: &mut Self) -> Option<ELEM> {
         Vec::pop(self)
     }
 
@@ -148,20 +150,20 @@ where
         Vec::append(self, other);
     }
 
-    fn get(self: &Self, index: usize) -> Self::Elem {
+    fn get(self: &Self, index: usize) -> ELEM {
         self[index]
     }
 
-    unsafe fn __get_unchecked__(self: &Self, index: usize) -> Self::Elem {
+    unsafe fn __get_unchecked__(self: &Self, index: usize) -> ELEM {
         *self.get_unchecked(index)
     }
 
-    fn set(self: &mut Self, index: usize, value: Self::Elem) {
-        self[index] = value;
+    fn set(self: &mut Self, index: usize, elem: ELEM) {
+        self[index] = elem;
     }
 
-    unsafe fn __set_unchecked__(self: &mut Self, index: usize, value: Self::Elem) {
-        *self.get_unchecked_mut(index) = value;
+    unsafe fn __set_unchecked__(self: &mut Self, index: usize, elem: ELEM) {
+        *self.get_unchecked_mut(index) = elem;
     }
 
     fn len(self: &Self) -> usize {
@@ -177,9 +179,7 @@ where
     }
 }
 
-impl GenVec for bit_vec::BitVec {
-    type Elem = bool;
-
+impl GenVec<bool> for bit_vec::BitVec {
     fn new() -> Self {
         bit_vec::BitVec::new()
     }
@@ -190,7 +190,7 @@ impl GenVec for bit_vec::BitVec {
 
     fn from_fn<F>(len: usize, op: F) -> Self
     where
-        F: FnMut(usize) -> Self::Elem,
+        F: FnMut(usize) -> bool,
     {
         bit_vec::BitVec::from_fn(len, op)
     }
@@ -199,19 +199,19 @@ impl GenVec for bit_vec::BitVec {
         bit_vec::BitVec::clear(self);
     }
 
-    fn resize(self: &mut Self, new_len: usize, value: Self::Elem) {
+    fn resize(self: &mut Self, new_len: usize, elem: bool) {
         if new_len > self.len() {
-            bit_vec::BitVec::grow(self, new_len - self.len(), value);
+            bit_vec::BitVec::grow(self, new_len - self.len(), elem);
         } else if new_len < self.len() {
             bit_vec::BitVec::truncate(self, new_len);
         }
     }
 
-    fn push(self: &mut Self, value: Self::Elem) {
-        bit_vec::BitVec::push(self, value);
+    fn push(self: &mut Self, elem: bool) {
+        bit_vec::BitVec::push(self, elem);
     }
 
-    fn pop(self: &mut Self) -> Option<Self::Elem> {
+    fn pop(self: &mut Self) -> Option<bool> {
         bit_vec::BitVec::pop(self)
     }
 
@@ -223,12 +223,12 @@ impl GenVec for bit_vec::BitVec {
         bit_vec::BitVec::append(self, other);
     }
 
-    fn get(self: &Self, index: usize) -> Self::Elem {
+    fn get(self: &Self, index: usize) -> bool {
         bit_vec::BitVec::get(self, index).unwrap()
     }
 
-    fn set(self: &mut Self, index: usize, value: Self::Elem) {
-        bit_vec::BitVec::set(self, index, value);
+    fn set(self: &mut Self, index: usize, elem: bool) {
+        bit_vec::BitVec::set(self, index, elem);
     }
 
     fn len(self: &Self) -> usize {
@@ -244,39 +244,90 @@ impl GenVec for bit_vec::BitVec {
     }
 }
 
-impl GenVec for usize {
-    type Elem = ();
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct TrivialVec {
+    len: usize,
+}
 
+pub struct TrivialIter {
+    pos: usize,
+}
+
+impl Iterator for TrivialIter {
+    type Item = ();
+
+    fn next(self: &mut Self) -> Option<Self::Item> {
+        if self.pos > 0 {
+            self.pos -= 1;
+            Some(())
+        } else {
+            None
+        }
+    }
+}
+
+impl IntoIterator for TrivialVec {
+    type Item = ();
+    type IntoIter = TrivialIter;
+
+    fn into_iter(self: Self) -> Self::IntoIter {
+        TrivialIter { pos: self.len }
+    }
+}
+
+impl IntoIterator for &TrivialVec {
+    type Item = ();
+    type IntoIter = TrivialIter;
+
+    fn into_iter(self: Self) -> Self::IntoIter {
+        TrivialIter { pos: self.len }
+    }
+}
+
+impl iter::FromIterator<()> for TrivialVec {
+    fn from_iter<ITER>(iter: ITER) -> Self
+    where
+        ITER: IntoIterator<Item = ()>,
+    {
+        let mut len = 0;
+        for _ in iter {
+            len += 1;
+        }
+        TrivialVec { len: len }
+    }
+}
+
+impl GenVec<()> for TrivialVec {
     fn new() -> Self {
-        0
+        TrivialVec { len: 0 }
     }
 
-    fn with_capacity(capacity: usize) -> Self {
-        capacity
+    fn with_capacity(_capacity: usize) -> Self {
+        TrivialVec { len: 0 }
     }
 
     fn from_fn<F>(len: usize, _op: F) -> Self
     where
-        F: FnMut(usize) -> Self::Elem,
+        F: FnMut(usize) -> (),
     {
-        len
+        TrivialVec { len: len }
     }
 
     fn clear(self: &mut Self) {
-        *self = 0;
+        self.len = 0;
     }
 
-    fn resize(self: &mut Self, new_len: usize, _value: Self::Elem) {
-        *self = new_len;
+    fn resize(self: &mut Self, new_len: usize, _elem: ()) {
+        self.len = new_len;
     }
 
-    fn push(self: &mut Self, _value: Self::Elem) {
-        *self += 1;
+    fn push(self: &mut Self, _elem: ()) {
+        self.len += 1;
     }
 
-    fn pop(self: &mut Self) -> Option<Self::Elem> {
-        if *self > 0 {
-            *self -= 1;
+    fn pop(self: &mut Self) -> Option<()> {
+        if self.len > 0 {
+            self.len -= 1;
             Some(())
         } else {
             None
@@ -284,29 +335,29 @@ impl GenVec for usize {
     }
 
     fn extend(self: &mut Self, other: &Self) {
-        *self += *other;
+        self.len += other.len;
     }
 
     fn append(self: &mut Self, other: &mut Self) {
-        *self += *other;
-        *other = 0;
+        self.len += other.len;
+        other.len = 0;
     }
 
-    fn get(self: &Self, index: usize) -> Self::Elem {
-        assert!(index < *self);
+    fn get(self: &Self, index: usize) -> () {
+        assert!(index < self.len);
         ()
     }
 
-    fn set(self: &mut Self, index: usize, _value: Self::Elem) {
-        assert!(index < *self);
+    fn set(self: &mut Self, index: usize, _elem: ()) {
+        assert!(index < self.len);
     }
 
     fn len(self: &Self) -> usize {
-        *self
+        self.len
     }
 
     fn is_empty(self: &Self) -> bool {
-        *self == 0
+        self.len == 0
     }
 
     fn capacity(self: &Self) -> usize {
@@ -316,9 +367,9 @@ impl GenVec for usize {
 
 /// Interface for elements whose vector container can be automatically
 /// derived.
-pub trait GenElem: Copy {
+pub trait GenElem: Copy + fmt::Debug {
     /// A type that can be used for storing a vector of elements.
-    type Vector: GenVec<Elem = Self>;
+    type Vector: GenVec<Self>;
 }
 
 impl GenElem for bool {
@@ -334,7 +385,7 @@ impl GenElem for solver::Literal {
 }
 
 impl GenElem for () {
-    type Vector = usize;
+    type Vector = TrivialVec;
 }
 
 #[cfg(test)]
@@ -345,12 +396,15 @@ mod tests {
     fn resize() {
         let mut v1: bit_vec::BitVec = GenVec::new();
         let mut v2: Vec<bool> = GenVec::new();
+        let mut v3: TrivialVec = GenVec::new();
 
         for i in 0..50 {
             let b = i % 2 == 0;
 
             for _ in 0..90 {
                 v1.push(b);
+                v3.push(());
+                assert_eq!(v1.len(), v3.len());
             }
             v2.resize(v2.len() + 90, b);
 

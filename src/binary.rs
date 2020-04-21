@@ -192,9 +192,7 @@ where
             let temp = self.bool_equ(elem1.get(i), elem2.get(i));
             result = self.bool_and(result, temp);
         }
-        let mut vec: Self::Elem = genvec::GenVec::with_capacity(1);
-        vec.push(result);
-        vec
+        genvec::GenVec::from_iter([result].iter())
     }
 
     fn num_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
@@ -204,9 +202,7 @@ where
             let not_elem1 = self.bool_not(elem1.get(i));
             result = self.bool_maj(not_elem1, elem2.get(i), result);
         }
-        let mut vec: Self::Elem = genvec::GenVec::with_capacity(1);
-        vec.push(result);
-        vec
+        genvec::GenVec::from_iter([result].iter())
     }
 }
 
@@ -258,7 +254,7 @@ mod tests {
     fn opers() {
         let alg = Trivial();
         let v1 = alg.num_lift(3, 13);
-        assert_eq!(v1, 3);
+        assert_eq!(v1, genvec::GenVec::from_fn(3, |_| {}));
 
         let mut alg = Boolean();
         for a1 in 0..15 {

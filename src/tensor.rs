@@ -503,8 +503,8 @@ where
         }
 
         let shape = tensors[0].shape();
-        for i in 1..tensors.len() {
-            assert!(tensors[i].shape() == shape);
+        for t in tensors.iter().skip(1) {
+            assert!(t.shape() == shape);
         }
 
         if shape.size() == 0 {

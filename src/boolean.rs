@@ -122,25 +122,15 @@ pub struct Trivial();
 impl BoolAlg for Trivial {
     type Elem = ();
 
-    fn bool_unit(self: &Self) -> Self::Elem {
-        ()
-    }
+    fn bool_unit(self: &Self) -> Self::Elem {}
 
-    fn bool_zero(self: &Self) -> Self::Elem {
-        ()
-    }
+    fn bool_zero(self: &Self) -> Self::Elem {}
 
-    fn bool_not(self: &mut Self, _elem: Self::Elem) -> Self::Elem {
-        ()
-    }
+    fn bool_not(self: &mut Self, _elem: Self::Elem) -> Self::Elem {}
 
-    fn bool_or(self: &mut Self, _elem1: Self::Elem, _elem2: Self::Elem) -> Self::Elem {
-        ()
-    }
+    fn bool_or(self: &mut Self, _elem1: Self::Elem, _elem2: Self::Elem) -> Self::Elem {}
 
-    fn bool_xor(self: &mut Self, _elem1: Self::Elem, _elem2: Self::Elem) -> Self::Elem {
-        ()
-    }
+    fn bool_xor(self: &mut Self, _elem1: Self::Elem, _elem2: Self::Elem) -> Self::Elem {}
 }
 
 /// The two element boolean algebra with native `bool` elements.

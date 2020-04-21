@@ -85,7 +85,8 @@ where
     fn get(self: &Self, index: usize) -> ELEM;
 
     /// Returns the element at the given index without bound checks.
-    #[allow(non_snake_case)]
+    /// # Safety
+    /// Do not use this in general code, use `ranges` if possible.
     unsafe fn __get_unchecked__(self: &Self, index: usize) -> ELEM {
         self.get(index)
     }
@@ -96,7 +97,8 @@ where
 
     /// Sets the element at the given index to the new value without bound
     /// checks.
-    #[allow(non_snake_case)]
+    /// # Safety
+    /// Do not use this in general code.
     unsafe fn __set_unchecked__(self: &mut Self, index: usize, elem: ELEM) {
         self.set(index, elem);
     }
@@ -267,7 +269,7 @@ impl GenVec<bool> for bit_vec::BitVec {
     fn resize(self: &mut Self, new_len: usize, elem: bool) {
         if new_len > self.len() {
             bit_vec::BitVec::grow(self, new_len - self.len(), elem);
-        } else if new_len < self.len() {
+        } else {
             bit_vec::BitVec::truncate(self, new_len);
         }
     }
@@ -375,7 +377,7 @@ impl iter::FromIterator<()> for UnitVec {
         for _ in iter {
             len += 1;
         }
-        UnitVec { len: len }
+        UnitVec { len }
     }
 }
 
@@ -392,7 +394,7 @@ impl GenVec<()> for UnitVec {
     where
         F: FnMut(usize) -> (),
     {
-        UnitVec { len: len }
+        UnitVec { len }
     }
 
     fn from_elem1(_elem: ()) -> Self {
@@ -433,14 +435,11 @@ impl GenVec<()> for UnitVec {
         other.len = 0;
     }
 
-    fn get(self: &Self, index: usize) -> () {
+    fn get(self: &Self, index: usize) {
         assert!(index < self.len);
-        ()
     }
 
-    unsafe fn __get_unchecked__(self: &Self, _index: usize) -> () {
-        ()
-    }
+    unsafe fn __get_unchecked__(self: &Self, _index: usize) {}
 
     fn set(self: &mut Self, index: usize, _elem: ()) {
         assert!(index < self.len);

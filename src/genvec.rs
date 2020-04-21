@@ -19,21 +19,21 @@
 
 extern crate bit_vec;
 use super::solver;
+use bit_vec::BitBlock as _;
 use std::{fmt, iter};
 
 /// Generic interface for regular and bit vectors.
 pub trait GenVec<ELEM>
 where
-    Self: Default + Clone + fmt::Debug,
     ELEM: Copy + fmt::Debug,
-    Self: IntoIterator<Item = ELEM>,
-    Self: iter::FromIterator<ELEM>,
+    Self: Default + Clone + fmt::Debug,
+    Self: IntoIterator<Item = ELEM> + iter::FromIterator<ELEM>,
 {
-    /// Constructs a new, empty vector. The vector will not allocate until
+    /// Constructs a new empty vector. The vector will not allocate until
     /// elements are pushed onto it.
     fn new() -> Self;
 
-    /// Constructs a new, empty vector with the specified capacity. The vector
+    /// Constructs a new empty vector with the specified capacity. The vector
     /// will be able to hold exactly capacity elements without reallocating.
     fn with_capacity(capacity: usize) -> Self;
 
@@ -43,29 +43,31 @@ where
     where
         F: FnMut(usize) -> ELEM;
 
-    /// Constructs a new vector containing the given elements.
-    fn from_iter<'a, ITER>(iter: ITER) -> Self
-    where
-        ITER: Iterator<Item = &'a ELEM>,
-        ELEM: 'a,
-    {
-        let mut result = Self::with_capacity(iter.size_hint().0);
-        for elem in iter {
-            result.push(*elem);
-        }
-        result
+    /// Creates a vector with a single element.
+    fn from_elem1(elem: ELEM) -> Self {
+        let mut vec: Self = GenVec::with_capacity(1);
+        vec.push(elem);
+        vec
+    }
+
+    /// Creates a vector with a pair of elements.
+    fn from_elem2(elem1: ELEM, elem2: ELEM) -> Self {
+        let mut vec: Self = GenVec::with_capacity(2);
+        vec.push(elem1);
+        vec.push(elem2);
+        vec
     }
 
     /// Clears the vector, removing all values.
     fn clear(self: &mut Self);
 
-    /// Resizes the `Vec` in-place so that `len` is equal to `new_len`.
-    /// If `new_len` is greater than `len`, the `Vec` is extended by the
+    /// Resizes the vector in-place so that `len` is equal to `new_len`.
+    /// If `new_len` is greater than `len`, the the vector is extended by the
     /// difference, with each additional slot filled with `elem`.
-    /// If `new_len` is less than `len`, the `Vec` is simply truncated.
+    /// If `new_len` is less than `len`, then the vector is simply truncated.
     fn resize(self: &mut Self, new_len: usize, elem: ELEM);
 
-    /// Appends an element to the back of a collection.
+    /// Appends an element to the back of the vector.
     fn push(self: &mut Self, elem: ELEM);
 
     /// Removes the last element from a vector and returns it, or `None` if
@@ -78,7 +80,8 @@ where
     /// Extends this vector by moving all elements from the other vector.
     fn append(self: &mut Self, other: &mut Self);
 
-    /// Returns the element at the given index.
+    /// Returns the element at the given index. Panics if the index is
+    /// out of bounds.
     fn get(self: &Self, index: usize) -> ELEM;
 
     /// Returns the element at the given index without bound checks.
@@ -87,7 +90,8 @@ where
         self.get(index)
     }
 
-    /// Sets the element at the given index to the new value.
+    /// Sets the element at the given index to the new value. Panics if the
+    /// index is out of bounds.
     fn set(self: &mut Self, index: usize, elem: ELEM);
 
     /// Sets the element at the given index to the new value without bound
@@ -100,7 +104,7 @@ where
     /// Returns the number of elements in the vector.
     fn len(self: &Self) -> usize;
 
-    /// Returns `true` if the vector contains no elements.
+    /// Returns `true` if the length is zero.
     fn is_empty(self: &Self) -> bool;
 
     /// Returns the number of elements the vector can hold without reallocating.
@@ -124,6 +128,14 @@ where
         F: FnMut(usize) -> ELEM,
     {
         (0..len).map(op).collect()
+    }
+
+    fn from_elem1(elem: ELEM) -> Self {
+        vec![elem]
+    }
+
+    fn from_elem2(elem1: ELEM, elem2: ELEM) -> Self {
+        vec![elem1, elem2]
     }
 
     fn clear(self: &mut Self) {
@@ -196,7 +208,7 @@ impl GenVec<bool> for bit_vec::BitVec {
     }
 
     fn clear(self: &mut Self) {
-        bit_vec::BitVec::clear(self);
+        bit_vec::BitVec::truncate(self, 0);
     }
 
     fn resize(self: &mut Self, new_len: usize, elem: bool) {
@@ -227,8 +239,30 @@ impl GenVec<bool> for bit_vec::BitVec {
         bit_vec::BitVec::get(self, index).unwrap()
     }
 
+    unsafe fn __get_unchecked__(self: &Self, index: usize) -> bool {
+        type B = u32;
+        let w = index / B::bits();
+        let b = index % B::bits();
+        let x = *self.storage().get_unchecked(w);
+        let y = B::one() << b;
+        (x & y) != B::zero()
+    }
+
     fn set(self: &mut Self, index: usize, elem: bool) {
         bit_vec::BitVec::set(self, index, elem);
+    }
+
+    unsafe fn __set_unchecked__(self: &mut Self, index: usize, elem: bool) {
+        type B = u32;
+        let w = index / B::bits();
+        let b = index % B::bits();
+        let x = self.storage_mut().get_unchecked_mut(w);
+        let y = B::one() << b;
+        if elem {
+            *x |= y;
+        } else {
+            *x &= !y;
+        }
     }
 
     fn len(self: &Self) -> usize {
@@ -244,16 +278,18 @@ impl GenVec<bool> for bit_vec::BitVec {
     }
 }
 
+/// A vector containing unit `()` elements only (just the length is stored).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub struct TrivialVec {
+pub struct UnitVec {
     len: usize,
 }
 
-pub struct TrivialIter {
+/// The iterator for unit vectors.
+pub struct UnitIter {
     pos: usize,
 }
 
-impl Iterator for TrivialIter {
+impl Iterator for UnitIter {
     type Item = ();
 
     fn next(self: &mut Self) -> Option<Self::Item> {
@@ -266,25 +302,18 @@ impl Iterator for TrivialIter {
     }
 }
 
-impl IntoIterator for TrivialVec {
+impl iter::FusedIterator for UnitIter {}
+
+impl IntoIterator for UnitVec {
     type Item = ();
-    type IntoIter = TrivialIter;
+    type IntoIter = UnitIter;
 
     fn into_iter(self: Self) -> Self::IntoIter {
-        TrivialIter { pos: self.len }
+        UnitIter { pos: self.len }
     }
 }
 
-impl IntoIterator for &TrivialVec {
-    type Item = ();
-    type IntoIter = TrivialIter;
-
-    fn into_iter(self: Self) -> Self::IntoIter {
-        TrivialIter { pos: self.len }
-    }
-}
-
-impl iter::FromIterator<()> for TrivialVec {
+impl iter::FromIterator<()> for UnitVec {
     fn from_iter<ITER>(iter: ITER) -> Self
     where
         ITER: IntoIterator<Item = ()>,
@@ -293,24 +322,32 @@ impl iter::FromIterator<()> for TrivialVec {
         for _ in iter {
             len += 1;
         }
-        TrivialVec { len: len }
+        UnitVec { len: len }
     }
 }
 
-impl GenVec<()> for TrivialVec {
+impl GenVec<()> for UnitVec {
     fn new() -> Self {
-        TrivialVec { len: 0 }
+        UnitVec { len: 0 }
     }
 
     fn with_capacity(_capacity: usize) -> Self {
-        TrivialVec { len: 0 }
+        UnitVec { len: 0 }
     }
 
     fn from_fn<F>(len: usize, _op: F) -> Self
     where
         F: FnMut(usize) -> (),
     {
-        TrivialVec { len: len }
+        UnitVec { len: len }
+    }
+
+    fn from_elem1(_elem: ()) -> Self {
+        UnitVec { len: 1 }
+    }
+
+    fn from_elem2(_elem1: (), _elem2: ()) -> Self {
+        UnitVec { len: 2 }
     }
 
     fn clear(self: &mut Self) {
@@ -348,9 +385,15 @@ impl GenVec<()> for TrivialVec {
         ()
     }
 
+    unsafe fn __get_unchecked__(self: &Self, _index: usize) -> () {
+        ()
+    }
+
     fn set(self: &mut Self, index: usize, _elem: ()) {
         assert!(index < self.len);
     }
+
+    unsafe fn __set_unchecked__(self: &mut Self, _index: usize, _elem: ()) {}
 
     fn len(self: &Self) -> usize {
         self.len
@@ -365,8 +408,7 @@ impl GenVec<()> for TrivialVec {
     }
 }
 
-/// Interface for elements whose vector container can be automatically
-/// derived.
+/// A helper trait to find the right generic vector for a given element.
 pub trait GenElem: Copy + fmt::Debug {
     /// A type that can be used for storing a vector of elements.
     type Vector: GenVec<Self>;
@@ -385,7 +427,7 @@ impl GenElem for solver::Literal {
 }
 
 impl GenElem for () {
-    type Vector = TrivialVec;
+    type Vector = UnitVec;
 }
 
 #[cfg(test)]
@@ -396,7 +438,7 @@ mod tests {
     fn resize() {
         let mut v1: bit_vec::BitVec = GenVec::new();
         let mut v2: Vec<bool> = GenVec::new();
-        let mut v3: TrivialVec = GenVec::new();
+        let mut v3: UnitVec = GenVec::new();
 
         for i in 0..50 {
             let b = i % 2 == 0;
@@ -424,6 +466,45 @@ mod tests {
             for j in 0..v1.len() {
                 assert_eq!(GenVec::get(&v1, j), v2.get(j));
             }
+        }
+    }
+
+    #[test]
+    fn iters() {
+        let e1 = vec![true, false];
+        let e2 = e1.clone();
+        let v1: <bool as GenElem>::Vector = e1.into_iter().collect();
+        let mut v2: <bool as GenElem>::Vector = GenVec::new();
+        for b in e2 {
+            GenVec::push(&mut v2, b);
+        }
+        assert_eq!(v1, v2);
+
+        let e1 = [true, false];
+        let v1: <bool as GenElem>::Vector = e1.iter().cloned().collect();
+        let mut v2: <bool as GenElem>::Vector = GenVec::new();
+        for b in e1.iter() {
+            GenVec::push(&mut v2, *b);
+        }
+        assert_eq!(v1, v2);
+
+        GenVec::clear(&mut v2);
+        for j in 0..100 {
+            GenVec::push(&mut v2, j % 5 == 0 || j % 3 == 0);
+        }
+        assert_eq!(v2.len(), 100);
+        for j in 0..100 {
+            let b1 = unsafe { GenVec::__get_unchecked__(&v2, j) };
+            let b2 = GenVec::get(&v2, j);
+            let b3 = v2.get(j).unwrap();
+            let b4 = j % 5 == 0 || j % 3 == 0;
+            assert_eq!(b1, b4);
+            assert_eq!(b2, b4);
+            assert_eq!(b3, b4);
+
+            let b5 = j % 7 == 0;
+            unsafe { GenVec::__set_unchecked__(&mut v2, j, b5) };
+            assert_eq!(v2.get(j).unwrap(), b5);
         }
     }
 }

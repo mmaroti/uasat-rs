@@ -192,7 +192,13 @@ where
             let temp = self.bool_equ(elem1.get(i), elem2.get(i));
             result = self.bool_and(result, temp);
         }
-        genvec::GenVec::from_iter([result].iter())
+        genvec::GenVec::from_elem1(result)
+    }
+
+    fn num_neq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+        let mut elem = self.num_equ(elem1, elem2);
+        elem.set(0, self.bool_not(elem.get(0)));
+        elem
     }
 
     fn num_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
@@ -202,7 +208,13 @@ where
             let not_elem1 = self.bool_not(elem1.get(i));
             result = self.bool_maj(not_elem1, elem2.get(i), result);
         }
-        genvec::GenVec::from_iter([result].iter())
+        genvec::GenVec::from_elem1(result)
+    }
+
+    fn num_lth(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+        let mut elem = self.num_leq(elem2, elem1);
+        elem.set(0, self.bool_not(elem.get(0)));
+        elem
     }
 }
 

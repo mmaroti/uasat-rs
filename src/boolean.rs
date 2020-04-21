@@ -116,7 +116,7 @@ pub trait BoolAlg {
     }
 }
 
-/// The trivial 1-element boolean algebra.
+/// The trivial 1-element boolean algebra over the unit `()` element.
 pub struct Trivial();
 
 impl BoolAlg for Trivial {

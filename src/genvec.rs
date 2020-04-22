@@ -41,7 +41,10 @@ where
     /// each index is `op(index)`.
     fn from_fn<F>(len: usize, op: F) -> Self
     where
-        F: FnMut(usize) -> ELEM;
+        F: FnMut(usize) -> ELEM,
+    {
+        (0..len).map(op).collect()
+    }
 
     /// Creates a vector with a single element.
     fn from_elem1(elem: ELEM) -> Self {
@@ -75,6 +78,7 @@ where
     fn pop(self: &mut Self) -> Option<ELEM>;
 
     /// Extends this vector by copying all elements from the other vector.
+    /// TODO: implement it for iterator
     fn extend(self: &mut Self, other: &Self);
 
     /// Extends this vector by moving all elements from the other vector.
@@ -87,7 +91,7 @@ where
     /// Returns the element at the given index without bound checks.
     /// # Safety
     /// Do not use this in general code, use `ranges` if possible.
-    unsafe fn __get_unchecked__(self: &Self, index: usize) -> ELEM {
+    unsafe fn get_unchecked(self: &Self, index: usize) -> ELEM {
         self.get(index)
     }
 
@@ -99,7 +103,7 @@ where
     /// checks.
     /// # Safety
     /// Do not use this in general code.
-    unsafe fn __set_unchecked__(self: &mut Self, index: usize, elem: ELEM) {
+    unsafe fn set_unchecked(self: &mut Self, index: usize, elem: ELEM) {
         self.set(index, elem);
     }
 
@@ -146,7 +150,7 @@ where
 
     fn next(self: &mut Self) -> Option<Self::Item> {
         if self.pos < self.len {
-            let elem = unsafe { self.vec.__get_unchecked__(self.pos) };
+            let elem = unsafe { self.vec.get_unchecked(self.pos) };
             self.pos += 1;
             Some(elem)
         } else {
@@ -162,152 +166,187 @@ where
 {
 }
 
-impl<ELEM> GenVec<ELEM> for Vec<ELEM>
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub struct Wrapper<DATA> {
+    data: DATA,
+}
+
+impl<DATA> IntoIterator for Wrapper<DATA>
+where
+    DATA: IntoIterator,
+{
+    type Item = DATA::Item;
+
+    type IntoIter = DATA::IntoIter;
+
+    fn into_iter(self: Self) -> Self::IntoIter {
+        self.data.into_iter()
+    }
+}
+
+impl<DATA, ITEM> iter::FromIterator<ITEM> for Wrapper<DATA>
+where
+    DATA: iter::FromIterator<ITEM>,
+{
+    fn from_iter<ITER>(iter: ITER) -> Self
+    where
+        ITER: IntoIterator<Item = ITEM>,
+    {
+        Wrapper {
+            data: iter::FromIterator::from_iter(iter),
+        }
+    }
+}
+
+impl<ELEM> GenVec<ELEM> for Wrapper<Vec<ELEM>>
 where
     ELEM: Copy,
 {
     fn new() -> Self {
-        Vec::new()
+        Wrapper { data: Vec::new() }
     }
 
     fn with_capacity(capacity: usize) -> Self {
-        Vec::with_capacity(capacity)
-    }
-
-    fn from_fn<F>(len: usize, op: F) -> Self
-    where
-        F: FnMut(usize) -> ELEM,
-    {
-        (0..len).map(op).collect()
+        Wrapper {
+            data: Vec::with_capacity(capacity),
+        }
     }
 
     fn from_elem1(elem: ELEM) -> Self {
-        vec![elem]
+        Wrapper { data: vec![elem] }
     }
 
     fn from_elem2(elem1: ELEM, elem2: ELEM) -> Self {
-        vec![elem1, elem2]
+        Wrapper {
+            data: vec![elem1, elem2],
+        }
     }
 
     fn clear(self: &mut Self) {
-        Vec::clear(self);
+        self.data.clear();
     }
 
     fn resize(self: &mut Self, new_len: usize, elem: ELEM) {
-        Vec::resize(self, new_len, elem);
+        self.data.resize(new_len, elem);
     }
 
     fn push(self: &mut Self, elem: ELEM) {
-        Vec::push(self, elem);
+        self.data.push(elem);
     }
 
     fn pop(self: &mut Self) -> Option<ELEM> {
-        Vec::pop(self)
+        self.data.pop()
     }
 
     fn extend(self: &mut Self, other: &Self) {
-        iter::Extend::extend(self, other.iter());
+        self.data.extend(other.data.iter());
     }
 
     fn append(self: &mut Self, other: &mut Self) {
-        Vec::append(self, other);
+        self.data.append(&mut other.data);
     }
 
     fn get(self: &Self, index: usize) -> ELEM {
-        self[index]
+        self.data[index]
     }
 
-    unsafe fn __get_unchecked__(self: &Self, index: usize) -> ELEM {
-        *self.get_unchecked(index)
+    unsafe fn get_unchecked(self: &Self, index: usize) -> ELEM {
+        *self.data.get_unchecked(index)
     }
 
     fn set(self: &mut Self, index: usize, elem: ELEM) {
-        self[index] = elem;
+        self.data[index] = elem;
     }
 
-    unsafe fn __set_unchecked__(self: &mut Self, index: usize, elem: ELEM) {
-        *self.get_unchecked_mut(index) = elem;
+    unsafe fn set_unchecked(self: &mut Self, index: usize, elem: ELEM) {
+        *self.data.get_unchecked_mut(index) = elem;
     }
 
     fn len(self: &Self) -> usize {
-        Vec::len(self)
+        self.data.len()
     }
 
     fn is_empty(self: &Self) -> bool {
-        Vec::is_empty(self)
+        self.data.is_empty()
     }
 
     fn capacity(self: &Self) -> usize {
-        Vec::capacity(self)
+        self.data.capacity()
     }
 }
 
-impl GenVec<bool> for bit_vec::BitVec {
+impl GenVec<bool> for Wrapper<bit_vec::BitVec> {
     fn new() -> Self {
-        bit_vec::BitVec::new()
+        Wrapper {
+            data: bit_vec::BitVec::new(),
+        }
     }
 
     fn with_capacity(capacity: usize) -> Self {
-        bit_vec::BitVec::with_capacity(capacity)
+        Wrapper {
+            data: bit_vec::BitVec::with_capacity(capacity),
+        }
     }
 
     fn from_fn<F>(len: usize, op: F) -> Self
     where
         F: FnMut(usize) -> bool,
     {
-        bit_vec::BitVec::from_fn(len, op)
+        Wrapper {
+            data: bit_vec::BitVec::from_fn(len, op),
+        }
     }
 
     fn clear(self: &mut Self) {
-        bit_vec::BitVec::truncate(self, 0);
+        self.data.truncate(0);
     }
 
     fn resize(self: &mut Self, new_len: usize, elem: bool) {
         if new_len > self.len() {
-            bit_vec::BitVec::grow(self, new_len - self.len(), elem);
+            self.data.grow(new_len - self.len(), elem);
         } else {
-            bit_vec::BitVec::truncate(self, new_len);
+            self.data.truncate(new_len);
         }
     }
 
     fn push(self: &mut Self, elem: bool) {
-        bit_vec::BitVec::push(self, elem);
+        self.data.push(elem);
     }
 
     fn pop(self: &mut Self) -> Option<bool> {
-        bit_vec::BitVec::pop(self)
+        self.data.pop()
     }
 
     fn extend(self: &mut Self, other: &Self) {
-        iter::Extend::extend(self, other.iter());
+        self.data.extend(other.data.iter());
     }
 
     fn append(self: &mut Self, other: &mut Self) {
-        bit_vec::BitVec::append(self, other);
+        self.data.append(&mut other.data);
     }
 
     fn get(self: &Self, index: usize) -> bool {
-        bit_vec::BitVec::get(self, index).unwrap()
+        self.data.get(index).unwrap()
     }
 
-    unsafe fn __get_unchecked__(self: &Self, index: usize) -> bool {
+    unsafe fn get_unchecked(self: &Self, index: usize) -> bool {
         type B = u32;
         let w = index / B::bits();
         let b = index % B::bits();
-        let x = *self.storage().get_unchecked(w);
+        let x = *self.data.storage().get_unchecked(w);
         let y = B::one() << b;
         (x & y) != B::zero()
     }
 
     fn set(self: &mut Self, index: usize, elem: bool) {
-        bit_vec::BitVec::set(self, index, elem);
+        self.data.set(index, elem);
     }
 
-    unsafe fn __set_unchecked__(self: &mut Self, index: usize, elem: bool) {
+    unsafe fn set_unchecked(self: &mut Self, index: usize, elem: bool) {
         type B = u32;
         let w = index / B::bits();
         let b = index % B::bits();
-        let x = self.storage_mut().get_unchecked_mut(w);
+        let x = self.data.storage_mut().get_unchecked_mut(w);
         let y = B::one() << b;
         if elem {
             *x |= y;
@@ -317,15 +356,15 @@ impl GenVec<bool> for bit_vec::BitVec {
     }
 
     fn len(self: &Self) -> usize {
-        bit_vec::BitVec::len(self)
+        self.data.len()
     }
 
     fn is_empty(self: &Self) -> bool {
-        bit_vec::BitVec::is_empty(self)
+        self.data.is_empty()
     }
 
     fn capacity(self: &Self) -> usize {
-        bit_vec::BitVec::capacity(self)
+        self.data.capacity()
     }
 }
 
@@ -435,13 +474,13 @@ impl GenVec<()> for UnitVec {
         assert!(index < self.len);
     }
 
-    unsafe fn __get_unchecked__(self: &Self, _index: usize) {}
+    unsafe fn get_unchecked(self: &Self, _index: usize) {}
 
     fn set(self: &mut Self, index: usize, _elem: ()) {
         assert!(index < self.len);
     }
 
-    unsafe fn __set_unchecked__(self: &mut Self, _index: usize, _elem: ()) {}
+    unsafe fn set_unchecked(self: &mut Self, _index: usize, _elem: ()) {}
 
     fn len(self: &Self) -> usize {
         self.len
@@ -463,15 +502,15 @@ pub trait GenElem: Copy {
 }
 
 impl GenElem for bool {
-    type Vector = bit_vec::BitVec;
+    type Vector = Wrapper<bit_vec::BitVec>;
 }
 
 impl GenElem for usize {
-    type Vector = Vec<Self>;
+    type Vector = Wrapper<Vec<Self>>;
 }
 
 impl GenElem for solver::Literal {
-    type Vector = Vec<Self>;
+    type Vector = Wrapper<Vec<Self>>;
 }
 
 impl GenElem for () {
@@ -484,8 +523,8 @@ mod tests {
 
     #[test]
     fn resize() {
-        let mut v1: bit_vec::BitVec = GenVec::new();
-        let mut v2: Vec<bool> = GenVec::new();
+        let mut v1: Wrapper<bit_vec::BitVec> = GenVec::new();
+        let mut v2: Wrapper<Vec<bool>> = GenVec::new();
         let mut v3: UnitVec = GenVec::new();
 
         for i in 0..50 {
@@ -500,7 +539,7 @@ mod tests {
 
             assert_eq!(v1.len(), v2.len());
             for j in 0..v1.len() {
-                assert_eq!(GenVec::get(&v1, j), v2.get(j));
+                assert_eq!(v1.get(j), v2.get(j));
             }
         }
 
@@ -512,7 +551,7 @@ mod tests {
 
             assert_eq!(v1.len(), v2.len());
             for j in 0..v1.len() {
-                assert_eq!(GenVec::get(&v1, j), v2.get(j));
+                assert_eq!(v1.get(j), v2.get(j));
             }
         }
     }
@@ -524,7 +563,7 @@ mod tests {
         let v1: <bool as GenElem>::Vector = e1.into_iter().collect();
         let mut v2: <bool as GenElem>::Vector = GenVec::new();
         for b in e2 {
-            GenVec::push(&mut v2, b);
+            v2.push(b);
         }
         assert_eq!(v1, v2);
 
@@ -537,27 +576,25 @@ mod tests {
         let v1: <bool as GenElem>::Vector = e1.iter().cloned().collect();
         let mut v2: <bool as GenElem>::Vector = GenVec::new();
         for b in e1.iter() {
-            GenVec::push(&mut v2, *b);
+            v2.push(*b);
         }
         assert_eq!(v1, v2);
 
-        GenVec::clear(&mut v2);
+        v2.clear();
         for j in 0..100 {
-            GenVec::push(&mut v2, j % 5 == 0 || j % 3 == 0);
+            v2.push(j % 5 == 0 || j % 3 == 0);
         }
         assert_eq!(v2.len(), 100);
         for j in 0..100 {
-            let b1 = unsafe { GenVec::__get_unchecked__(&v2, j) };
-            let b2 = GenVec::get(&v2, j);
-            let b3 = v2.get(j).unwrap();
-            let b4 = j % 5 == 0 || j % 3 == 0;
-            assert_eq!(b1, b4);
-            assert_eq!(b2, b4);
-            assert_eq!(b3, b4);
+            let b1 = unsafe { v2.get_unchecked(j) };
+            let b2 = v2.get(j);
+            let b3 = j % 5 == 0 || j % 3 == 0;
+            assert_eq!(b1, b3);
+            assert_eq!(b2, b3);
 
-            let b5 = j % 7 == 0;
-            unsafe { GenVec::__set_unchecked__(&mut v2, j, b5) };
-            assert_eq!(v2.get(j).unwrap(), b5);
+            let b4 = j % 7 == 0;
+            unsafe { v2.set_unchecked(j, b4) };
+            assert_eq!(v2.get(j), b4);
         }
     }
 }

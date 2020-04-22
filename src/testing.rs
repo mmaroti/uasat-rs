@@ -45,3 +45,32 @@ where
         }
     }
 }
+
+pub trait GenVec1<ELEM>
+where
+    ELEM: Copy,
+    Self: Default + Clone,
+    Self: IntoIterator<Item = ELEM> + std::iter::FromIterator<ELEM>,
+{
+}
+
+pub trait GenVec2
+where
+    Self: Default + Clone + IntoIterator,
+    Self: std::iter::FromIterator<<Self as IntoIterator>::Item>,
+{
+    fn get(self: &Self, index: usize) -> <Self as IntoIterator>::Item;
+}
+
+pub trait HasElem {
+    type Elem;
+}
+
+pub trait GenVec3
+where
+    Self: Default + Clone + HasElem,
+    Self: IntoIterator<Item = <Self as HasElem>::Elem>,
+    Self: std::iter::FromIterator<<Self as HasElem>::Elem>,
+{
+    fn get(self: &Self, index: usize) -> <Self as HasElem>::Elem;
+}

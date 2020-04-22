@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2019, Miklos Maroti
+* Copyright (C) 2019-2020, Miklos Maroti
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -20,13 +20,13 @@
 extern crate bit_vec;
 use super::solver;
 use bit_vec::BitBlock as _;
-use std::{fmt, iter};
+use std::iter;
 
 /// Generic interface for regular and bit vectors.
 pub trait GenVec<ELEM>
 where
-    ELEM: Copy + fmt::Debug,
-    Self: Default + Clone + fmt::Debug,
+    ELEM: Copy,
+    Self: Default + Clone,
     Self: IntoIterator<Item = ELEM> + iter::FromIterator<ELEM>,
 {
     /// Constructs a new empty vector. The vector will not allocate until
@@ -113,7 +113,7 @@ where
     fn capacity(self: &Self) -> usize;
 
     /// Returns an iterator for the given range of elements.
-    fn range(self: &Self, start: usize, end: usize) -> GenIter<'_, ELEM, Self> {
+    fn range(self: &Self, start: usize, end: usize) -> GenIter<ELEM, &Self> {
         assert!(start <= end && end <= self.len());
         GenIter {
             pos: start,
@@ -124,26 +124,22 @@ where
     }
 
     /// Returns an iterator over the elements of the vector.
-    fn gen_iter(self: &Self) -> GenIter<'_, ELEM, Self> {
+    fn gen_iter(self: &Self) -> GenIter<ELEM, &Self> {
         self.range(0, self.len())
     }
 }
 
 /// Generic read only iterator over the vector.
-pub struct GenIter<'a, ELEM, VEC>
-where
-    ELEM: Copy + fmt::Debug,
-    VEC: GenVec<ELEM>,
-{
+pub struct GenIter<ELEM, VEC> {
     pos: usize,
     len: usize,
-    vec: &'a VEC,
+    vec: VEC,
     phantom: std::marker::PhantomData<ELEM>,
 }
 
-impl<'a, ELEM, VEC> Iterator for GenIter<'a, ELEM, VEC>
+impl<'a, ELEM, VEC> Iterator for GenIter<ELEM, &'a VEC>
 where
-    ELEM: Copy + fmt::Debug,
+    ELEM: Copy,
     VEC: GenVec<ELEM>,
 {
     type Item = ELEM;
@@ -159,16 +155,16 @@ where
     }
 }
 
-impl<'a, ELEM, VEC> iter::FusedIterator for GenIter<'a, ELEM, VEC>
+impl<'a, ELEM, VEC> iter::FusedIterator for GenIter<ELEM, &'a VEC>
 where
-    ELEM: Copy + fmt::Debug,
+    ELEM: Copy,
     VEC: GenVec<ELEM>,
 {
 }
 
 impl<ELEM> GenVec<ELEM> for Vec<ELEM>
 where
-    ELEM: Copy + fmt::Debug,
+    ELEM: Copy,
 {
     fn new() -> Self {
         Vec::new()
@@ -461,7 +457,7 @@ impl GenVec<()> for UnitVec {
 }
 
 /// A helper trait to find the right generic vector for a given element.
-pub trait GenElem: Copy + fmt::Debug {
+pub trait GenElem: Copy {
     /// A type that can be used for storing a vector of elements.
     type Vector: GenVec<Self>;
 }

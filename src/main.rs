@@ -25,6 +25,7 @@ pub mod parser;
 pub mod relation;
 pub mod solver;
 pub mod tensor;
+mod testing;
 
 #[cfg(feature = "console_error_panic_hook")]
 extern crate console_error_panic_hook;

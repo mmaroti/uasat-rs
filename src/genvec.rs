@@ -23,7 +23,7 @@ use bit_vec::BitBlock as _;
 use std::{fmt, iter};
 
 /// Generic interface for regular and bit vectors.
-pub trait GenVec<ELEM>
+pub trait Vector<ELEM>
 where
     ELEM: Copy,
     Self: Default + Clone,
@@ -44,7 +44,7 @@ where
     where
         F: FnMut(usize) -> ELEM,
     {
-        let mut vec: Self = GenVec::with_capacity(len);
+        let mut vec: Self = Vector::with_capacity(len);
         for i in 0..len {
             vec.push(op(i));
         }
@@ -53,14 +53,14 @@ where
 
     /// Creates a vector with a single element.
     fn from_elem1(elem: ELEM) -> Self {
-        let mut vec: Self = GenVec::with_capacity(1);
+        let mut vec: Self = Vector::with_capacity(1);
         vec.push(elem);
         vec
     }
 
     /// Creates a vector with a pair of elements.
     fn from_elem2(elem1: ELEM, elem2: ELEM) -> Self {
-        let mut vec: Self = GenVec::with_capacity(2);
+        let mut vec: Self = Vector::with_capacity(2);
         vec.push(elem1);
         vec.push(elem2);
         vec
@@ -120,32 +120,32 @@ where
     fn capacity(self: &Self) -> usize;
 
     /// Returns an iterator for the given range of elements.
-    fn range(self: &Self, start: usize, end: usize) -> GenIter<'_, ELEM, Self> {
-        GenIter::new(self, start, end)
+    fn range(self: &Self, start: usize, end: usize) -> VecIter<'_, ELEM, Self> {
+        VecIter::new(self, start, end)
     }
 
     /// Returns an iterator over the elements of the vector.
-    fn iter(self: &Self) -> GenIter<'_, ELEM, Self> {
+    fn iter(self: &Self) -> VecIter<'_, ELEM, Self> {
         self.range(0, self.len())
     }
 }
 
 /// Generic read only iterator over the vector.
-pub struct GenIter<'a, ELEM, VEC> {
+pub struct VecIter<'a, ELEM, VEC> {
     pos: usize,
     end: usize,
     vec: &'a VEC,
     phantom: std::marker::PhantomData<ELEM>,
 }
 
-impl<'a, ELEM, VEC> GenIter<'a, ELEM, VEC>
+impl<'a, ELEM, VEC> VecIter<'a, ELEM, VEC>
 where
     ELEM: Copy,
-    VEC: GenVec<ELEM>,
+    VEC: Vector<ELEM>,
 {
     fn new(vec: &'a VEC, start: usize, end: usize) -> Self {
         assert!(start <= end && end <= vec.len());
-        GenIter {
+        VecIter {
             pos: start,
             end,
             vec,
@@ -154,10 +154,10 @@ where
     }
 }
 
-impl<'a, ELEM, VEC> Iterator for GenIter<'a, ELEM, VEC>
+impl<'a, ELEM, VEC> Iterator for VecIter<'a, ELEM, VEC>
 where
     ELEM: Copy,
-    VEC: GenVec<ELEM>,
+    VEC: Vector<ELEM>,
 {
     type Item = ELEM;
 
@@ -200,30 +200,30 @@ where
     }
 }
 
-impl<'a, ELEM, VEC> ExactSizeIterator for GenIter<'a, ELEM, VEC>
+impl<'a, ELEM, VEC> ExactSizeIterator for VecIter<'a, ELEM, VEC>
 where
     ELEM: Copy,
-    VEC: GenVec<ELEM>,
+    VEC: Vector<ELEM>,
 {
     fn len(self: &Self) -> usize {
         self.end - self.pos
     }
 }
 
-impl<'a, ELEM, VEC> iter::FusedIterator for GenIter<'a, ELEM, VEC>
+impl<'a, ELEM, VEC> iter::FusedIterator for VecIter<'a, ELEM, VEC>
 where
     ELEM: Copy,
-    VEC: GenVec<ELEM>,
+    VEC: Vector<ELEM>,
 {
 }
 
 /// A wrapper around standard containers to present them as generic vectors.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
-pub struct Wrapper<DATA> {
+pub struct VecImpl<DATA> {
     data: DATA,
 }
 
-impl<DATA> IntoIterator for Wrapper<DATA>
+impl<DATA> IntoIterator for VecImpl<DATA>
 where
     DATA: IntoIterator,
 {
@@ -236,7 +236,7 @@ where
     }
 }
 
-impl<DATA, ELEM> iter::FromIterator<ELEM> for Wrapper<DATA>
+impl<DATA, ELEM> iter::FromIterator<ELEM> for VecImpl<DATA>
 where
     DATA: iter::FromIterator<ELEM>,
 {
@@ -244,13 +244,13 @@ where
     where
         ITER: IntoIterator<Item = ELEM>,
     {
-        Wrapper {
+        VecImpl {
             data: iter::FromIterator::from_iter(iter),
         }
     }
 }
 
-impl<DATA, ELEM> iter::Extend<ELEM> for Wrapper<DATA>
+impl<DATA, ELEM> iter::Extend<ELEM> for VecImpl<DATA>
 where
     DATA: iter::Extend<ELEM>,
 {
@@ -262,26 +262,26 @@ where
     }
 }
 
-impl<ELEM> GenVec<ELEM> for Wrapper<Vec<ELEM>>
+impl<ELEM> Vector<ELEM> for VecImpl<Vec<ELEM>>
 where
     ELEM: Copy,
 {
     fn new() -> Self {
-        Wrapper { data: Vec::new() }
+        VecImpl { data: Vec::new() }
     }
 
     fn with_capacity(capacity: usize) -> Self {
-        Wrapper {
+        VecImpl {
             data: Vec::with_capacity(capacity),
         }
     }
 
     fn from_elem1(elem: ELEM) -> Self {
-        Wrapper { data: vec![elem] }
+        VecImpl { data: vec![elem] }
     }
 
     fn from_elem2(elem1: ELEM, elem2: ELEM) -> Self {
-        Wrapper {
+        VecImpl {
             data: vec![elem1, elem2],
         }
     }
@@ -335,15 +335,15 @@ where
     }
 }
 
-impl GenVec<bool> for Wrapper<bit_vec::BitVec> {
+impl Vector<bool> for VecImpl<bit_vec::BitVec> {
     fn new() -> Self {
-        Wrapper {
+        VecImpl {
             data: bit_vec::BitVec::new(),
         }
     }
 
     fn with_capacity(capacity: usize) -> Self {
-        Wrapper {
+        VecImpl {
             data: bit_vec::BitVec::with_capacity(capacity),
         }
     }
@@ -352,7 +352,7 @@ impl GenVec<bool> for Wrapper<bit_vec::BitVec> {
     where
         F: FnMut(usize) -> bool,
     {
-        Wrapper {
+        VecImpl {
             data: bit_vec::BitVec::from_fn(len, op),
         }
     }
@@ -425,29 +425,29 @@ impl GenVec<bool> for Wrapper<bit_vec::BitVec> {
 }
 
 /// A helper trait to find the right generic vector for a given element.
-pub trait GenElem: Copy {
+pub trait Element: Copy {
     /// A type that can be used for storing a vector of elements.
-    type Vector: GenVec<Self> + fmt::Debug;
+    type Vector: Vector<Self> + fmt::Debug;
 }
 
-impl GenElem for bool {
-    type Vector = Wrapper<bit_vec::BitVec>;
+impl Element for bool {
+    type Vector = VecImpl<bit_vec::BitVec>;
 }
 
-impl GenElem for usize {
-    type Vector = Wrapper<Vec<Self>>;
+impl Element for usize {
+    type Vector = VecImpl<Vec<Self>>;
 }
 
-impl GenElem for solver::Literal {
-    type Vector = Wrapper<Vec<Self>>;
+impl Element for solver::Literal {
+    type Vector = VecImpl<Vec<Self>>;
 }
 
-impl GenElem for () {
-    type Vector = Wrapper<Vec<Self>>;
+impl Element for () {
+    type Vector = VecImpl<Vec<Self>>;
 }
 
 /// Returns the generic vector type that can hold the given element.
-pub type VectorFor<ELEM> = <ELEM as GenElem>::Vector;
+pub type VectorFor<ELEM> = <ELEM as Element>::Vector;
 
 #[cfg(test)]
 mod tests {
@@ -455,9 +455,9 @@ mod tests {
 
     #[test]
     fn resize() {
-        let mut v1: Wrapper<bit_vec::BitVec> = GenVec::new();
-        let mut v2: Wrapper<Vec<bool>> = GenVec::new();
-        let mut v3: Wrapper<Vec<()>> = GenVec::new();
+        let mut v1: VecImpl<bit_vec::BitVec> = Vector::new();
+        let mut v2: VecImpl<Vec<bool>> = Vector::new();
+        let mut v3: VecImpl<Vec<()>> = Vector::new();
 
         for i in 0..50 {
             let b = i % 2 == 0;
@@ -493,20 +493,20 @@ mod tests {
         let e1 = vec![true, false, true];
         let e2 = e1.clone();
         let v1: VectorFor<bool> = e1.into_iter().collect();
-        let mut v2: VectorFor<bool> = GenVec::new();
+        let mut v2: VectorFor<bool> = Vector::new();
         for b in e2 {
             v2.push(b);
         }
         assert_eq!(v1, v2);
 
-        let mut iter = GenVec::range(&v1, 1, 3);
+        let mut iter = Vector::range(&v1, 1, 3);
         assert_eq!(iter.next(), Some(false));
         assert_eq!(iter.next(), Some(true));
         assert_eq!(iter.next(), None);
 
         let e1 = [true, false];
         let v1: VectorFor<bool> = e1.iter().cloned().collect();
-        let mut v2: VectorFor<bool> = GenVec::new();
+        let mut v2: VectorFor<bool> = Vector::new();
         for b in e1.iter() {
             v2.push(*b);
         }

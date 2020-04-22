@@ -25,7 +25,7 @@ use super::solver;
 /// A boolean algebra supporting boolean calculation.
 pub trait BoolAlg {
     /// The element type of this bool algebra.
-    type Elem: genvec::GenElem;
+    type Elem: genvec::Element;
 
     /// Returns the logical true (top) element of the algebra.
     fn bool_unit(self: &Self) -> Self::Elem;

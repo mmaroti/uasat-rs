@@ -124,13 +124,13 @@ where
 
     fn binrel_meet(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
         assert!(self.is_binary_rel(elem1));
-        assert!(ALG::shape(elem1) == ALG::shape(elem2));
+        assert_eq!(ALG::shape(elem1), ALG::shape(elem2));
         self.alg.tensor_and(elem1, elem2)
     }
 
     fn binrel_join(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
         assert!(self.is_binary_rel(elem1));
-        assert!(ALG::shape(elem1) == ALG::shape(elem2));
+        assert_eq!(ALG::shape(elem1), ALG::shape(elem2));
         self.alg.tensor_or(elem1, elem2)
     }
 
@@ -187,7 +187,8 @@ where
     }
 
     fn intersection(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        assert!(self.is_relation(elem1) && ALG::shape(elem1) == ALG::shape(elem2));
+        assert!(self.is_relation(elem1));
+        assert_eq!(ALG::shape(elem1), ALG::shape(elem2));
         self.alg.tensor_and(elem1, elem2)
     }
 
@@ -197,7 +198,8 @@ where
     }
 
     fn union(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        assert!(self.is_relation(elem1) && ALG::shape(elem1) == ALG::shape(elem2));
+        assert!(self.is_relation(elem1));
+        assert_eq!(ALG::shape(elem1), ALG::shape(elem2));
         self.alg.tensor_or(elem1, elem2)
     }
 }

@@ -17,7 +17,7 @@
 
 use super::boolean;
 use super::genvec;
-use super::genvec::GenVec as _;
+use super::genvec::Vector as _;
 
 pub use boolean::{Boolean, Solver, Trivial};
 
@@ -106,41 +106,41 @@ where
     }
 
     fn bit_lift(self: &Self, elem: &[bool]) -> Self::Elem {
-        genvec::GenVec::from_fn(elem.len(), |i| self.bool_lift(elem[i]))
+        genvec::Vector::from_fn(elem.len(), |i| self.bool_lift(elem[i]))
     }
 
     fn bit_not(self: &mut Self, elem: &Self::Elem) -> Self::Elem {
-        genvec::GenVec::from_fn(elem.len(), |i| self.bool_not(elem.get(i)))
+        genvec::Vector::from_fn(elem.len(), |i| self.bool_not(elem.get(i)))
     }
 
     fn bit_or(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        assert!(elem1.len() == elem2.len());
-        genvec::GenVec::from_fn(elem1.len(), |i| self.bool_or(elem1.get(i), elem2.get(i)))
+        assert_eq!(elem1.len(), elem2.len());
+        genvec::Vector::from_fn(elem1.len(), |i| self.bool_or(elem1.get(i), elem2.get(i)))
     }
 
     fn bit_and(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        assert!(elem1.len() == elem2.len());
-        genvec::GenVec::from_fn(elem1.len(), |i| self.bool_and(elem1.get(i), elem2.get(i)))
+        assert_eq!(elem1.len(), elem2.len());
+        genvec::Vector::from_fn(elem1.len(), |i| self.bool_and(elem1.get(i), elem2.get(i)))
     }
 
     fn bit_xor(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        assert!(elem1.len() == elem2.len());
-        genvec::GenVec::from_fn(elem1.len(), |i| self.bool_xor(elem1.get(i), elem2.get(i)))
+        assert_eq!(elem1.len(), elem2.len());
+        genvec::Vector::from_fn(elem1.len(), |i| self.bool_xor(elem1.get(i), elem2.get(i)))
     }
 
     fn bit_equ(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        assert!(elem1.len() == elem2.len());
-        genvec::GenVec::from_fn(elem1.len(), |i| self.bool_equ(elem1.get(i), elem2.get(i)))
+        assert_eq!(elem1.len(), elem2.len());
+        genvec::Vector::from_fn(elem1.len(), |i| self.bool_equ(elem1.get(i), elem2.get(i)))
     }
 
     fn bit_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        assert!(elem1.len() == elem2.len());
-        genvec::GenVec::from_fn(elem1.len(), |i| self.bool_leq(elem1.get(i), elem2.get(i)))
+        assert_eq!(elem1.len(), elem2.len());
+        genvec::Vector::from_fn(elem1.len(), |i| self.bool_leq(elem1.get(i), elem2.get(i)))
     }
 
     fn concat(self: &Self, elems: &[&Self::Elem]) -> Self::Elem {
         let size = elems.iter().fold(0, |sum, elem| sum + elem.len());
-        let mut result: Self::Elem = genvec::GenVec::with_capacity(size);
+        let mut result: Self::Elem = genvec::Vector::with_capacity(size);
         for elem in elems {
             result.extend(elem.iter());
         }
@@ -148,12 +148,12 @@ where
     }
 
     fn num_lift(self: &Self, len: usize, elem: i64) -> Self::Elem {
-        genvec::GenVec::from_fn(len, |i| self.bool_lift((elem >> i) & 1 != 0))
+        genvec::Vector::from_fn(len, |i| self.bool_lift((elem >> i) & 1 != 0))
     }
 
     fn num_neg(self: &mut Self, elem: &Self::Elem) -> Self::Elem {
         let mut carry = self.bool_unit();
-        let mut result: Self::Elem = genvec::GenVec::with_capacity(elem.len());
+        let mut result: Self::Elem = genvec::Vector::with_capacity(elem.len());
         for i in 0..elem.len() {
             let not_elem = self.bool_not(elem.get(i));
             result.push(self.bool_xor(not_elem, carry));
@@ -163,9 +163,9 @@ where
     }
 
     fn num_add(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        assert!(elem1.len() == elem2.len());
+        assert_eq!(elem1.len(), elem2.len());
         let mut carry = self.bool_zero();
-        let mut result: Self::Elem = genvec::GenVec::with_capacity(elem1.len());
+        let mut result: Self::Elem = genvec::Vector::with_capacity(elem1.len());
         for i in 0..elem1.len() {
             result.push(self.bool_ad3(elem1.get(i), elem2.get(i), carry));
             carry = self.bool_maj(elem1.get(i), elem2.get(i), carry);
@@ -174,9 +174,9 @@ where
     }
 
     fn num_sub(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        assert!(elem1.len() == elem2.len());
+        assert_eq!(elem1.len(), elem2.len());
         let mut carry = self.bool_unit();
-        let mut result: Self::Elem = genvec::GenVec::with_capacity(elem1.len());
+        let mut result: Self::Elem = genvec::Vector::with_capacity(elem1.len());
         for i in 0..elem1.len() {
             let not_elem2 = self.bool_not(elem2.get(i));
             result.push(self.bool_ad3(elem1.get(i), not_elem2, carry));
@@ -186,13 +186,13 @@ where
     }
 
     fn num_equ(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        assert!(elem1.len() == elem2.len());
+        assert_eq!(elem1.len(), elem2.len());
         let mut result = self.bool_unit();
         for i in 0..elem1.len() {
             let temp = self.bool_equ(elem1.get(i), elem2.get(i));
             result = self.bool_and(result, temp);
         }
-        genvec::GenVec::from_elem1(result)
+        genvec::Vector::from_elem1(result)
     }
 
     fn num_neq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
@@ -202,13 +202,13 @@ where
     }
 
     fn num_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        assert!(elem1.len() == elem2.len());
+        assert_eq!(elem1.len(), elem2.len());
         let mut result = self.bool_unit();
         for i in 0..elem1.len() {
             let not_elem1 = self.bool_not(elem1.get(i));
             result = self.bool_maj(not_elem1, elem2.get(i), result);
         }
-        genvec::GenVec::from_elem1(result)
+        genvec::Vector::from_elem1(result)
     }
 
     fn num_lth(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
@@ -240,7 +240,7 @@ where
 {
     fn bit_add_variable(self: &mut Self, len: usize) -> Self::Elem {
         // TODO: implement bulk variable addition
-        genvec::GenVec::from_fn(len, |_| self.bool_add_variable())
+        genvec::Vector::from_fn(len, |_| self.bool_add_variable())
     }
 
     fn bit_add_clause(self: &mut Self, elem: Self::Elem) {
@@ -254,7 +254,7 @@ where
     }
 
     fn bit_get_value(self: &Self, elem: Self::Elem) -> genvec::VectorFor<bool> {
-        genvec::GenVec::new()
+        genvec::Vector::new()
     }
 }
 
@@ -266,7 +266,7 @@ mod tests {
     fn opers() {
         let alg = Trivial();
         let v1 = alg.num_lift(3, 13);
-        assert_eq!(v1, genvec::GenVec::from_fn(3, |_| {}));
+        assert_eq!(v1, genvec::Vector::from_fn(3, |_| {}));
 
         let mut alg = Boolean();
         for a1 in 0..15 {

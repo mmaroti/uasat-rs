@@ -18,7 +18,7 @@
 //! Basic multidimensional array type and operations over boolean algebras.
 
 use super::boolean::{BoolAlg, BoolSat};
-use super::genvec::{GenElem, GenVec, VectorFor};
+use super::genvec::{Element, Vector, VectorFor};
 use std::ops::Index;
 
 pub use super::boolean::Solver;
@@ -103,7 +103,7 @@ impl Shape {
 
     /// Returns the linear index of an element given by coordinates.
     fn index(self: &Self, coords: &[usize]) -> usize {
-        assert!(coords.len() == self.len());
+        assert_eq!(coords.len(), self.len());
         let mut index = 0;
         let mut size = 1;
         for (coord, dim) in coords.iter().zip(self.dims.iter()) {
@@ -187,16 +187,16 @@ impl Iterator for StrideIter {
 
 /// A multidimensional array of elements.
 #[derive(Clone, Debug)]
-pub struct Tensor<Elem: GenElem> {
+pub struct Tensor<Elem: Element> {
     shape: Shape,
     elems: VectorFor<Elem>,
 }
 
-impl<Elem: GenElem> Tensor<Elem> {
+impl<Elem: Element> Tensor<Elem> {
     /// Creates a tensor filled with constant value
     pub fn new(shape: Shape, elem: Elem) -> Self {
         let size = shape.size();
-        let mut elems: VectorFor<Elem> = GenVec::with_capacity(size);
+        let mut elems: VectorFor<Elem> = Vector::with_capacity(size);
         elems.resize(size, elem);
         Tensor { shape, elems }
     }
@@ -223,16 +223,21 @@ impl<Elem: GenElem> Tensor<Elem> {
     /// of length of the original tensor shape with entries identifying the
     /// matching coordinates in the new tensor.
     pub fn polymer(self: &Self, shape: Shape, mapping: &[usize]) -> Self {
-        assert!(mapping.len() == self.shape.len());
+        assert_eq!(mapping.len(), self.shape.len());
 
         let mut iter = StrideIter::new(&shape);
         let strides = self.shape.strides();
         for (idx, val) in mapping.iter().enumerate() {
-            assert!(self.shape[idx] == shape[*val]);
+            assert_eq!(self.shape[idx], shape[*val]);
             iter.add_stride(*val, strides[idx]);
         }
 
-        let elems: VectorFor<Elem> = GenVec::from_fn(shape.size(), |index| self.elems.get(index));
+        let size = shape.size();
+        let mut elems: VectorFor<Elem> = Vector::with_capacity(size);
+        for index in iter {
+            elems.push(self.elems.get(index));
+        }
+        assert_eq!(elems.len(), size);
 
         Tensor { shape, elems }
     }
@@ -295,7 +300,7 @@ pub trait TensorAlg {
 pub struct Trivial();
 
 fn checker_binop(elem1: &Shape, elem2: &Shape) -> Shape {
-    assert!(elem1 == elem2);
+    assert_eq!(elem1, elem2);
     elem1.clone()
 }
 
@@ -315,9 +320,9 @@ impl TensorAlg for Trivial {
     }
 
     fn polymer(self: &mut Self, elem: &Self::Elem, shape: Shape, mapping: &[usize]) -> Self::Elem {
-        assert!(mapping.len() == elem.len());
+        assert_eq!(mapping.len(), elem.len());
         for (idx, val) in mapping.iter().enumerate() {
-            assert!(elem[idx] == shape[*val]);
+            assert_eq!(elem[idx], shape[*val]);
         }
         shape
     }
@@ -365,9 +370,9 @@ where
     ALG: BoolAlg,
     OP: FnMut(&mut ALG, ALG::Elem, ALG::Elem) -> ALG::Elem,
 {
-    assert!(elem1.shape() == elem2.shape());
+    assert_eq!(elem1.shape(), elem2.shape());
     let shape = elem1.shape.clone();
-    let elems = GenVec::from_fn(elem1.elems.len(), |i| {
+    let elems = Vector::from_fn(elem1.elems.len(), |i| {
         op(alg, elem1.elems.get(i), elem2.elems.get(i))
     });
     Tensor { shape, elems }
@@ -388,7 +393,7 @@ where
     let mut slice = Vec::with_capacity(head);
     slice.resize(head, alg.bool_zero());
 
-    let elems = GenVec::from_fn(shape.size(), |i| {
+    let elems = Vector::from_fn(shape.size(), |i| {
         for (j, item) in slice.iter_mut().enumerate() {
             *item = elem.elems.get(i * head + j);
         }
@@ -434,7 +439,7 @@ where
 
     fn tensor_not(self: &mut Self, tensor: &Self::Elem) -> Self::Elem {
         let shape = tensor.shape.clone();
-        let elems = GenVec::from_fn(tensor.elems.len(), |i| self.bool_not(tensor.elems.get(i)));
+        let elems = Vector::from_fn(tensor.elems.len(), |i| self.bool_not(tensor.elems.get(i)));
         Tensor { shape, elems }
     }
 
@@ -487,7 +492,7 @@ where
     ALG: BoolSat,
 {
     fn tensor_add_variable(self: &mut Self, shape: Shape) -> Self::Elem {
-        let elems = GenVec::from_fn(shape.size(), |_| self.bool_add_variable());
+        let elems = Vector::from_fn(shape.size(), |_| self.bool_add_variable());
         Tensor { shape, elems }
     }
 
@@ -499,7 +504,7 @@ where
 
         let shape = tensors[0].shape();
         for t in tensors.iter().skip(1) {
-            assert!(t.shape() == shape);
+            assert_eq!(t.shape(), shape);
         }
 
         if shape.size() == 0 {
@@ -523,7 +528,12 @@ where
 
     fn tensor_get_value(self: &Self, tensor: &Self::Elem) -> Tensor<bool> {
         let shape = tensor.shape.clone();
-        let elems = GenVec::from_fn(shape.size(), |i| self.bool_get_value(tensor.elems.get(i)));
+        let elems: VectorFor<bool> = tensor
+            .elems
+            .iter()
+            .map(|e| self.bool_get_value(e))
+            .collect();
+        assert_eq!(elems.len(), shape.size());
         Tensor { shape, elems }
     }
 }

@@ -18,7 +18,7 @@
 //! Basic multidimensional array type and operations over boolean algebras.
 
 use super::boolean::{BoolAlg, BoolSat};
-use super::genvec::{GenElem, GenVec};
+use super::genvec::{GenElem, GenVec, VectorFor};
 use std::ops::Index;
 
 pub use super::boolean::Solver;
@@ -189,14 +189,14 @@ impl Iterator for StrideIter {
 #[derive(Clone, Debug)]
 pub struct Tensor<Elem: GenElem> {
     shape: Shape,
-    elems: Elem::Vector,
+    elems: VectorFor<Elem>,
 }
 
 impl<Elem: GenElem> Tensor<Elem> {
     /// Creates a tensor filled with constant value
     pub fn new(shape: Shape, elem: Elem) -> Self {
         let size = shape.size();
-        let mut elems: Elem::Vector = GenVec::with_capacity(size);
+        let mut elems: VectorFor<Elem> = GenVec::with_capacity(size);
         elems.resize(size, elem);
         Tensor { shape, elems }
     }
@@ -232,12 +232,7 @@ impl<Elem: GenElem> Tensor<Elem> {
             iter.add_stride(*val, strides[idx]);
         }
 
-        let size = shape.size();
-        let mut elems: Elem::Vector = GenVec::with_capacity(size);
-        for index in iter {
-            elems.push(self.elems.get(index));
-        }
-        assert!(elems.len() == size);
+        let elems: VectorFor<Elem> = GenVec::from_fn(shape.size(), |index| self.elems.get(index));
 
         Tensor { shape, elems }
     }

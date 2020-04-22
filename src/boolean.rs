@@ -21,12 +21,11 @@
 
 use super::genvec;
 use super::solver;
-use std::fmt;
 
 /// A boolean algebra supporting boolean calculation.
 pub trait BoolAlg {
     /// The element type of this bool algebra.
-    type Elem: genvec::GenElem + fmt::Debug;
+    type Elem: genvec::GenElem;
 
     /// Returns the logical true (top) element of the algebra.
     fn bool_unit(self: &Self) -> Self::Elem;

@@ -99,7 +99,7 @@ impl<ALG> BinaryAlg for ALG
 where
     ALG: boolean::BoolAlg,
 {
-    type Elem = <ALG::Elem as genvec::GenElem>::Vector;
+    type Elem = genvec::VectorFor<ALG::Elem>;
 
     fn len(elem: &Self::Elem) -> usize {
         elem.len()
@@ -231,7 +231,7 @@ pub trait BinarySat: BinaryAlg {
     fn bit_find_model(self: &mut Self, elem: Self::Elem) -> bool;
 
     /// Returns the logical value of the element in the found model.
-    fn bit_get_value(self: &Self, elem: Self::Elem) -> <bool as genvec::GenElem>::Vector;
+    fn bit_get_value(self: &Self, elem: Self::Elem) -> genvec::VectorFor<bool>;
 }
 
 impl<ALG> BinarySat for ALG
@@ -253,7 +253,7 @@ where
         false
     }
 
-    fn bit_get_value(self: &Self, elem: Self::Elem) -> <bool as genvec::GenElem>::Vector {
+    fn bit_get_value(self: &Self, elem: Self::Elem) -> genvec::VectorFor<bool> {
         genvec::GenVec::new()
     }
 }

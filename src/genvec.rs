@@ -20,7 +20,7 @@
 extern crate bit_vec;
 use super::solver;
 use bit_vec::BitBlock as _;
-use std::iter;
+use std::{fmt, iter};
 
 /// Generic interface for regular and bit vectors.
 pub trait GenVec<ELEM>
@@ -40,11 +40,15 @@ where
 
     /// Constructs a new vector with the specified length where the value at
     /// each index is `op(index)`.
-    fn from_fn<F>(len: usize, op: F) -> Self
+    fn from_fn<F>(len: usize, mut op: F) -> Self
     where
         F: FnMut(usize) -> ELEM,
     {
-        (0..len).map(op).collect()
+        let mut vec: Self = GenVec::with_capacity(len);
+        for i in 0..len {
+            vec.push(op(i));
+        }
+        vec
     }
 
     /// Creates a vector with a single element.
@@ -108,7 +112,9 @@ where
     fn len(self: &Self) -> usize;
 
     /// Returns `true` if the length is zero.
-    fn is_empty(self: &Self) -> bool;
+    fn is_empty(self: &Self) -> bool {
+        self.len() == 0
+    }
 
     /// Returns the number of elements the vector can hold without reallocating.
     fn capacity(self: &Self) -> usize;
@@ -211,6 +217,7 @@ where
 {
 }
 
+/// A wrapper around standard containers to present them as generic vectors.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Wrapper<DATA> {
     data: DATA,
@@ -229,13 +236,13 @@ where
     }
 }
 
-impl<DATA, ITEM> iter::FromIterator<ITEM> for Wrapper<DATA>
+impl<DATA, ELEM> iter::FromIterator<ELEM> for Wrapper<DATA>
 where
-    DATA: iter::FromIterator<ITEM>,
+    DATA: iter::FromIterator<ELEM>,
 {
     fn from_iter<ITER>(iter: ITER) -> Self
     where
-        ITER: IntoIterator<Item = ITEM>,
+        ITER: IntoIterator<Item = ELEM>,
     {
         Wrapper {
             data: iter::FromIterator::from_iter(iter),
@@ -243,13 +250,13 @@ where
     }
 }
 
-impl<DATA, ITEM> iter::Extend<ITEM> for Wrapper<DATA>
+impl<DATA, ELEM> iter::Extend<ELEM> for Wrapper<DATA>
 where
-    DATA: iter::Extend<ITEM>,
+    DATA: iter::Extend<ELEM>,
 {
     fn extend<ITER>(self: &mut Self, iter: ITER)
     where
-        ITER: IntoIterator<Item = ITEM>,
+        ITER: IntoIterator<Item = ELEM>,
     {
         self.data.extend(iter);
     }
@@ -420,7 +427,7 @@ impl GenVec<bool> for Wrapper<bit_vec::BitVec> {
 /// A helper trait to find the right generic vector for a given element.
 pub trait GenElem: Copy {
     /// A type that can be used for storing a vector of elements.
-    type Vector: GenVec<Self>;
+    type Vector: GenVec<Self> + fmt::Debug;
 }
 
 impl GenElem for bool {
@@ -438,6 +445,9 @@ impl GenElem for solver::Literal {
 impl GenElem for () {
     type Vector = Wrapper<Vec<Self>>;
 }
+
+/// Returns the generic vector type that can hold the given element.
+pub type VectorFor<ELEM> = <ELEM as GenElem>::Vector;
 
 #[cfg(test)]
 mod tests {
@@ -482,8 +492,8 @@ mod tests {
     fn iters() {
         let e1 = vec![true, false, true];
         let e2 = e1.clone();
-        let v1: <bool as GenElem>::Vector = e1.into_iter().collect();
-        let mut v2: <bool as GenElem>::Vector = GenVec::new();
+        let v1: VectorFor<bool> = e1.into_iter().collect();
+        let mut v2: VectorFor<bool> = GenVec::new();
         for b in e2 {
             v2.push(b);
         }
@@ -495,8 +505,8 @@ mod tests {
         assert_eq!(iter.next(), None);
 
         let e1 = [true, false];
-        let v1: <bool as GenElem>::Vector = e1.iter().cloned().collect();
-        let mut v2: <bool as GenElem>::Vector = GenVec::new();
+        let v1: VectorFor<bool> = e1.iter().cloned().collect();
+        let mut v2: VectorFor<bool> = GenVec::new();
         for b in e1.iter() {
             v2.push(*b);
         }

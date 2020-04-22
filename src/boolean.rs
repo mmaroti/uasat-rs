@@ -66,7 +66,7 @@ pub trait BoolAlg {
     }
 
     /// Returns the logical implication of a pair of elements.
-    fn bool_leq(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_imp(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         let tmp = self.bool_not(elem1);
         self.bool_or(tmp, elem2)
     }
@@ -189,7 +189,7 @@ impl BoolAlg for Boolean {
         elem1 == elem2
     }
 
-    fn bool_leq(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_imp(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         elem1 <= elem2
     }
 }

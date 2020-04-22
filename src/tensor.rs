@@ -298,7 +298,7 @@ pub trait TensorAlg {
 
     /// Returns a new tensor whose elements are the logical implication of the
     /// original elements.
-    fn tensor_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
+    fn tensor_imp(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
 
     /// Returns a new tensor with the first dimension removed where the result
     /// is the conjunction of the elements.
@@ -398,13 +398,13 @@ where
         Tensor::new(elem1.shape.clone(), elems)
     }
 
-    fn tensor_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+    fn tensor_imp(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
         assert_eq!(elem1.shape, elem2.shape);
         let elems = elem1
             .elems
             .iter()
             .zip(elem2.elems.iter())
-            .map(|(a, b)| self.bool_leq(a, b))
+            .map(|(a, b)| self.bool_imp(a, b))
             .collect();
         Tensor::new(elem1.shape.clone(), elems)
     }

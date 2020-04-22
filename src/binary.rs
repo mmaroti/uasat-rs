@@ -52,7 +52,7 @@ pub trait BinaryAlg {
 
     /// Returns a new vector whose elements are the are the logical implication
     /// of the original elements.
-    fn bit_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
+    fn bit_imp(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
 
     /// Concatenates the given vectors into a single one.
     fn concat(self: &Self, elems: &[&Self::Elem]) -> Self::Elem;
@@ -74,23 +74,23 @@ pub trait BinaryAlg {
 
     /// Returns whether the first binary number is equal to the second one
     /// as a 1-element vector.
-    fn num_equ(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
+    fn num_eq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
 
     /// Returns whether the first binary number is not equal to the second one
     /// as a 1-element vector.
-    fn num_neq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        let temp = self.num_equ(elem1, elem2);
+    fn num_ne(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+        let temp = self.num_eq(elem1, elem2);
         self.bit_not(&temp)
     }
 
     /// Returns whether the first unsigned binary number is less than or equal
     /// to the second one as a 1-element vector.
-    fn num_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
+    fn num_le(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
 
     /// Returns whether the first unsigned binary number is less than the
     /// second one as a 1-element vector.
-    fn num_lth(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        let temp = self.num_leq(elem2, elem1);
+    fn num_lt(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+        let temp = self.num_le(elem2, elem1);
         self.bit_not(&temp)
     }
 }
@@ -149,12 +149,12 @@ where
             .collect()
     }
 
-    fn bit_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+    fn bit_imp(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
         assert_eq!(elem1.len(), elem2.len());
         elem1
             .iter()
             .zip(elem2.iter())
-            .map(|(a, b)| self.bool_leq(a, b))
+            .map(|(a, b)| self.bool_imp(a, b))
             .collect()
     }
 
@@ -214,7 +214,7 @@ where
             .collect()
     }
 
-    fn num_equ(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+    fn num_eq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
         assert_eq!(elem1.len(), elem2.len());
         let mut result = self.bool_unit();
         for (a, b) in elem1.iter().zip(elem2.iter()) {
@@ -224,13 +224,13 @@ where
         genvec::Vector::from_elem1(result)
     }
 
-    fn num_neq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        let mut elem = self.num_equ(elem1, elem2);
+    fn num_ne(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+        let mut elem = self.num_eq(elem1, elem2);
         elem.set(0, self.bool_not(elem.get(0)));
         elem
     }
 
-    fn num_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+    fn num_le(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
         assert_eq!(elem1.len(), elem2.len());
         let mut result = self.bool_unit();
         for (a, b) in elem1.iter().zip(elem2.iter()) {
@@ -240,8 +240,8 @@ where
         genvec::Vector::from_elem1(result)
     }
 
-    fn num_lth(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        let mut elem = self.num_leq(elem2, elem1);
+    fn num_lt(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+        let mut elem = self.num_le(elem2, elem1);
         elem.set(0, self.bool_not(elem.get(0)));
         elem
     }
@@ -311,14 +311,14 @@ mod tests {
                 assert_eq!(alg.bit_or(&a2, &b2), alg.num_lift(4, a1 | b1));
                 assert_eq!(alg.bit_xor(&a2, &b2), alg.num_lift(4, a1 ^ b1));
                 assert_eq!(alg.bit_equ(&a2, &b2), alg.num_lift(4, !a1 ^ b1));
-                assert_eq!(alg.bit_leq(&a2, &b2), alg.num_lift(4, !a1 | b1));
+                assert_eq!(alg.bit_imp(&a2, &b2), alg.num_lift(4, !a1 | b1));
 
                 assert_eq!(alg.num_add(&a2, &b2), alg.num_lift(4, a1 + b1));
                 assert_eq!(alg.num_sub(&a2, &b2), alg.num_lift(4, a1 - b1));
-                assert_eq!(alg.num_equ(&a2, &b2), alg.bit_lift(&[a1 == b1]));
-                assert_eq!(alg.num_neq(&a2, &b2), alg.bit_lift(&[a1 != b1]));
-                assert_eq!(alg.num_leq(&a2, &b2), alg.bit_lift(&[a1 <= b1]));
-                assert_eq!(alg.num_lth(&a2, &b2), alg.bit_lift(&[a1 < b1]));
+                assert_eq!(alg.num_eq(&a2, &b2), alg.bit_lift(&[a1 == b1]));
+                assert_eq!(alg.num_ne(&a2, &b2), alg.bit_lift(&[a1 != b1]));
+                assert_eq!(alg.num_le(&a2, &b2), alg.bit_lift(&[a1 <= b1]));
+                assert_eq!(alg.num_lt(&a2, &b2), alg.bit_lift(&[a1 < b1]));
 
                 assert_eq!(alg.concat(&[&a2, &b2]), alg.num_lift(8, a1 + 16 * b1));
             }

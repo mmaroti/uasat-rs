@@ -115,14 +115,13 @@ pub fn test_solver2(solver_name: &str, size: usize) -> String {
     let rel = sol.tensor_add_variable(Shape::new(vec![size, size]));
 
     let rfl = sol.polymer(&rel, Shape::new(vec![size]), &[0, 0]);
-    let rfl = sol.tensor_all(&rfl, 1);
+    let rfl = sol.tensor_all(&rfl);
     sol.tensor_add_clause(&[&rfl]);
 
     let inv = sol.polymer(&rel, Shape::new(vec![size, size]), &[1, 0]);
-    //let neg = sol.tensor_not(&rel);
-    //sol.add_clause(&[&neg, &inv]);
     let imp = sol.tensor_leq(&rel, &inv);
-    let imp = sol.tensor_all(&imp, 2);
+    let imp = sol.reshape_join(&imp, 2);
+    let imp = sol.tensor_all(&imp);
     sol.tensor_add_clause(&[&imp]);
 
     let r01 = sol.polymer(&rel, Shape::new(vec![size, size, size]), &[0, 1]);
@@ -138,11 +137,11 @@ pub fn test_solver2(solver_name: &str, size: usize) -> String {
         count += 1;
         let rel2 = sol.tensor_get_value(&rel);
         let mut lits = Vec::new();
-        lits.resize(size * size, rel.__slow_get__(&[0, 0]));
+        lits.resize(size * size, rel.very_slow_get(&[0, 0]));
         for i in 0..size {
             for j in 0..size {
-                let lit = rel.__slow_get__(&[i, j]);
-                if rel2.__slow_get__(&[i, j]) {
+                let lit = rel.very_slow_get(&[i, j]);
+                if rel2.very_slow_get(&[i, j]) {
                     lits[i * size + j] = sol.bool_not(lit)
                 } else {
                     lits[i * size + j] = lit;

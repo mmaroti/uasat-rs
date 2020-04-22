@@ -50,19 +50,11 @@ impl Shape {
         self.dims.iter().all(|d| *d == dim)
     }
 
-    /// Returns count many dimensions and the rest of this shape.
-    /// The shape should have at least count many dimensions.
-    pub fn split(self: &Self, count: usize) -> (Self, Self) {
-        assert!(self.len() >= count);
-
-        let head = Shape {
-            dims: self.dims[..count].to_vec(),
-        };
-        let tail = Shape {
-            dims: self.dims[count..].to_vec(),
-        };
-
-        (head, tail)
+    /// Returns the head and tail of this shape. The shape should have at
+    /// least one dimension.
+    pub fn split(self: &Self) -> (usize, Self) {
+        assert!(!self.is_empty());
+        (self.dims[0], Shape::new(self.dims[1..].to_vec()))
     }
 
     /// Returns the number of elements this shape represents.
@@ -200,8 +192,14 @@ pub struct Tensor<Elem: Element> {
 }
 
 impl<Elem: Element> Tensor<Elem> {
+    /// Creates a tensor of the given shape and with the given elements.
+    pub fn new(shape: Shape, elems: VectorFor<Elem>) -> Self {
+        assert_eq!(shape.size(), elems.len());
+        Tensor { shape, elems }
+    }
+
     /// Creates a tensor filled with constant value
-    pub fn new(shape: Shape, elem: Elem) -> Self {
+    pub fn constant(shape: Shape, elem: Elem) -> Self {
         let size = shape.size();
         let mut elems: VectorFor<Elem> = Vector::with_capacity(size);
         elems.resize(size, elem);
@@ -214,14 +212,12 @@ impl<Elem: Element> Tensor<Elem> {
     }
 
     /// Returns the element at the given index.
-    #[allow(non_snake_case)]
-    pub fn __slow_get__(self: &Self, coords: &[usize]) -> Elem {
+    pub fn very_slow_get(self: &Self, coords: &[usize]) -> Elem {
         self.elems.get(self.shape.index(coords))
     }
 
     /// Sets the element at the given index.
-    #[allow(non_snake_case)]
-    pub fn __slow_set__(self: &mut Self, coords: &[usize], elem: Elem) {
+    pub fn very_slow_set(self: &mut Self, coords: &[usize], elem: Elem) {
         self.elems.set(self.shape.index(coords), elem);
     }
 
@@ -240,9 +236,19 @@ impl<Elem: Element> Tensor<Elem> {
         }
 
         let elems: VectorFor<Elem> = iter.map(|i| self.elems.get(i)).collect();
-        assert_eq!(elems.len(), shape.size());
+        Tensor::new(shape, elems)
+    }
 
-        Tensor { shape, elems }
+    /// Joins the first `count` many dimensions into a new dimension. The
+    /// underlying data will not change, only its shape.
+    pub fn reshape_join(self: &mut Self, count: usize) {
+        assert!(count <= self.shape.len());
+
+        let mut dims = Vec::with_capacity(1 + self.shape.len() - count);
+        dims.push(self.shape.dims[..count].iter().product());
+        dims.extend(self.shape.dims[count..].iter());
+
+        self.shape = Shape::new(dims);
     }
 }
 
@@ -265,7 +271,11 @@ pub trait TensorAlg {
     /// permuted, identified or new dummy coordinates. The mapping is a vector
     /// of length of the old tensor shape with entries identifying the
     /// coordinate in the new tensor.
-    fn polymer(self: &mut Self, elem: &Self::Elem, shape: Shape, mapping: &[usize]) -> Self::Elem;
+    fn polymer(self: &Self, elem: &Self::Elem, shape: Shape, mapping: &[usize]) -> Self::Elem;
+
+    /// Joins the first `count` many dimensions into a new dimension. The
+    /// underlying data will not change, only its shape.
+    fn reshape_join(self: &Self, elem: &Self::Elem, count: usize) -> Self::Elem;
 
     /// Returns a new tensor whose elements are all negated of the original.
     fn tensor_not(self: &mut Self, elem: &Self::Elem) -> Self::Elem;
@@ -290,17 +300,17 @@ pub trait TensorAlg {
     /// original elements.
     fn tensor_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
 
-    /// Returns a new tensor with fewer dimension (the first `count` many are
-    /// removed) where the result is the conjunction of the elements.
-    fn tensor_all(self: &mut Self, elem: &Self::Elem, count: usize) -> Self::Elem;
+    /// Returns a new tensor with the first dimension removed where the result
+    /// is the conjunction of the elements.
+    fn tensor_all(self: &mut Self, elem: &Self::Elem) -> Self::Elem;
 
-    /// Returns a new tensor with fewer dimension (the first `count` many are
-    /// removed) where the result is the disjunction of the elements.
-    fn tensor_any(self: &mut Self, elem: &Self::Elem, count: usize) -> Self::Elem;
+    /// Returns a new tensor with the first dimension removed where the result
+    /// is the disjunction of the elements.
+    fn tensor_any(self: &mut Self, elem: &Self::Elem) -> Self::Elem;
 
-    /// Returns a new tensor with fewer dimension (the first `count` many are
-    /// removed) where the result is the binary sum of the elements.
-    fn tensor_sum(self: &mut Self, elem: &Self::Elem, count: usize) -> Self::Elem;
+    /// Returns a new tensor with the first dimension removed where the result
+    /// is the binary sum of the elements.
+    fn tensor_sum(self: &mut Self, elem: &Self::Elem) -> Self::Elem;
 }
 
 impl<ALG> TensorAlg for ALG
@@ -314,12 +324,12 @@ where
     }
 
     fn scalar(self: &mut Self, elem: bool) -> Self::Elem {
-        Tensor::new(Shape::new(vec![]), self.bool_lift(elem))
+        Tensor::constant(Shape::new(vec![]), self.bool_lift(elem))
     }
 
     fn diagonal(self: &mut Self, dim: usize) -> Self::Elem {
         let zero = self.bool_zero();
-        let mut tensor = Tensor::new(Shape::new(vec![dim, dim]), zero);
+        let mut tensor = Tensor::constant(Shape::new(vec![dim, dim]), zero);
 
         let unit = self.bool_unit();
         for idx in 0..dim {
@@ -329,112 +339,101 @@ where
         tensor
     }
 
-    fn polymer(
-        self: &mut Self,
-        tensor: &Self::Elem,
-        shape: Shape,
-        mapping: &[usize],
-    ) -> Self::Elem {
+    fn polymer(self: &Self, tensor: &Self::Elem, shape: Shape, mapping: &[usize]) -> Self::Elem {
         tensor.polymer(shape, mapping)
     }
 
+    fn reshape_join(self: &Self, tensor: &Self::Elem, count: usize) -> Self::Elem {
+        let mut tensor = tensor.clone();
+        tensor.reshape_join(count);
+        tensor
+    }
+
     fn tensor_not(self: &mut Self, tensor: &Self::Elem) -> Self::Elem {
-        let shape = tensor.shape.clone();
         let elems = tensor.elems.iter().map(|b| self.bool_not(b)).collect();
-        Tensor { shape, elems }
+        Tensor::new(tensor.shape.clone(), elems)
     }
 
     fn tensor_or(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
         assert_eq!(elem1.shape, elem2.shape);
-        let shape = elem1.shape.clone();
         let elems = elem1
             .elems
             .iter()
             .zip(elem2.elems.iter())
             .map(|(a, b)| self.bool_or(a, b))
             .collect();
-        Tensor { shape, elems }
+        Tensor::new(elem1.shape.clone(), elems)
     }
 
     fn tensor_and(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
         assert_eq!(elem1.shape, elem2.shape);
-        let shape = elem1.shape.clone();
         let elems = elem1
             .elems
             .iter()
             .zip(elem2.elems.iter())
             .map(|(a, b)| self.bool_and(a, b))
             .collect();
-        Tensor { shape, elems }
+        Tensor::new(elem1.shape.clone(), elems)
     }
 
     fn tensor_xor(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
         assert_eq!(elem1.shape, elem2.shape);
-        let shape = elem1.shape.clone();
         let elems = elem1
             .elems
             .iter()
             .zip(elem2.elems.iter())
             .map(|(a, b)| self.bool_xor(a, b))
             .collect();
-        Tensor { shape, elems }
+        Tensor::new(elem1.shape.clone(), elems)
     }
 
     fn tensor_equ(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
         assert_eq!(elem1.shape, elem2.shape);
-        let shape = elem1.shape.clone();
         let elems = elem1
             .elems
             .iter()
             .zip(elem2.elems.iter())
             .map(|(a, b)| self.bool_equ(a, b))
             .collect();
-        Tensor { shape, elems }
+        Tensor::new(elem1.shape.clone(), elems)
     }
 
     fn tensor_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
         assert_eq!(elem1.shape, elem2.shape);
-        let shape = elem1.shape.clone();
         let elems = elem1
             .elems
             .iter()
             .zip(elem2.elems.iter())
             .map(|(a, b)| self.bool_leq(a, b))
             .collect();
-        Tensor { shape, elems }
+        Tensor::new(elem1.shape.clone(), elems)
     }
 
-    fn tensor_all(self: &mut Self, elem: &Self::Elem, count: usize) -> Self::Elem {
-        let (head, shape) = elem.shape().split(count);
-        let head = head.size();
-
+    fn tensor_all(self: &mut Self, elem: &Self::Elem) -> Self::Elem {
+        let (head, shape) = elem.shape.split();
         let elems = (0..shape.size())
             .map(|i| self.bool_all(elem.elems.range(i * head, i * head + head)))
             .collect();
 
-        Tensor { shape, elems }
+        Tensor::new(shape, elems)
     }
 
-    fn tensor_any(self: &mut Self, elem: &Self::Elem, count: usize) -> Self::Elem {
-        let (head, shape) = elem.shape().split(count);
-        let head = head.size();
-
+    fn tensor_any(self: &mut Self, elem: &Self::Elem) -> Self::Elem {
+        let (head, shape) = elem.shape.split();
         let elems = (0..shape.size())
             .map(|i| self.bool_any(elem.elems.range(i * head, i * head + head)))
             .collect();
 
-        Tensor { shape, elems }
+        Tensor::new(shape, elems)
     }
 
-    fn tensor_sum(self: &mut Self, elem: &Self::Elem, count: usize) -> Self::Elem {
-        let (head, shape) = elem.shape().split(count);
-        let head = head.size();
-
+    fn tensor_sum(self: &mut Self, elem: &Self::Elem) -> Self::Elem {
+        let (head, shape) = elem.shape.split();
         let elems = (0..shape.size())
             .map(|i| self.bool_sum(elem.elems.range(i * head, i * head + head)))
             .collect();
 
-        Tensor { shape, elems }
+        Tensor::new(shape, elems)
     }
 }
 
@@ -461,7 +460,7 @@ where
         let elems = (0..shape.size())
             .map(|_| self.bool_add_variable())
             .collect();
-        Tensor { shape, elems }
+        Tensor::new(shape, elems)
     }
 
     fn tensor_add_clause(self: &mut Self, tensors: &[&Self::Elem]) {
@@ -495,14 +494,12 @@ where
     }
 
     fn tensor_get_value(self: &Self, tensor: &Self::Elem) -> Tensor<bool> {
-        let shape = tensor.shape.clone();
         let elems: VectorFor<bool> = tensor
             .elems
             .iter()
             .map(|e| self.bool_get_value(e))
             .collect();
-        assert_eq!(elems.len(), shape.size());
-        Tensor { shape, elems }
+        Tensor::new(tensor.shape.clone(), elems)
     }
 }
 
@@ -513,18 +510,18 @@ mod tests {
 
     #[test]
     fn polymer() {
-        let mut tensor: Tensor<usize> = Tensor::new(Shape::new(vec![2, 3]), 0);
+        let mut tensor: Tensor<usize> = Tensor::constant(Shape::new(vec![2, 3]), 0);
         for i in 0..2 {
             for j in 0..3 {
-                tensor.__slow_set__(&[i, j], i + 10 * j);
+                tensor.very_slow_set(&[i, j], i + 10 * j);
             }
         }
         let tensor = tensor.polymer(Shape::new(vec![3, 4, 2]), &[2, 0]);
-        assert_eq!(*tensor.shape(), Shape::new(vec![3, 4, 2]));
+        assert_eq!(tensor.shape, Shape::new(vec![3, 4, 2]));
         for i in 0..2 {
             for j in 0..3 {
                 for k in 0..4 {
-                    assert_eq!(tensor.__slow_get__(&[j, k, i]), i + 10 * j);
+                    assert_eq!(tensor.very_slow_get(&[j, k, i]), i + 10 * j);
                 }
             }
         }
@@ -533,43 +530,44 @@ mod tests {
     #[test]
     fn getset() {
         let mut alg = Boolean();
-        let mut t1: Tensor<bool> = Tensor::new(Shape::new(vec![2, 3]), false);
-        t1.__slow_set__(&[0, 0], true);
-        t1.__slow_set__(&[1, 1], true);
-        t1.__slow_set__(&[1, 2], true);
+        let mut t1: Tensor<bool> = Tensor::constant(Shape::new(vec![2, 3]), false);
+        t1.very_slow_set(&[0, 0], true);
+        t1.very_slow_set(&[1, 1], true);
+        t1.very_slow_set(&[1, 2], true);
 
         let t2 = alg.tensor_not(&t1);
-        assert_eq!(t2.__slow_get__(&[0, 0]), false);
-        assert_eq!(t2.__slow_get__(&[0, 1]), true);
+        assert_eq!(t2.very_slow_get(&[0, 0]), false);
+        assert_eq!(t2.very_slow_get(&[0, 1]), true);
 
-        t1.__slow_set__(&[0, 1], true);
+        t1.very_slow_set(&[0, 1], true);
         let t3 = alg.tensor_and(&t1, &t2);
-        assert_eq!(t3.__slow_get__(&[0, 0]), false);
-        assert_eq!(t3.__slow_get__(&[0, 1]), true);
-        assert_eq!(t3.__slow_get__(&[0, 2]), false);
-        assert_eq!(t3.__slow_get__(&[1, 0]), false);
-        assert_eq!(t3.__slow_get__(&[1, 1]), false);
-        assert_eq!(t3.__slow_get__(&[1, 2]), false);
+        assert_eq!(t3.very_slow_get(&[0, 0]), false);
+        assert_eq!(t3.very_slow_get(&[0, 1]), true);
+        assert_eq!(t3.very_slow_get(&[0, 2]), false);
+        assert_eq!(t3.very_slow_get(&[1, 0]), false);
+        assert_eq!(t3.very_slow_get(&[1, 1]), false);
+        assert_eq!(t3.very_slow_get(&[1, 2]), false);
     }
 
     #[test]
     fn fold() {
         let mut alg = Boolean();
-        let mut t1: Tensor<bool> = Tensor::new(Shape::new(vec![2, 4]), false);
-        t1.__slow_set__(&[0, 1], true);
-        t1.__slow_set__(&[1, 2], true);
-        t1.__slow_set__(&[0, 3], true);
-        t1.__slow_set__(&[1, 3], true);
+        let mut t1: Tensor<bool> = Tensor::constant(Shape::new(vec![2, 4]), false);
+        t1.very_slow_set(&[0, 1], true);
+        t1.very_slow_set(&[1, 2], true);
+        t1.very_slow_set(&[0, 3], true);
+        t1.very_slow_set(&[1, 3], true);
 
-        let t2 = alg.tensor_all(&t1, 1);
-        assert_eq!(*t2.shape(), Shape::new(vec![4]));
-        assert_eq!(t2.__slow_get__(&[0]), false);
-        assert_eq!(t2.__slow_get__(&[1]), false);
-        assert_eq!(t2.__slow_get__(&[2]), false);
-        assert_eq!(t2.__slow_get__(&[3]), true);
+        let t2 = alg.tensor_all(&t1);
+        assert_eq!(t2.shape, Shape::new(vec![4]));
+        assert_eq!(t2.very_slow_get(&[0]), false);
+        assert_eq!(t2.very_slow_get(&[1]), false);
+        assert_eq!(t2.very_slow_get(&[2]), false);
+        assert_eq!(t2.very_slow_get(&[3]), true);
 
-        let t3 = alg.tensor_all(&t1, 2);
-        assert_eq!(*t3.shape(), Shape::new(vec![]));
-        assert_eq!(t3.__slow_get__(&[]), false);
+        let t3 = alg.reshape_join(&t1, 2);
+        let t3 = alg.tensor_all(&t3);
+        assert_eq!(t3.shape, Shape::new(vec![]));
+        assert_eq!(t3.very_slow_get(&[]), false);
     }
 }

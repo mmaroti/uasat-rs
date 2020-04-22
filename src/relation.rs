@@ -141,7 +141,7 @@ where
         let elem1 = self.alg.polymer(elem1, self.new_shape(3), &[1, 0]);
         let elem2 = self.alg.polymer(elem2, self.new_shape(3), &[0, 2]);
         let elem3 = self.alg.tensor_and(&elem1, &elem2);
-        self.alg.tensor_any(&elem3, 1)
+        self.alg.tensor_any(&elem3)
     }
 }
 

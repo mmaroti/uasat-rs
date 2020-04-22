@@ -368,133 +368,6 @@ impl GenVec<bool> for Wrapper<bit_vec::BitVec> {
     }
 }
 
-/// A vector containing unit `()` elements only (just the length is stored).
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub struct UnitVec {
-    len: usize,
-}
-
-/// The iterator for unit vectors.
-pub struct UnitIter {
-    pos: usize,
-}
-
-impl Iterator for UnitIter {
-    type Item = ();
-
-    fn next(self: &mut Self) -> Option<Self::Item> {
-        if self.pos > 0 {
-            self.pos -= 1;
-            Some(())
-        } else {
-            None
-        }
-    }
-}
-
-impl iter::FusedIterator for UnitIter {}
-
-impl IntoIterator for UnitVec {
-    type Item = ();
-    type IntoIter = UnitIter;
-
-    fn into_iter(self: Self) -> Self::IntoIter {
-        UnitIter { pos: self.len }
-    }
-}
-
-impl iter::FromIterator<()> for UnitVec {
-    fn from_iter<ITER>(iter: ITER) -> Self
-    where
-        ITER: IntoIterator<Item = ()>,
-    {
-        let mut len = 0;
-        for _ in iter {
-            len += 1;
-        }
-        UnitVec { len }
-    }
-}
-
-impl GenVec<()> for UnitVec {
-    fn new() -> Self {
-        UnitVec { len: 0 }
-    }
-
-    fn with_capacity(_capacity: usize) -> Self {
-        UnitVec { len: 0 }
-    }
-
-    fn from_fn<F>(len: usize, _op: F) -> Self
-    where
-        F: FnMut(usize) -> (),
-    {
-        UnitVec { len }
-    }
-
-    fn from_elem1(_elem: ()) -> Self {
-        UnitVec { len: 1 }
-    }
-
-    fn from_elem2(_elem1: (), _elem2: ()) -> Self {
-        UnitVec { len: 2 }
-    }
-
-    fn clear(self: &mut Self) {
-        self.len = 0;
-    }
-
-    fn resize(self: &mut Self, new_len: usize, _elem: ()) {
-        self.len = new_len;
-    }
-
-    fn push(self: &mut Self, _elem: ()) {
-        self.len += 1;
-    }
-
-    fn pop(self: &mut Self) -> Option<()> {
-        if self.len > 0 {
-            self.len -= 1;
-            Some(())
-        } else {
-            None
-        }
-    }
-
-    fn extend(self: &mut Self, other: &Self) {
-        self.len += other.len;
-    }
-
-    fn append(self: &mut Self, other: &mut Self) {
-        self.len += other.len;
-        other.len = 0;
-    }
-
-    fn get(self: &Self, index: usize) {
-        assert!(index < self.len);
-    }
-
-    unsafe fn get_unchecked(self: &Self, _index: usize) {}
-
-    fn set(self: &mut Self, index: usize, _elem: ()) {
-        assert!(index < self.len);
-    }
-
-    unsafe fn set_unchecked(self: &mut Self, _index: usize, _elem: ()) {}
-
-    fn len(self: &Self) -> usize {
-        self.len
-    }
-
-    fn is_empty(self: &Self) -> bool {
-        self.len == 0
-    }
-
-    fn capacity(self: &Self) -> usize {
-        usize::max_value()
-    }
-}
-
 /// A helper trait to find the right generic vector for a given element.
 pub trait GenElem: Copy {
     /// A type that can be used for storing a vector of elements.
@@ -514,7 +387,7 @@ impl GenElem for solver::Literal {
 }
 
 impl GenElem for () {
-    type Vector = UnitVec;
+    type Vector = Wrapper<Vec<Self>>;
 }
 
 #[cfg(test)]
@@ -525,7 +398,7 @@ mod tests {
     fn resize() {
         let mut v1: Wrapper<bit_vec::BitVec> = GenVec::new();
         let mut v2: Wrapper<Vec<bool>> = GenVec::new();
-        let mut v3: UnitVec = GenVec::new();
+        let mut v3: Wrapper<Vec<()>> = GenVec::new();
 
         for i in 0..50 {
             let b = i % 2 == 0;

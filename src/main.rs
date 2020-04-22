@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2019, Miklos Maroti
+* Copyright (C) 2019-2020, Miklos Maroti
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -114,16 +114,16 @@ pub fn test_solver2(solver_name: &str, size: usize) -> String {
     let mut sol = Solver::new(solver_name);
     let rel = sol.tensor_add_variable(Shape::new(vec![size, size]));
 
-    let rfl = sol.polymer(&rel, Shape::new(vec![size]), &[0, 0]);
-    let rfl = sol.tensor_all(&rfl);
-    sol.tensor_add_clause(&[&rfl]);
+    // reflexive
+    let tmp = sol.polymer(&rel, Shape::new(vec![size]), &[0, 0]);
+    sol.tensor_add_clause(&[&tmp]);
 
-    let inv = sol.polymer(&rel, Shape::new(vec![size, size]), &[1, 0]);
-    let imp = sol.tensor_leq(&rel, &inv);
-    let imp = sol.reshape_join(&imp, 2);
-    let imp = sol.tensor_all(&imp);
-    sol.tensor_add_clause(&[&imp]);
+    // symmetric
+    let tmp = sol.polymer(&rel, Shape::new(vec![size, size]), &[1, 0]);
+    let tmp = sol.tensor_not(&tmp);
+    sol.tensor_add_clause(&[&rel, &tmp]);
 
+    // transitive
     let r01 = sol.polymer(&rel, Shape::new(vec![size, size, size]), &[0, 1]);
     let r01 = sol.tensor_not(&r01);
     let r12 = sol.polymer(&rel, Shape::new(vec![size, size, size]), &[1, 2]);

@@ -159,7 +159,7 @@ where
     }
 
     fn concat(self: &Self, elems: &[&Self::Elem]) -> Self::Elem {
-        let size = elems.iter().fold(0, |sum, elem| sum + elem.len());
+        let size = elems.iter().map(|a| a.len()).sum();
         let mut result: Self::Elem = genvec::Vector::with_capacity(size);
         for elem in elems {
             result.extend(elem.iter());
@@ -175,44 +175,51 @@ where
 
     fn num_neg(self: &mut Self, elem: &Self::Elem) -> Self::Elem {
         let mut carry = self.bool_unit();
-        let mut result: Self::Elem = genvec::Vector::with_capacity(elem.len());
-        for i in 0..elem.len() {
-            let not_elem = self.bool_not(elem.get(i));
-            result.push(self.bool_xor(not_elem, carry));
-            carry = self.bool_and(not_elem, carry);
-        }
-        result
+        elem.iter()
+            .map(|a| {
+                let b = self.bool_not(a);
+                let c = self.bool_xor(b, carry);
+                carry = self.bool_and(b, carry);
+                c
+            })
+            .collect()
     }
 
     fn num_add(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
         assert_eq!(elem1.len(), elem2.len());
         let mut carry = self.bool_zero();
-        let mut result: Self::Elem = genvec::Vector::with_capacity(elem1.len());
-        for i in 0..elem1.len() {
-            result.push(self.bool_sum3(elem1.get(i), elem2.get(i), carry));
-            carry = self.bool_maj(elem1.get(i), elem2.get(i), carry);
-        }
-        result
+        elem1
+            .iter()
+            .zip(elem2.iter())
+            .map(|(a, b)| {
+                let c = self.bool_sum3(a, b, carry);
+                carry = self.bool_maj(a, b, carry);
+                c
+            })
+            .collect()
     }
 
     fn num_sub(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
         assert_eq!(elem1.len(), elem2.len());
         let mut carry = self.bool_unit();
-        let mut result: Self::Elem = genvec::Vector::with_capacity(elem1.len());
-        for i in 0..elem1.len() {
-            let not_elem2 = self.bool_not(elem2.get(i));
-            result.push(self.bool_sum3(elem1.get(i), not_elem2, carry));
-            carry = self.bool_maj(elem1.get(i), not_elem2, carry);
-        }
-        result
+        elem1
+            .iter()
+            .zip(elem2.iter())
+            .map(|(a, b)| {
+                let b = self.bool_not(b);
+                let c = self.bool_sum3(a, b, carry);
+                carry = self.bool_maj(a, b, carry);
+                c
+            })
+            .collect()
     }
 
     fn num_equ(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
         assert_eq!(elem1.len(), elem2.len());
         let mut result = self.bool_unit();
-        for i in 0..elem1.len() {
-            let temp = self.bool_equ(elem1.get(i), elem2.get(i));
-            result = self.bool_and(result, temp);
+        for (a, b) in elem1.iter().zip(elem2.iter()) {
+            let c = self.bool_equ(a, b);
+            result = self.bool_and(result, c);
         }
         genvec::Vector::from_elem1(result)
     }
@@ -226,9 +233,9 @@ where
     fn num_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
         assert_eq!(elem1.len(), elem2.len());
         let mut result = self.bool_unit();
-        for i in 0..elem1.len() {
-            let not_elem1 = self.bool_not(elem1.get(i));
-            result = self.bool_maj(not_elem1, elem2.get(i), result);
+        for (a, b) in elem1.iter().zip(elem2.iter()) {
+            let a = self.bool_not(a);
+            result = self.bool_maj(a, b, result);
         }
         genvec::Vector::from_elem1(result)
     }

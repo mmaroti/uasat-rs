@@ -47,6 +47,18 @@ pub trait Solver {
     /// Adds the clause to the solver.
     fn add_clause(self: &mut Self, lits: &[Literal]);
 
+    /// Adds an XOR clause to the solver where the binary sum of the literals
+    /// must be zero.
+    fn add_xor_clause(self: &mut Self, lit1: Literal, lit2: Literal, lit3: Literal) {
+        let not_lit1 = self.negate(lit1);
+        let not_lit2 = self.negate(lit2);
+        let not_lit3 = self.negate(lit3);
+        self.add_clause(&[not_lit1, lit2, lit3]);
+        self.add_clause(&[lit1, not_lit2, lit3]);
+        self.add_clause(&[lit1, lit2, not_lit3]);
+        self.add_clause(&[not_lit1, not_lit2, not_lit3]);
+    }
+
     /// Runs the solver and returns true if a solution is available.
     fn solve(self: &mut Self) -> bool {
         self.solve_with(&[])
@@ -347,6 +359,15 @@ impl Solver for CryptoMiniSat {
         self.num_clauses += 1;
     }
 
+    fn add_xor_clause(self: &mut Self, lit1: Literal, lit2: Literal, lit3: Literal) {
+        let lits = [
+            CryptoMiniSat::decode(lit1),
+            CryptoMiniSat::decode(lit2),
+            CryptoMiniSat::decode(lit3),
+        ];
+        self.solver.add_xor_literal_clause(&lits, false);
+    }
+
     fn solve_with(self: &mut Self, lits: &[Literal]) -> bool {
         let lits: Vec<cryptominisat::Lit> =
             lits.iter().map(|lit| CryptoMiniSat::decode(*lit)).collect();
@@ -388,9 +409,12 @@ mod tests {
         sat.add_clause(&[sat.negate(a), sat.negate(b)]);
         assert_eq!(sat.num_variables(), 2);
         assert_eq!(sat.num_clauses(), 3);
+        let c = sat.add_variable();
+        sat.add_xor_clause(a, b, c);
         assert!(sat.solve());
         assert!(!sat.get_value(a));
         assert!(sat.get_value(b));
+        assert!(sat.get_value(c));
         sat.add_clause(&[a, sat.negate(b)]);
         assert!(!sat.solve());
     }
@@ -409,9 +433,12 @@ mod tests {
         sat.add_clause(&[sat.negate(a), sat.negate(b)]);
         assert_eq!(sat.num_variables(), 2);
         assert_eq!(sat.num_clauses(), 3);
+        let c = sat.add_variable();
+        sat.add_xor_clause(a, b, c);
         assert!(sat.solve());
         assert!(!sat.get_value(a));
         assert!(sat.get_value(b));
+        assert!(sat.get_value(c));
         sat.add_clause(&[a, sat.negate(b)]);
         assert!(!sat.solve());
     }
@@ -430,9 +457,12 @@ mod tests {
         sat.add_clause(&[sat.negate(a), sat.negate(b)]);
         assert_eq!(sat.num_variables(), 2);
         assert_eq!(sat.num_clauses(), 3);
+        let c = sat.add_variable();
+        sat.add_xor_clause(a, b, c);
         assert!(sat.solve());
         assert!(!sat.get_value(a));
         assert!(sat.get_value(b));
+        assert!(sat.get_value(c));
         sat.add_clause(&[a, sat.negate(b)]);
         assert!(!sat.solve());
     }

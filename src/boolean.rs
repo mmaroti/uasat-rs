@@ -268,11 +268,7 @@ impl BoolAlg for Solver {
             self.unit
         } else {
             let elem3 = self.solver.add_variable();
-            let not_elem3 = self.solver.negate(elem3);
-            self.solver.add_clause(&[not_elem1, elem2, elem3]);
-            self.solver.add_clause(&[elem1, not_elem2, elem3]);
-            self.solver.add_clause(&[elem1, elem2, not_elem3]);
-            self.solver.add_clause(&[not_elem1, not_elem2, not_elem3]);
+            self.solver.add_xor_clause(elem1, elem2, elem3);
             elem3
         }
     }
@@ -299,7 +295,7 @@ impl BoolSat for Solver {
     }
 
     fn bool_add_clause(self: &mut Self, elems: &[Self::Elem]) {
-        self.solver.add_clause(&elems)
+        self.solver.add_clause(elems)
     }
 
     fn bool_find_model(self: &mut Self, elems: &[Self::Elem]) -> bool {

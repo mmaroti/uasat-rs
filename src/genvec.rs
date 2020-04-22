@@ -28,6 +28,7 @@ where
     ELEM: Copy,
     Self: Default + Clone,
     Self: IntoIterator<Item = ELEM> + iter::FromIterator<ELEM>,
+    Self: iter::Extend<ELEM>,
 {
     /// Constructs a new empty vector. The vector will not allocate until
     /// elements are pushed onto it.
@@ -77,10 +78,6 @@ where
     /// it is empty.
     fn pop(self: &mut Self) -> Option<ELEM>;
 
-    /// Extends this vector by copying all elements from the other vector.
-    /// TODO: implement it for iterator
-    fn extend(self: &mut Self, other: &Self);
-
     /// Extends this vector by moving all elements from the other vector.
     fn append(self: &mut Self, other: &mut Self);
 
@@ -117,31 +114,41 @@ where
     fn capacity(self: &Self) -> usize;
 
     /// Returns an iterator for the given range of elements.
-    fn range(self: &Self, start: usize, end: usize) -> GenIter<ELEM, &Self> {
-        assert!(start <= end && end <= self.len());
-        GenIter {
-            pos: start,
-            len: end,
-            vec: self,
-            phantom: Default::default(),
-        }
+    fn range(self: &Self, start: usize, end: usize) -> GenIter<'_, ELEM, Self> {
+        GenIter::new(self, start, end)
     }
 
     /// Returns an iterator over the elements of the vector.
-    fn gen_iter(self: &Self) -> GenIter<ELEM, &Self> {
+    fn iter(self: &Self) -> GenIter<'_, ELEM, Self> {
         self.range(0, self.len())
     }
 }
 
 /// Generic read only iterator over the vector.
-pub struct GenIter<ELEM, VEC> {
+pub struct GenIter<'a, ELEM, VEC> {
     pos: usize,
-    len: usize,
-    vec: VEC,
+    end: usize,
+    vec: &'a VEC,
     phantom: std::marker::PhantomData<ELEM>,
 }
 
-impl<'a, ELEM, VEC> Iterator for GenIter<ELEM, &'a VEC>
+impl<'a, ELEM, VEC> GenIter<'a, ELEM, VEC>
+where
+    ELEM: Copy,
+    VEC: GenVec<ELEM>,
+{
+    fn new(vec: &'a VEC, start: usize, end: usize) -> Self {
+        assert!(start <= end && end <= vec.len());
+        GenIter {
+            pos: start,
+            end,
+            vec,
+            phantom: Default::default(),
+        }
+    }
+}
+
+impl<'a, ELEM, VEC> Iterator for GenIter<'a, ELEM, VEC>
 where
     ELEM: Copy,
     VEC: GenVec<ELEM>,
@@ -149,7 +156,7 @@ where
     type Item = ELEM;
 
     fn next(self: &mut Self) -> Option<Self::Item> {
-        if self.pos < self.len {
+        if self.pos < self.end {
             let elem = unsafe { self.vec.get_unchecked(self.pos) };
             self.pos += 1;
             Some(elem)
@@ -157,9 +164,47 @@ where
             None
         }
     }
+
+    fn size_hint(self: &Self) -> (usize, Option<usize>) {
+        (self.end - self.pos, Some(self.end - self.pos))
+    }
+
+    fn count(self: Self) -> usize {
+        self.end - self.pos
+    }
+
+    fn last(self: Self) -> Option<Self::Item> {
+        if self.pos < self.end {
+            let elem = unsafe { self.vec.get_unchecked(self.end - 1) };
+            Some(elem)
+        } else {
+            None
+        }
+    }
+
+    fn nth(self: &mut Self, n: usize) -> Option<Self::Item> {
+        if self.end - self.pos < n {
+            let elem = unsafe { self.vec.get_unchecked(self.pos + n) };
+            self.pos += n + 1;
+            Some(elem)
+        } else {
+            self.pos = self.end;
+            None
+        }
+    }
 }
 
-impl<'a, ELEM, VEC> iter::FusedIterator for GenIter<ELEM, &'a VEC>
+impl<'a, ELEM, VEC> ExactSizeIterator for GenIter<'a, ELEM, VEC>
+where
+    ELEM: Copy,
+    VEC: GenVec<ELEM>,
+{
+    fn len(self: &Self) -> usize {
+        self.end - self.pos
+    }
+}
+
+impl<'a, ELEM, VEC> iter::FusedIterator for GenIter<'a, ELEM, VEC>
 where
     ELEM: Copy,
     VEC: GenVec<ELEM>,
@@ -195,6 +240,18 @@ where
         Wrapper {
             data: iter::FromIterator::from_iter(iter),
         }
+    }
+}
+
+impl<DATA, ITEM> iter::Extend<ITEM> for Wrapper<DATA>
+where
+    DATA: iter::Extend<ITEM>,
+{
+    fn extend<ITER>(self: &mut Self, iter: ITER)
+    where
+        ITER: IntoIterator<Item = ITEM>,
+    {
+        self.data.extend(iter);
     }
 }
 
@@ -236,10 +293,6 @@ where
 
     fn pop(self: &mut Self) -> Option<ELEM> {
         self.data.pop()
-    }
-
-    fn extend(self: &mut Self, other: &Self) {
-        self.data.extend(other.data.iter());
     }
 
     fn append(self: &mut Self, other: &mut Self) {
@@ -315,10 +368,6 @@ impl GenVec<bool> for Wrapper<bit_vec::BitVec> {
 
     fn pop(self: &mut Self) -> Option<bool> {
         self.data.pop()
-    }
-
-    fn extend(self: &mut Self, other: &Self) {
-        self.data.extend(other.data.iter());
     }
 
     fn append(self: &mut Self, other: &mut Self) {

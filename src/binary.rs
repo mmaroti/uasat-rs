@@ -142,7 +142,7 @@ where
         let size = elems.iter().fold(0, |sum, elem| sum + elem.len());
         let mut result: Self::Elem = genvec::GenVec::with_capacity(size);
         for elem in elems {
-            result.extend(elem);
+            result.extend(elem.iter());
         }
         result
     }

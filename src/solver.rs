@@ -263,8 +263,7 @@ impl<'a> Solver for VariSat<'a> {
     }
 
     fn solve_with(self: &mut Self, lits: &[Literal]) -> bool {
-        let mut assumptions = Vec::new();
-        assumptions.extend(lits.iter().map(|lit| VariSat::decode(*lit)));
+        let assumptions: Vec<varisat::Lit> = lits.iter().map(|lit| VariSat::decode(*lit)).collect();
         self.solver.assume(&assumptions);
 
         self.solution.clear();

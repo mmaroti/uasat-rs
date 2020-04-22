@@ -72,7 +72,7 @@ pub trait BoolAlg {
     }
 
     /// Returns the boolean sum of three values.
-    fn bool_ad3(
+    fn bool_sum3(
         self: &mut Self,
         elem1: Self::Elem,
         elem2: Self::Elem,
@@ -97,19 +97,37 @@ pub trait BoolAlg {
     }
 
     /// Computes the conjunction of the elements.
-    fn bool_all(self: &mut Self, elems: &[Self::Elem]) -> Self::Elem {
+    fn bool_all<ITER>(self: &mut Self, elems: ITER) -> Self::Elem
+    where
+        ITER: Iterator<Item = Self::Elem>,
+    {
         let mut result = self.bool_unit();
         for elem in elems {
-            result = self.bool_and(result, *elem);
+            result = self.bool_and(result, elem);
         }
         result
     }
 
     /// Computes the disjunction of the elements.
-    fn bool_any(self: &mut Self, elems: &[Self::Elem]) -> Self::Elem {
+    fn bool_any<ITER>(self: &mut Self, elems: ITER) -> Self::Elem
+    where
+        ITER: Iterator<Item = Self::Elem>,
+    {
         let mut result = self.bool_zero();
         for elem in elems {
-            result = self.bool_or(result, *elem);
+            result = self.bool_or(result, elem);
+        }
+        result
+    }
+
+    /// Computes the boolean sum of the elements.
+    fn bool_sum<ITER>(self: &mut Self, elems: ITER) -> Self::Elem
+    where
+        ITER: Iterator<Item = Self::Elem>,
+    {
+        let mut result = self.bool_zero();
+        for elem in elems {
+            result = self.bool_xor(result, elem);
         }
         result
     }

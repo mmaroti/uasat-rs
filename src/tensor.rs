@@ -117,13 +117,15 @@ impl Shape {
 
     /// Returns the vector of strides for linear indexing
     fn strides(self: &Self) -> Vec<usize> {
-        let mut strides = Vec::with_capacity(self.len());
         let mut size = 1;
-        for dim in self.dims.iter() {
-            strides.push(size);
-            size *= *dim;
-        }
-        strides
+        self.dims
+            .iter()
+            .map(|d| {
+                let s = size;
+                size *= d;
+                s
+            })
+            .collect()
     }
 }
 
@@ -145,12 +147,16 @@ struct StrideIter {
 
 impl StrideIter {
     fn new(shape: &Shape) -> Self {
-        let mut entries = Vec::with_capacity(shape.dims.len());
         let mut done = false;
-        for dim in shape.dims.iter() {
-            entries.push((0, *dim, 0));
-            done |= *dim == 0;
-        }
+        let entries = shape
+            .dims
+            .iter()
+            .map(|d| {
+                done |= *d == 0;
+                (0, *d, 0)
+            })
+            .collect();
+
         StrideIter {
             entries,
             index: 0,
@@ -284,124 +290,17 @@ pub trait TensorAlg {
     /// original elements.
     fn tensor_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
 
-    /// Returns a new tensor with fewer dimension (the first count ones are
+    /// Returns a new tensor with fewer dimension (the first `count` many are
     /// removed) where the result is the conjunction of the elements.
     fn tensor_all(self: &mut Self, elem: &Self::Elem, count: usize) -> Self::Elem;
 
-    /// Returns a new tensor with fewer dimension (the first count ones are
+    /// Returns a new tensor with fewer dimension (the first `count` many are
     /// removed) where the result is the disjunction of the elements.
     fn tensor_any(self: &mut Self, elem: &Self::Elem, count: usize) -> Self::Elem;
-}
 
-/// The tensor algebra used for checking the shapes of calculations.
-pub struct Trivial();
-
-fn checker_binop(elem1: &Shape, elem2: &Shape) -> Shape {
-    assert_eq!(elem1, elem2);
-    elem1.clone()
-}
-
-impl TensorAlg for Trivial {
-    type Elem = Shape;
-
-    fn shape(elem: &Self::Elem) -> &Shape {
-        elem
-    }
-
-    fn scalar(self: &mut Self, _elem: bool) -> Self::Elem {
-        Shape::new(vec![])
-    }
-
-    fn diagonal(self: &mut Self, dim: usize) -> Self::Elem {
-        Shape::new(vec![dim, dim])
-    }
-
-    fn polymer(self: &mut Self, elem: &Self::Elem, shape: Shape, mapping: &[usize]) -> Self::Elem {
-        assert!(mapping.iter().eq(elem.dims.iter()));
-        shape
-    }
-
-    fn tensor_not(self: &mut Self, elem: &Self::Elem) -> Self::Elem {
-        elem.clone()
-    }
-
-    fn tensor_or(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        checker_binop(elem1, elem2)
-    }
-
-    fn tensor_and(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        checker_binop(elem1, elem2)
-    }
-
-    fn tensor_xor(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        checker_binop(elem1, elem2)
-    }
-
-    fn tensor_equ(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        checker_binop(elem1, elem2)
-    }
-
-    fn tensor_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        checker_binop(elem1, elem2)
-    }
-
-    fn tensor_all(self: &mut Self, tensor: &Self::Elem, count: usize) -> Self::Elem {
-        tensor.split(count).1
-    }
-
-    fn tensor_any(self: &mut Self, tensor: &Self::Elem, count: usize) -> Self::Elem {
-        tensor.split(count).1
-    }
-}
-
-fn boolalg_binop<ALG, OP>(
-    alg: &mut ALG,
-    elem1: &Tensor<ALG::Elem>,
-    elem2: &Tensor<ALG::Elem>,
-    op: OP,
-) -> Tensor<ALG::Elem>
-where
-    ALG: BoolAlg,
-    OP: Fn(&mut ALG, ALG::Elem, ALG::Elem) -> ALG::Elem,
-{
-    assert_eq!(elem1.shape, elem2.shape);
-    let shape = elem1.shape.clone();
-    let elems = elem1
-        .elems
-        .iter()
-        .zip(elem2.elems.iter())
-        .map(|(a, b)| op(alg, a, b))
-        .collect();
-    Tensor { shape, elems }
-}
-
-fn boolalg_fold<ALG, OP>(
-    alg: &mut ALG,
-    elem: &Tensor<ALG::Elem>,
-    count: usize,
-    mut op: OP,
-) -> Tensor<ALG::Elem>
-where
-    ALG: BoolAlg,
-    OP: FnMut(&mut ALG, &[ALG::Elem]) -> ALG::Elem,
-{
-    let (head, shape) = elem.shape().split(count);
-    let head = head.size();
-    // TODO: remove temporary element
-    let mut slice = Vec::with_capacity(head);
-    slice.resize(head, alg.bool_zero());
-
-    // TODO: do this nicer
-    let elems = (0..shape.size())
-        .map(|i| {
-            for (j, item) in slice.iter_mut().enumerate() {
-                *item = elem.elems.get(i * head + j);
-            }
-            op(alg, &slice)
-        })
-        .collect();
-
-    Tensor { shape, elems }
+    /// Returns a new tensor with fewer dimension (the first `count` many are
+    /// removed) where the result is the binary sum of the elements.
+    fn tensor_sum(self: &mut Self, elem: &Self::Elem, count: usize) -> Self::Elem;
 }
 
 impl<ALG> TensorAlg for ALG
@@ -446,31 +345,96 @@ where
     }
 
     fn tensor_or(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        boolalg_binop(self, elem1, elem2, BoolAlg::bool_or)
+        assert_eq!(elem1.shape, elem2.shape);
+        let shape = elem1.shape.clone();
+        let elems = elem1
+            .elems
+            .iter()
+            .zip(elem2.elems.iter())
+            .map(|(a, b)| self.bool_or(a, b))
+            .collect();
+        Tensor { shape, elems }
     }
 
     fn tensor_and(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        boolalg_binop(self, elem1, elem2, BoolAlg::bool_and)
+        assert_eq!(elem1.shape, elem2.shape);
+        let shape = elem1.shape.clone();
+        let elems = elem1
+            .elems
+            .iter()
+            .zip(elem2.elems.iter())
+            .map(|(a, b)| self.bool_and(a, b))
+            .collect();
+        Tensor { shape, elems }
     }
 
     fn tensor_xor(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        boolalg_binop(self, elem1, elem2, BoolAlg::bool_xor)
+        assert_eq!(elem1.shape, elem2.shape);
+        let shape = elem1.shape.clone();
+        let elems = elem1
+            .elems
+            .iter()
+            .zip(elem2.elems.iter())
+            .map(|(a, b)| self.bool_xor(a, b))
+            .collect();
+        Tensor { shape, elems }
     }
 
     fn tensor_equ(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        boolalg_binop(self, elem1, elem2, BoolAlg::bool_equ)
+        assert_eq!(elem1.shape, elem2.shape);
+        let shape = elem1.shape.clone();
+        let elems = elem1
+            .elems
+            .iter()
+            .zip(elem2.elems.iter())
+            .map(|(a, b)| self.bool_equ(a, b))
+            .collect();
+        Tensor { shape, elems }
     }
 
     fn tensor_leq(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        boolalg_binop(self, elem1, elem2, BoolAlg::bool_leq)
+        assert_eq!(elem1.shape, elem2.shape);
+        let shape = elem1.shape.clone();
+        let elems = elem1
+            .elems
+            .iter()
+            .zip(elem2.elems.iter())
+            .map(|(a, b)| self.bool_leq(a, b))
+            .collect();
+        Tensor { shape, elems }
     }
 
-    fn tensor_all(self: &mut Self, tensor: &Self::Elem, count: usize) -> Self::Elem {
-        boolalg_fold(self, tensor, count, BoolAlg::bool_all)
+    fn tensor_all(self: &mut Self, elem: &Self::Elem, count: usize) -> Self::Elem {
+        let (head, shape) = elem.shape().split(count);
+        let head = head.size();
+
+        let elems = (0..shape.size())
+            .map(|i| self.bool_all(elem.elems.range(i * head, i * head + head)))
+            .collect();
+
+        Tensor { shape, elems }
     }
 
-    fn tensor_any(self: &mut Self, tensor: &Self::Elem, count: usize) -> Self::Elem {
-        boolalg_fold(self, tensor, count, BoolAlg::bool_any)
+    fn tensor_any(self: &mut Self, elem: &Self::Elem, count: usize) -> Self::Elem {
+        let (head, shape) = elem.shape().split(count);
+        let head = head.size();
+
+        let elems = (0..shape.size())
+            .map(|i| self.bool_any(elem.elems.range(i * head, i * head + head)))
+            .collect();
+
+        Tensor { shape, elems }
+    }
+
+    fn tensor_sum(self: &mut Self, elem: &Self::Elem, count: usize) -> Self::Elem {
+        let (head, shape) = elem.shape().split(count);
+        let head = head.size();
+
+        let elems = (0..shape.size())
+            .map(|i| self.bool_sum(elem.elems.range(i * head, i * head + head)))
+            .collect();
+
+        Tensor { shape, elems }
     }
 }
 

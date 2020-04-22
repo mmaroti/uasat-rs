@@ -189,7 +189,7 @@ where
         let mut carry = self.bool_zero();
         let mut result: Self::Elem = genvec::Vector::with_capacity(elem1.len());
         for i in 0..elem1.len() {
-            result.push(self.bool_ad3(elem1.get(i), elem2.get(i), carry));
+            result.push(self.bool_sum3(elem1.get(i), elem2.get(i), carry));
             carry = self.bool_maj(elem1.get(i), elem2.get(i), carry);
         }
         result
@@ -201,7 +201,7 @@ where
         let mut result: Self::Elem = genvec::Vector::with_capacity(elem1.len());
         for i in 0..elem1.len() {
             let not_elem2 = self.bool_not(elem2.get(i));
-            result.push(self.bool_ad3(elem1.get(i), not_elem2, carry));
+            result.push(self.bool_sum3(elem1.get(i), not_elem2, carry));
             carry = self.bool_maj(elem1.get(i), not_elem2, carry);
         }
         result

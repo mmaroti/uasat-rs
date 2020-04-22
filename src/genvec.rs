@@ -38,19 +38,6 @@ where
     /// will be able to hold exactly capacity elements without reallocating.
     fn with_capacity(capacity: usize) -> Self;
 
-    /// Constructs a new vector with the specified length where the value at
-    /// each index is `op(index)`.
-    fn from_fn<F>(len: usize, mut op: F) -> Self
-    where
-        F: FnMut(usize) -> ELEM,
-    {
-        let mut vec: Self = Vector::with_capacity(len);
-        for i in 0..len {
-            vec.push(op(i));
-        }
-        vec
-    }
-
     /// Creates a vector with a single element.
     fn from_elem1(elem: ELEM) -> Self {
         let mut vec: Self = Vector::with_capacity(1);
@@ -75,6 +62,11 @@ where
     /// If `new_len` is less than `len`, then the vector is simply truncated.
     fn resize(self: &mut Self, new_len: usize, elem: ELEM);
 
+    /// Reserves capacity for at least additional more bits to be inserted in
+    /// the given vector. The collection may reserve more space to avoid
+    /// frequent reallocations.
+    fn reserve(self: &mut Self, additional: usize);
+
     /// Appends an element to the back of the vector.
     fn push(self: &mut Self, elem: ELEM);
 
@@ -82,7 +74,8 @@ where
     /// it is empty.
     fn pop(self: &mut Self) -> Option<ELEM>;
 
-    /// Extends this vector by moving all elements from the other vector.
+    /// Extends this vector by moving all elements from the other vector,
+    /// leaving the other vector empty.
     fn append(self: &mut Self, other: &mut Self);
 
     /// Returns the element at the given index. Panics if the index is
@@ -294,6 +287,10 @@ where
         self.data.resize(new_len, elem);
     }
 
+    fn reserve(self: &mut Self, additional: usize) {
+        self.data.reserve(additional);
+    }
+
     fn push(self: &mut Self, elem: ELEM) {
         self.data.push(elem);
     }
@@ -348,15 +345,6 @@ impl Vector<bool> for VecImpl<bit_vec::BitVec> {
         }
     }
 
-    fn from_fn<F>(len: usize, op: F) -> Self
-    where
-        F: FnMut(usize) -> bool,
-    {
-        VecImpl {
-            data: bit_vec::BitVec::from_fn(len, op),
-        }
-    }
-
     fn clear(self: &mut Self) {
         self.data.truncate(0);
     }
@@ -367,6 +355,10 @@ impl Vector<bool> for VecImpl<bit_vec::BitVec> {
         } else {
             self.data.truncate(new_len);
         }
+    }
+
+    fn reserve(self: &mut Self, additional: usize) {
+        self.data.reserve(additional);
     }
 
     fn push(self: &mut Self, elem: bool) {
@@ -507,7 +499,7 @@ mod tests {
         let e1 = [true, false];
         let v1: VectorFor<bool> = e1.iter().cloned().collect();
         let mut v2: VectorFor<bool> = Vector::new();
-        for b in e1.iter() {
+        for b in &e1 {
             v2.push(*b);
         }
         assert_eq!(v1, v2);

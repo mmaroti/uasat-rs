@@ -40,9 +40,7 @@ where
 
     fn new_shape(self: &Self, len: usize) -> tensor::Shape {
         let mut shape = Vec::with_capacity(len);
-        for _ in 0..len {
-            shape.push(self.size);
-        }
+        shape.resize(len, self.size);
         tensor::Shape::new(shape)
     }
 }

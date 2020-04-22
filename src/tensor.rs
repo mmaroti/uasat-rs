@@ -26,7 +26,7 @@ pub use super::boolean::Solver;
 /// The shape of a tensor.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Shape {
-    pub dims: Vec<usize>,
+    dims: Vec<usize>,
 }
 
 impl Shape {
@@ -79,6 +79,7 @@ impl Shape {
     pub fn insert(self: &Self, pos: usize, dims: &[usize]) -> Self {
         assert!(pos <= self.len());
         let mut dims2 = self.dims.clone();
+        dims2.reserve(dims.len());
         for (idx, dim) in dims.iter().enumerate() {
             dims2.insert(pos + idx, *dim);
         }
@@ -232,12 +233,8 @@ impl<Elem: Element> Tensor<Elem> {
             iter.add_stride(*val, strides[idx]);
         }
 
-        let size = shape.size();
-        let mut elems: VectorFor<Elem> = Vector::with_capacity(size);
-        for index in iter {
-            elems.push(self.elems.get(index));
-        }
-        assert_eq!(elems.len(), size);
+        let elems: VectorFor<Elem> = iter.map(|i| self.elems.get(i)).collect();
+        assert_eq!(elems.len(), shape.size());
 
         Tensor { shape, elems }
     }
@@ -320,10 +317,7 @@ impl TensorAlg for Trivial {
     }
 
     fn polymer(self: &mut Self, elem: &Self::Elem, shape: Shape, mapping: &[usize]) -> Self::Elem {
-        assert_eq!(mapping.len(), elem.len());
-        for (idx, val) in mapping.iter().enumerate() {
-            assert_eq!(elem[idx], shape[*val]);
-        }
+        assert!(mapping.iter().eq(elem.dims.iter()));
         shape
     }
 
@@ -364,17 +358,20 @@ fn boolalg_binop<ALG, OP>(
     alg: &mut ALG,
     elem1: &Tensor<ALG::Elem>,
     elem2: &Tensor<ALG::Elem>,
-    mut op: OP,
+    op: OP,
 ) -> Tensor<ALG::Elem>
 where
     ALG: BoolAlg,
-    OP: FnMut(&mut ALG, ALG::Elem, ALG::Elem) -> ALG::Elem,
+    OP: Fn(&mut ALG, ALG::Elem, ALG::Elem) -> ALG::Elem,
 {
-    assert_eq!(elem1.shape(), elem2.shape());
+    assert_eq!(elem1.shape, elem2.shape);
     let shape = elem1.shape.clone();
-    let elems = Vector::from_fn(elem1.elems.len(), |i| {
-        op(alg, elem1.elems.get(i), elem2.elems.get(i))
-    });
+    let elems = elem1
+        .elems
+        .iter()
+        .zip(elem2.elems.iter())
+        .map(|(a, b)| op(alg, a, b))
+        .collect();
     Tensor { shape, elems }
 }
 
@@ -390,15 +387,19 @@ where
 {
     let (head, shape) = elem.shape().split(count);
     let head = head.size();
+    // TODO: remove temporary element
     let mut slice = Vec::with_capacity(head);
     slice.resize(head, alg.bool_zero());
 
-    let elems = Vector::from_fn(shape.size(), |i| {
-        for (j, item) in slice.iter_mut().enumerate() {
-            *item = elem.elems.get(i * head + j);
-        }
-        op(alg, &slice)
-    });
+    // TODO: do this nicer
+    let elems = (0..shape.size())
+        .map(|i| {
+            for (j, item) in slice.iter_mut().enumerate() {
+                *item = elem.elems.get(i * head + j);
+            }
+            op(alg, &slice)
+        })
+        .collect();
 
     Tensor { shape, elems }
 }
@@ -418,7 +419,8 @@ where
     }
 
     fn diagonal(self: &mut Self, dim: usize) -> Self::Elem {
-        let mut tensor = Tensor::new(Shape::new(vec![dim, dim]), self.bool_zero());
+        let zero = self.bool_zero();
+        let mut tensor = Tensor::new(Shape::new(vec![dim, dim]), zero);
 
         let unit = self.bool_unit();
         for idx in 0..dim {
@@ -439,7 +441,7 @@ where
 
     fn tensor_not(self: &mut Self, tensor: &Self::Elem) -> Self::Elem {
         let shape = tensor.shape.clone();
-        let elems = Vector::from_fn(tensor.elems.len(), |i| self.bool_not(tensor.elems.get(i)));
+        let elems = tensor.elems.iter().map(|b| self.bool_not(b)).collect();
         Tensor { shape, elems }
     }
 
@@ -492,7 +494,9 @@ where
     ALG: BoolSat,
 {
     fn tensor_add_variable(self: &mut Self, shape: Shape) -> Self::Elem {
-        let elems = Vector::from_fn(shape.size(), |_| self.bool_add_variable());
+        let elems = (0..shape.size())
+            .map(|_| self.bool_add_variable())
+            .collect();
         Tensor { shape, elems }
     }
 

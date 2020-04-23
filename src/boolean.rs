@@ -307,41 +307,6 @@ impl BoolSat for Solver {
     }
 }
 
-pub trait IntoLogic {
-    type Logic: BoolAlg;
-
-    fn logic(self: &Self) -> &Self::Logic;
-
-    fn logic_mut(self: &mut Self) -> &mut Self::Logic;
-}
-
-impl<ALG> BoolAlg for ALG
-where
-    ALG: IntoLogic,
-{
-    type Elem = <ALG::Logic as BoolAlg>::Elem;
-
-    fn bool_unit(self: &Self) -> Self::Elem {
-        self.logic().bool_unit()
-    }
-
-    fn bool_zero(self: &Self) -> Self::Elem {
-        self.logic().bool_zero()
-    }
-
-    fn bool_not(self: &mut Self, elem: Self::Elem) -> Self::Elem {
-        self.logic_mut().bool_not(elem)
-    }
-
-    fn bool_or(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
-        self.logic_mut().bool_or(elem1, elem2)
-    }
-
-    fn bool_xor(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
-        self.logic_mut().bool_xor(elem1, elem2)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

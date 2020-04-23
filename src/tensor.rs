@@ -21,7 +21,7 @@ use super::boolean::{BoolAlg, BoolSat};
 use super::genvec::{Element, Vector, VectorFor};
 use std::ops::Index;
 
-pub use super::boolean::Solver;
+pub use super::boolean::{Boolean, Solver, Trivial};
 
 /// The shape of a tensor.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -50,7 +50,7 @@ impl Shape {
         self.dims.iter().all(|d| *d == dim)
     }
 
-    /// Returns the head and tail of this shape. The shape should have at
+    /// Returns the head and tail of this shape. The shape must have at
     /// least one dimension.
     pub fn split(self: &Self) -> (usize, Self) {
         assert!(!self.is_empty());

@@ -15,7 +15,6 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::boolean;
 use super::tensor;
 
 pub struct Universe<ALG>
@@ -42,21 +41,6 @@ where
         let mut shape = Vec::with_capacity(len);
         shape.resize(len, self.size);
         tensor::Shape::new(shape)
-    }
-}
-
-impl<ALG> boolean::IntoLogic for Universe<ALG>
-where
-    ALG: boolean::BoolAlg,
-{
-    type Logic = ALG;
-
-    fn logic(self: &Self) -> &Self::Logic {
-        &self.alg
-    }
-
-    fn logic_mut(self: &mut Self) -> &mut Self::Logic {
-        &mut self.alg
     }
 }
 

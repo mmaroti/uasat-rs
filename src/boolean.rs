@@ -282,11 +282,15 @@ pub trait BoolSat: BoolAlg {
     /// Adds the given (disjunctive) clause to the solver.
     fn bool_add_clause(self: &mut Self, elems: &[Self::Elem]);
 
-    /// Runs the solver and finds a model where the given assumptions are true.
-    fn bool_find_model(self: &mut Self, elems: &[Self::Elem]) -> bool;
+    /// Runs the solver and returns the value of the given literals if a
+    /// solution is found.
+    fn bool_find_one_model<ITER>(self: &mut Self, iter: ITER) -> Option<genvec::VectorFor<bool>>
+    where
+        ITER: Iterator<Item = Self::Elem>;
 
-    /// Returns the logical value of the element in the found model.
-    fn bool_get_value(self: &Self, elem: Self::Elem) -> bool;
+    /// Runs the solver and returns the value of the given literals for all
+    /// different solutions with respect to these literals.
+    fn bool_find_all_models(self: &mut Self, elems: &[Self::Elem]) -> genvec::VectorFor<bool>;
 }
 
 impl BoolSat for Solver {
@@ -298,17 +302,38 @@ impl BoolSat for Solver {
         self.solver.add_clause(elems)
     }
 
-    fn bool_find_model(self: &mut Self, elems: &[Self::Elem]) -> bool {
-        self.solver.solve_with(elems)
+    /// Runs the solver and returns the value of the given literals if a
+    /// solution is found.
+    fn bool_find_one_model<ITER>(self: &mut Self, iter: ITER) -> Option<genvec::VectorFor<bool>>
+    where
+        ITER: Iterator<Item = Self::Elem>,
+    {
+        if self.solver.solve_with(&[]) {
+            Some(iter.map(|e| self.solver.get_value(e)).collect())
+        } else {
+            None
+        }
     }
 
-    fn bool_get_value(self: &Self, elem: Self::Elem) -> bool {
-        self.solver.get_value(elem)
+    fn bool_find_all_models(self: &mut Self, elems: &[Self::Elem]) -> genvec::VectorFor<bool> {
+        let mut vec: genvec::VectorFor<bool> = Default::default();
+        let mut clause: Vec<Self::Elem> = Vec::with_capacity(elems.len());
+        while self.solver.solve_with(&[]) {
+            clause.clear();
+            vec.extend(elems.iter().map(|e| {
+                let b = self.solver.get_value(*e);
+                clause.push(if b { self.bool_not(*e) } else { *e });
+                b
+            }));
+            self.bool_add_clause(&clause);
+        }
+        vec
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::super::genvec::Vector as _;
     use super::*;
 
     #[test]
@@ -326,10 +351,12 @@ mod tests {
         let a = alg.bool_add_variable();
         let b = alg.bool_add_variable();
         let c = alg.bool_and(a, b);
-        assert!(alg.bool_find_model(&[c]));
-        assert!(alg.bool_get_value(a), true);
-        assert!(alg.bool_get_value(b), true);
-        let d = alg.bool_not(a);
-        assert!(!alg.bool_find_model(&[c, d]));
+        alg.bool_add_clause(&[c]);
+        let s = alg.bool_find_one_model([a, b].iter().cloned());
+        assert!(s.is_some());
+        let s = s.unwrap();
+        assert_eq!(s.len(), 2);
+        assert_eq!(s.get(0), true);
+        assert_eq!(s.get(1), true);
     }
 }

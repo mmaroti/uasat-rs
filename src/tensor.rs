@@ -198,7 +198,7 @@ impl<Elem: Element> Tensor<Elem> {
         Tensor { shape, elems }
     }
 
-    /// Creates a tensor filled with constant value
+    /// Creates a tensor filled with constant value.
     pub fn constant(shape: Shape, elem: Elem) -> Self {
         let size = shape.size();
         let mut elems: VectorFor<Elem> = Vector::with_capacity(size);
@@ -206,9 +206,14 @@ impl<Elem: Element> Tensor<Elem> {
         Tensor { shape, elems }
     }
 
-    /// Returns the shape of the tensor
+    /// Returns the shape of the tensor.
     pub fn shape(self: &Self) -> &Shape {
         &self.shape
+    }
+
+    /// Returns the underlying element vector.
+    pub fn elems(self: &Self) -> &VectorFor<Elem> {
+        &self.elems
     }
 
     /// Returns the element at the given index.
@@ -260,12 +265,15 @@ pub trait TensorAlg {
     /// Returns the shape of the tensor.
     fn shape(elem: &Self::Elem) -> &Shape;
 
+    /// Creates a new tensor from the given bool tensor.
+    fn tensor_lift(self: &Self, elem: &Tensor<bool>) -> Self::Elem;
+
     /// Creates a new scalar tensor for the given element.
-    fn scalar(self: &mut Self, elem: bool) -> Self::Elem;
+    fn scalar(self: &Self, elem: bool) -> Self::Elem;
 
     /// Returns a diagonal tensor of rank two with true elements on the
     /// diagonal and false everywhere else.
-    fn diagonal(self: &mut Self, dim: usize) -> Self::Elem;
+    fn diagonal(self: &Self, dim: usize) -> Self::Elem;
 
     /// Creates a new tensor of the given shape from the given old tensor with
     /// permuted, identified or new dummy coordinates. The mapping is a vector
@@ -323,11 +331,16 @@ where
         &elem.shape
     }
 
-    fn scalar(self: &mut Self, elem: bool) -> Self::Elem {
+    fn tensor_lift(self: &Self, elem: &Tensor<bool>) -> Self::Elem {
+        let elems = elem.elems.iter().map(|b| self.bool_lift(b)).collect();
+        Tensor::new(elem.shape.clone(), elems)
+    }
+
+    fn scalar(self: &Self, elem: bool) -> Self::Elem {
         Tensor::constant(Shape::new(vec![]), self.bool_lift(elem))
     }
 
-    fn diagonal(self: &mut Self, dim: usize) -> Self::Elem {
+    fn diagonal(self: &Self, dim: usize) -> Self::Elem {
         let zero = self.bool_zero();
         let mut tensor = Tensor::constant(Shape::new(vec![dim, dim]), zero);
 
@@ -445,11 +458,38 @@ pub trait TensorSat: TensorAlg {
     /// Adds the given (disjunctive) clause to the solver.
     fn tensor_add_clause(self: &mut Self, elems: &[&Self::Elem]);
 
-    /// Runs the solver and finds a model where the given assumptions are true.
-    fn tensor_find_model(self: &mut Self) -> bool;
+    /// Runs the solver and returns a model if it exists. The shapes of the
+    /// returned tensors match the ones that were passed in.
+    fn tensor_find_one_model(self: &mut Self, tensors: &[&Self::Elem])
+        -> Option<Vec<Tensor<bool>>>;
 
-    /// Returns the logical value of the tensor in the found model.
-    fn tensor_get_value(self: &Self, elem: &Self::Elem) -> Tensor<bool>;
+    /// Runs the solver and returns a model if it exists. The shapes of the
+    /// returned tensors match the ones that were passed in.
+    fn tensor_find_one_model1(self: &mut Self, elem1: &Self::Elem) -> Option<Tensor<bool>> {
+        if let Some(mut result) = self.tensor_find_one_model(&[elem1]) {
+            assert_eq!(result.len(), 1);
+            result.pop()
+        } else {
+            None
+        }
+    }
+
+    /// Runs the solver and returns a model if it exists. The shapes of the
+    /// returned tensors match the ones that were passed in.
+    fn tensor_find_one_model2(
+        self: &mut Self,
+        elem1: &Self::Elem,
+        elem2: &Self::Elem,
+    ) -> Option<(Tensor<bool>, Tensor<bool>)> {
+        if let Some(mut result) = self.tensor_find_one_model(&[elem1, elem2]) {
+            assert_eq!(result.len(), 2);
+            let elem2 = result.pop().unwrap();
+            let elem1 = result.pop().unwrap();
+            Some((elem1, elem2))
+        } else {
+            None
+        }
+    }
 }
 
 impl<ALG> TensorSat for ALG
@@ -478,6 +518,7 @@ where
             return;
         }
 
+        // TODO: remove allocation
         let mut clause: Vec<ALG::Elem> = tensors.iter().map(|t| t.elems.get(0)).collect();
         self.bool_add_clause(&clause);
 
@@ -489,17 +530,31 @@ where
         }
     }
 
-    fn tensor_find_model(self: &mut Self) -> bool {
-        self.bool_find_model(&[])
-    }
-
-    fn tensor_get_value(self: &Self, tensor: &Self::Elem) -> Tensor<bool> {
-        let elems: VectorFor<bool> = tensor
-            .elems
-            .iter()
-            .map(|e| self.bool_get_value(e))
-            .collect();
-        Tensor::new(tensor.shape.clone(), elems)
+    fn tensor_find_one_model(
+        self: &mut Self,
+        tensors: &[&Self::Elem],
+    ) -> Option<Vec<Tensor<bool>>> {
+        let size = tensors.iter().map(|t| t.shape().size()).sum();
+        // TODO: remove allocation
+        let mut elems: Vec<ALG::Elem> = Vec::with_capacity(size);
+        for t in tensors {
+            elems.extend(t.elems.iter());
+        }
+        if let Some(values) = self.bool_find_one_model(elems.into_iter()) {
+            let mut result: Vec<Tensor<bool>> = Vec::with_capacity(tensors.len());
+            let mut pos = 0;
+            for t in tensors {
+                let size = t.shape().size();
+                result.push(Tensor::new(
+                    t.shape().clone(),
+                    values.range(pos, pos + size).collect(),
+                ));
+                pos += size;
+            }
+            Some(result)
+        } else {
+            None
+        }
     }
 }
 

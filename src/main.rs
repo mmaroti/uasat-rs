@@ -37,7 +37,8 @@ use std::panic;
 use std::time::Instant;
 use wasm_bindgen::prelude::*;
 
-use boolean::{BoolAlg, BoolSat};
+use boolean::BoolSat;
+use genvec::Vector as _;
 use tensor::{Shape, Solver, TensorAlg, TensorSat};
 
 #[wasm_bindgen(start)]
@@ -133,21 +134,11 @@ pub fn test_solver2(solver_name: &str, size: usize) -> String {
 
     // find all solutions
     let mut count = 0;
-    while sol.tensor_find_model() {
+    while let Some(rel2) = sol.tensor_find_one_model1(&rel) {
         count += 1;
-        let rel2 = sol.tensor_get_value(&rel);
-        let mut lits = Vec::new();
-        lits.resize(size * size, rel.very_slow_get(&[0, 0]));
-        for i in 0..size {
-            for j in 0..size {
-                let lit = rel.very_slow_get(&[i, j]);
-                if rel2.very_slow_get(&[i, j]) {
-                    lits[i * size + j] = sol.bool_not(lit)
-                } else {
-                    lits[i * size + j] = lit;
-                }
-            }
-        }
+        let rel2 = sol.tensor_lift(&rel2);
+        let rel2 = sol.tensor_xor(&rel, &rel2);
+        let lits: Vec<solver::Literal> = rel2.elems().iter().collect();
         sol.bool_add_clause(&lits);
     }
 

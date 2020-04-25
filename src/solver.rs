@@ -266,11 +266,9 @@ impl<'a> Solver for VariSat<'a> {
     }
 
     fn add_clause(self: &mut Self, lits: &[Literal]) {
-        let mut formula = varisat::cnf::CnfFormula::new();
         // TODO: do we need to allocate?
         let lits: Vec<varisat::lit::Lit> = lits.iter().map(|lit| VariSat::decode(*lit)).collect();
-        formula.add_clause(&lits);
-        self.solver.add_formula(&formula);
+        self.solver.add_clause(&lits);
         self.num_clauses += 1;
     }
 

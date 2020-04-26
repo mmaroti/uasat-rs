@@ -266,7 +266,7 @@ impl<'a> Solver for VariSat<'a> {
     }
 
     fn add_clause(self: &mut Self, lits: &[Literal]) {
-        // TODO: do we need to allocate?
+        // TODO: check if smallvec is better
         let lits: Vec<varisat::lit::Lit> = lits.iter().map(|lit| VariSat::decode(*lit)).collect();
         self.solver.add_clause(&lits);
         self.num_clauses += 1;
@@ -351,6 +351,7 @@ impl Solver for CryptoMiniSat {
     }
 
     fn add_clause(self: &mut Self, lits: &[Literal]) {
+        // TODO: check if smallvec is better
         let lits: Vec<cryptominisat::Lit> =
             lits.iter().map(|lit| CryptoMiniSat::decode(*lit)).collect();
         self.solver.add_clause(&lits);

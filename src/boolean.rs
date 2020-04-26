@@ -288,9 +288,10 @@ pub trait BoolSat: BoolAlg {
     where
         ITER: Iterator<Item = Self::Elem>;
 
-    /// Runs the solver and returns the value of the given literals for all
-    /// different solutions with respect to these literals.
-    fn bool_find_all_models(self: &mut Self, elems: &[Self::Elem]) -> genvec::VectorFor<bool>;
+    /// Returns the number of models with respect to the given literals.
+    fn bool_find_num_models<ITER>(self: &mut Self, iter: ITER) -> usize
+    where
+        ITER: Iterator<Item = Self::Elem>;
 }
 
 impl BoolSat for Solver {
@@ -302,8 +303,6 @@ impl BoolSat for Solver {
         self.solver.add_clause(elems)
     }
 
-    /// Runs the solver and returns the value of the given literals if a
-    /// solution is found.
     fn bool_find_one_model<ITER>(self: &mut Self, iter: ITER) -> Option<genvec::VectorFor<bool>>
     where
         ITER: Iterator<Item = Self::Elem>,
@@ -315,19 +314,27 @@ impl BoolSat for Solver {
         }
     }
 
-    fn bool_find_all_models(self: &mut Self, elems: &[Self::Elem]) -> genvec::VectorFor<bool> {
-        let mut vec: genvec::VectorFor<bool> = Default::default();
+    fn bool_find_num_models<ITER>(self: &mut Self, iter: ITER) -> usize
+    where
+        ITER: Iterator<Item = Self::Elem>,
+    {
+        let mut count = 0;
+        let elems: Vec<Self::Elem> = iter.collect();
         let mut clause: Vec<Self::Elem> = Vec::with_capacity(elems.len());
-        while self.solver.solve_with(&[]) {
+        while self.solver.solve() {
+            count += 1;
             clause.clear();
-            vec.extend(elems.iter().map(|e| {
+            clause.extend(elems.iter().map(|e| {
                 let b = self.solver.get_value(*e);
-                clause.push(if b { self.bool_not(*e) } else { *e });
-                b
+                if b {
+                    self.bool_not(*e)
+                } else {
+                    *e
+                }
             }));
             self.bool_add_clause(&clause);
         }
-        vec
+        count
     }
 }
 

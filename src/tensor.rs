@@ -198,14 +198,6 @@ impl<Elem: Element> Tensor<Elem> {
         Tensor { shape, elems }
     }
 
-    /// Creates a tensor filled with constant value.
-    pub fn constant(shape: Shape, elem: Elem) -> Self {
-        let size = shape.size();
-        let mut elems: VectorFor<Elem> = Vector::with_capacity(size);
-        elems.resize(size, elem);
-        Tensor { shape, elems }
-    }
-
     /// Returns the shape of the tensor.
     pub fn shape(self: &Self) -> &Shape {
         &self.shape
@@ -337,19 +329,30 @@ where
     }
 
     fn scalar(self: &Self, elem: bool) -> Self::Elem {
-        Tensor::constant(Shape::new(vec![]), self.bool_lift(elem))
+        Tensor::new(
+            Shape::new(vec![]),
+            [self.bool_lift(elem)].iter().cloned().collect(),
+        )
     }
 
     fn diagonal(self: &Self, dim: usize) -> Self::Elem {
-        let zero = self.bool_zero();
-        let mut tensor = Tensor::constant(Shape::new(vec![dim, dim]), zero);
-
         let unit = self.bool_unit();
-        for idx in 0..dim {
-            tensor.elems.set(idx * (dim + 1), unit);
-        }
-
-        tensor
+        let zero = self.bool_zero();
+        let mut idx = 0;
+        Tensor::new(
+            Shape::new(vec![dim, dim]),
+            (0..dim * dim)
+                .map(|_| {
+                    if idx == 0 {
+                        idx = dim;
+                        unit
+                    } else {
+                        idx -= 1;
+                        zero
+                    }
+                })
+                .collect(),
+        )
     }
 
     fn polymer(self: &Self, tensor: &Self::Elem, shape: Shape, mapping: &[usize]) -> Self::Elem {
@@ -460,8 +463,7 @@ pub trait TensorSat: TensorAlg {
 
     /// Runs the solver and returns a model if it exists. The shapes of the
     /// returned tensors match the ones that were passed in.
-    fn tensor_find_one_model(self: &mut Self, tensors: &[&Self::Elem])
-        -> Option<Vec<Tensor<bool>>>;
+    fn tensor_find_one_model(self: &mut Self, elems: &[&Self::Elem]) -> Option<Vec<Tensor<bool>>>;
 
     /// Runs the solver and returns a model if it exists. The shapes of the
     /// returned tensors match the ones that were passed in.
@@ -490,6 +492,9 @@ pub trait TensorSat: TensorAlg {
             None
         }
     }
+
+    /// Returns the number of models with respect to the given tensors.
+    fn tensor_find_num_models(self: &mut Self, elems: &[&Self::Elem]) -> usize;
 }
 
 impl<ALG> TensorSat for ALG
@@ -503,14 +508,14 @@ where
         Tensor::new(shape, elems)
     }
 
-    fn tensor_add_clause(self: &mut Self, tensors: &[&Self::Elem]) {
-        if tensors.is_empty() {
+    fn tensor_add_clause(self: &mut Self, elems: &[&Self::Elem]) {
+        if elems.is_empty() {
             self.bool_add_clause(&[]);
             return;
         }
 
-        let shape = tensors[0].shape();
-        for t in tensors.iter().skip(1) {
+        let shape = elems[0].shape();
+        for t in elems.iter().skip(1) {
             assert_eq!(t.shape(), shape);
         }
 
@@ -518,32 +523,20 @@ where
             return;
         }
 
-        // TODO: remove allocation
-        let mut clause: Vec<ALG::Elem> = tensors.iter().map(|t| t.elems.get(0)).collect();
-        self.bool_add_clause(&clause);
-
-        for i in 1..shape.size() {
-            for j in 0..tensors.len() {
-                clause[j] = tensors[j].elems.get(i);
-            }
+        let mut clause: Vec<ALG::Elem> = Vec::with_capacity(elems.len());
+        for i in 0..shape.size() {
+            clause.clear();
+            clause.extend(elems.iter().map(|t| t.elems.get(i)));
             self.bool_add_clause(&clause);
         }
     }
 
-    fn tensor_find_one_model(
-        self: &mut Self,
-        tensors: &[&Self::Elem],
-    ) -> Option<Vec<Tensor<bool>>> {
-        let size = tensors.iter().map(|t| t.shape().size()).sum();
-        // TODO: remove allocation
-        let mut elems: Vec<ALG::Elem> = Vec::with_capacity(size);
-        for t in tensors {
-            elems.extend(t.elems.iter());
-        }
-        if let Some(values) = self.bool_find_one_model(elems.into_iter()) {
-            let mut result: Vec<Tensor<bool>> = Vec::with_capacity(tensors.len());
+    fn tensor_find_one_model(self: &mut Self, elems: &[&Self::Elem]) -> Option<Vec<Tensor<bool>>> {
+        let all_elems = elems.iter().map(|t| t.elems.iter()).flatten();
+        if let Some(values) = self.bool_find_one_model(all_elems) {
+            let mut result: Vec<Tensor<bool>> = Vec::with_capacity(elems.len());
             let mut pos = 0;
-            for t in tensors {
+            for t in elems {
                 let size = t.shape().size();
                 result.push(Tensor::new(
                     t.shape().clone(),
@@ -556,16 +549,23 @@ where
             None
         }
     }
+
+    fn tensor_find_num_models(self: &mut Self, elems: &[&Self::Elem]) -> usize {
+        let all_elems = elems.iter().map(|t| t.elems.iter()).flatten();
+        self.bool_find_num_models(all_elems)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::super::boolean::Boolean;
     use super::*;
+    use std::iter;
 
     #[test]
     fn polymer() {
-        let mut tensor: Tensor<usize> = Tensor::constant(Shape::new(vec![2, 3]), 0);
+        let mut tensor: Tensor<usize> =
+            Tensor::new(Shape::new(vec![2, 3]), iter::repeat(0).take(6).collect());
         for i in 0..2 {
             for j in 0..3 {
                 tensor.very_slow_set(&[i, j], i + 10 * j);
@@ -585,7 +585,10 @@ mod tests {
     #[test]
     fn getset() {
         let mut alg = Boolean();
-        let mut t1: Tensor<bool> = Tensor::constant(Shape::new(vec![2, 3]), false);
+        let mut t1: Tensor<bool> = Tensor::new(
+            Shape::new(vec![2, 3]),
+            iter::repeat(false).take(6).collect(),
+        );
         t1.very_slow_set(&[0, 0], true);
         t1.very_slow_set(&[1, 1], true);
         t1.very_slow_set(&[1, 2], true);
@@ -607,7 +610,10 @@ mod tests {
     #[test]
     fn fold() {
         let mut alg = Boolean();
-        let mut t1: Tensor<bool> = Tensor::constant(Shape::new(vec![2, 4]), false);
+        let mut t1: Tensor<bool> = Tensor::new(
+            Shape::new(vec![2, 4]),
+            iter::repeat(false).take(8).collect(),
+        );
         t1.very_slow_set(&[0, 1], true);
         t1.very_slow_set(&[1, 2], true);
         t1.very_slow_set(&[0, 3], true);

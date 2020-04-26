@@ -257,11 +257,10 @@ impl<Elem: genvec::Element> Tensor<Elem> {
         Tensor::new(shape, elems)
     }
 
-    /// Changes the shape of the underlying data without changing the data
-    /// itself. The new shape must have the same size as the original one.
-    pub fn reshape(self: &mut Self, shape: Shape) {
-        assert_eq!(shape.size(), self.elems.len());
-        self.shape = shape;
+    /// Returns a new tensor with the same underling data but with a different
+    /// shape. The new shape must have the same size as the original one.
+    pub fn reshape(self: &Self, shape: Shape) -> Self {
+        Tensor::new(shape, self.elems.clone())
     }
 }
 
@@ -274,34 +273,18 @@ pub trait TensorAlg {
     fn shape(elem: &Self::Elem) -> &Shape;
 
     /// Creates a new tensor from the given bool tensor.
-    fn lift(self: &Self, elem: &Tensor<bool>) -> Self::Elem;
-
-    /// Creates a new tensor of the given shape where the elements
-    /// are calculated by an operation.
-    fn create<OP>(self: &Self, shape: Shape, op: OP) -> Self::Elem
-    where
-        OP: FnMut(&[usize]) -> bool;
-
-    /// Creates a new scalar tensor for the given element.
-    fn scalar(self: &Self, elem: bool) -> Self::Elem {
-        self.create(Shape::new(vec![]), |_| elem)
-    }
-
-    /// Returns a diagonal tensor of rank two with true elements on the
-    /// diagonal and false everywhere else.
-    fn diagonal(self: &Self, dim: usize) -> Self::Elem {
-        self.create(Shape::new(vec![dim, dim]), |c| c[0] == c[1])
-    }
+    fn tensor_lift(self: &Self, elem: &Tensor<bool>) -> Self::Elem;
 
     /// Creates a new tensor of the given shape from the given old tensor with
     /// permuted, identified or new dummy coordinates. The mapping is a vector
     /// of length of the old tensor shape with entries identifying the
     /// coordinate in the new tensor.
-    fn polymer(self: &Self, elem: &Self::Elem, shape: Shape, mapping: &[usize]) -> Self::Elem;
-
-    /// Returns the same underlying data but with a new shape. The new shape
-    /// must have the same size as the original one.
-    fn reshape(self: &Self, elem: &Self::Elem, shape: Shape) -> Self::Elem;
+    fn tensor_polymer(
+        self: &Self,
+        elem: &Self::Elem,
+        shape: Shape,
+        mapping: &[usize],
+    ) -> Self::Elem;
 
     /// Returns a new tensor whose elements are all negated of the original.
     fn tensor_not(self: &mut Self, elem: &Self::Elem) -> Self::Elem;
@@ -349,26 +332,18 @@ where
         &elem.shape
     }
 
-    fn lift(self: &Self, elem: &Tensor<bool>) -> Self::Elem {
+    fn tensor_lift(self: &Self, elem: &Tensor<bool>) -> Self::Elem {
         let elems = elem.elems.iter().map(|b| self.bool_lift(b)).collect();
         Tensor::new(elem.shape.clone(), elems)
     }
 
-    fn create<OP>(self: &Self, shape: Shape, mut op: OP) -> Self::Elem
-    where
-        OP: FnMut(&[usize]) -> bool,
-    {
-        Tensor::create(shape, |c| self.bool_lift(op(c)))
-    }
-
-    fn polymer(self: &Self, tensor: &Self::Elem, shape: Shape, mapping: &[usize]) -> Self::Elem {
+    fn tensor_polymer(
+        self: &Self,
+        tensor: &Self::Elem,
+        shape: Shape,
+        mapping: &[usize],
+    ) -> Self::Elem {
         tensor.polymer(shape, mapping)
-    }
-
-    fn reshape(self: &Self, tensor: &Self::Elem, shape: Shape) -> Self::Elem {
-        let mut tensor = tensor.clone();
-        tensor.reshape(shape);
-        tensor
     }
 
     fn tensor_not(self: &mut Self, tensor: &Self::Elem) -> Self::Elem {
@@ -611,14 +586,8 @@ mod tests {
         assert_eq!(t3.very_slow_get(&[1, 1]), false);
         assert_eq!(t3.very_slow_get(&[1, 2]), false);
 
-        let t4 = alg.create(Shape::new(vec![2, 3]), |c| c[0] == 0 && c[1] == 1);
+        let t4 = Tensor::create(Shape::new(vec![2, 3]), |c| c[0] == 0 && c[1] == 1);
         assert_eq!(t3, t4);
-
-        let t5 = alg.diagonal(2);
-        assert_eq!(t5.very_slow_get(&[0, 0]), true);
-        assert_eq!(t5.very_slow_get(&[0, 1]), false);
-        assert_eq!(t5.very_slow_get(&[1, 0]), false);
-        assert_eq!(t5.very_slow_get(&[1, 1]), true);
     }
 
     #[test]
@@ -640,7 +609,7 @@ mod tests {
         assert_eq!(t2.very_slow_get(&[2]), false);
         assert_eq!(t2.very_slow_get(&[3]), true);
 
-        let t3 = alg.reshape(&t1, Shape::new(vec![8]));
+        let t3 = t1.reshape(Shape::new(vec![8]));
         let t3 = alg.tensor_all(&t3);
         assert_eq!(t3.shape, Shape::new(vec![]));
         assert_eq!(t3.very_slow_get(&[]), false);

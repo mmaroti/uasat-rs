@@ -91,12 +91,13 @@ where
     type Elem = ALG::Elem;
 
     fn binrel_lift(self: &mut Self, elem: bool) -> Self::Elem {
-        let elem = self.alg.scalar(elem);
-        self.alg.polymer(&elem, self.new_shape(2), &[])
+        self.alg
+            .tensor_lift(&tensor::Tensor::create(self.new_shape(2), |_| elem))
     }
 
     fn binrel_diag(self: &mut Self) -> Self::Elem {
-        self.alg.diagonal(self.size)
+        self.alg
+            .tensor_lift(&tensor::Tensor::create(self.new_shape(2), |c| c[0] == c[1]))
     }
 
     fn binrel_comp(self: &mut Self, elem: &Self::Elem) -> Self::Elem {
@@ -106,82 +107,23 @@ where
 
     fn binrel_meet(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
         assert!(self.is_binary_rel(elem1));
-        assert_eq!(ALG::shape(elem1), ALG::shape(elem2));
         self.alg.tensor_and(elem1, elem2)
     }
 
     fn binrel_join(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
         assert!(self.is_binary_rel(elem1));
-        assert_eq!(ALG::shape(elem1), ALG::shape(elem2));
         self.alg.tensor_or(elem1, elem2)
     }
 
     fn binrel_inv(self: &mut Self, elem: &Self::Elem) -> Self::Elem {
         assert!(self.is_binary_rel(elem));
-        self.alg.polymer(&elem, self.new_shape(2), &[1, 0])
+        self.alg.tensor_polymer(&elem, self.new_shape(2), &[1, 0])
     }
 
     fn binrel_circ(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        let elem1 = self.alg.polymer(elem1, self.new_shape(3), &[1, 0]);
-        let elem2 = self.alg.polymer(elem2, self.new_shape(3), &[0, 2]);
+        let elem1 = self.alg.tensor_polymer(elem1, self.new_shape(3), &[1, 0]);
+        let elem2 = self.alg.tensor_polymer(elem2, self.new_shape(3), &[0, 2]);
         let elem3 = self.alg.tensor_and(&elem1, &elem2);
         self.alg.tensor_any(&elem3)
-    }
-}
-
-pub trait RelationAlg {
-    /// The type representing the relations.
-    type Elem: Clone;
-
-    /// Returns the arity of the relation.
-    fn arity(elem: &Self::Elem) -> usize;
-
-    /// Returns the diagonal binary relation.
-    fn diagonal(self: &mut Self) -> Self::Elem;
-
-    /// Intersection of a pair of relations of the same arity.
-    fn intersection(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
-
-    /// Complement (negation) of the given relation.
-    fn complement(self: &mut Self, elem: &Self::Elem) -> Self::Elem;
-
-    /// Union of a pair of relations of the same arity.
-    fn union(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        let elem1 = self.complement(elem1);
-        let elem2 = self.complement(elem2);
-        let elem3 = self.intersection(&elem1, &elem2);
-        self.complement(&elem3)
-    }
-}
-
-impl<ALG> RelationAlg for Universe<ALG>
-where
-    ALG: tensor::TensorAlg,
-{
-    type Elem = ALG::Elem;
-
-    fn arity(elem: &Self::Elem) -> usize {
-        ALG::shape(elem).len()
-    }
-
-    fn diagonal(self: &mut Self) -> Self::Elem {
-        self.alg.diagonal(self.size)
-    }
-
-    fn intersection(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        assert!(self.is_relation(elem1));
-        assert_eq!(ALG::shape(elem1), ALG::shape(elem2));
-        self.alg.tensor_and(elem1, elem2)
-    }
-
-    fn complement(self: &mut Self, elem: &Self::Elem) -> Self::Elem {
-        assert!(self.is_relation(elem));
-        self.alg.tensor_not(elem)
-    }
-
-    fn union(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        assert!(self.is_relation(elem1));
-        assert_eq!(ALG::shape(elem1), ALG::shape(elem2));
-        self.alg.tensor_or(elem1, elem2)
     }
 }

@@ -247,46 +247,6 @@ where
     }
 }
 
-/// Constraint solving over a boolean algebra.
-pub trait BinarySat: BinaryAlg {
-    /// Adds a new bit vector variable to the solver
-    fn bit_add_variable(self: &mut Self, len: usize) -> Self::Elem;
-
-    /// Adds the given (disjunctive) clause of bits to the solver.
-    fn bit_add_clause(self: &mut Self, elem: Self::Elem);
-
-    /// Runs the solver and finds a model where the given bit assumptions
-    /// are all true.
-    fn bit_find_model(self: &mut Self, elem: Self::Elem) -> bool;
-
-    /// Returns the logical value of the element in the found model.
-    fn bit_get_value(self: &Self, elem: Self::Elem) -> genvec::VectorFor<bool>;
-}
-
-impl<ALG> BinarySat for ALG
-where
-    ALG: boolean::BoolSat,
-{
-    fn bit_add_variable(self: &mut Self, len: usize) -> Self::Elem {
-        // TODO: implement bulk variable addition
-        (0..len).map(|_| self.bool_add_variable()).collect()
-    }
-
-    fn bit_add_clause(self: &mut Self, elem: Self::Elem) {
-        // let vec: Vec<ALG::Elem> = elem.iter().collect();
-        // self.bool_add_clause(elem.iter());
-    }
-
-    fn bit_find_model(self: &mut Self, elem: Self::Elem) -> bool {
-        // self.bool_find_model()
-        false
-    }
-
-    fn bit_get_value(self: &Self, elem: Self::Elem) -> genvec::VectorFor<bool> {
-        genvec::Vector::new()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

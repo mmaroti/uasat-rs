@@ -221,7 +221,7 @@ where
             let c = self.bool_equ(a, b);
             result = self.bool_and(result, c);
         }
-        genvec::Vector::from_elem1(result)
+        genvec::Vector::from_elem(result)
     }
 
     fn num_ne(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
@@ -237,7 +237,7 @@ where
             let a = self.bool_not(a);
             result = self.bool_maj(a, b, result);
         }
-        genvec::Vector::from_elem1(result)
+        genvec::Vector::from_elem(result)
     }
 
     fn num_lt(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {

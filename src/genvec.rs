@@ -39,17 +39,9 @@ where
     fn with_capacity(capacity: usize) -> Self;
 
     /// Creates a vector with a single element.
-    fn from_elem1(elem: ELEM) -> Self {
+    fn from_elem(elem: ELEM) -> Self {
         let mut vec: Self = Vector::with_capacity(1);
         vec.push(elem);
-        vec
-    }
-
-    /// Creates a vector with a pair of elements.
-    fn from_elem2(elem1: ELEM, elem2: ELEM) -> Self {
-        let mut vec: Self = Vector::with_capacity(2);
-        vec.push(elem1);
-        vec.push(elem2);
         vec
     }
 
@@ -269,14 +261,8 @@ where
         }
     }
 
-    fn from_elem1(elem: ELEM) -> Self {
+    fn from_elem(elem: ELEM) -> Self {
         VecImpl { data: vec![elem] }
-    }
-
-    fn from_elem2(elem1: ELEM, elem2: ELEM) -> Self {
-        VecImpl {
-            data: vec![elem1, elem2],
-        }
     }
 
     fn clear(self: &mut Self) {
@@ -416,6 +402,149 @@ impl Vector<bool> for VecImpl<bit_vec::BitVec> {
     }
 }
 
+/// The iterator for unit vectors.
+pub struct UnitIter {
+    pos: usize,
+}
+
+impl Iterator for UnitIter {
+    type Item = ();
+
+    fn next(self: &mut Self) -> Option<Self::Item> {
+        if self.pos > 0 {
+            self.pos -= 1;
+            Some(())
+        } else {
+            None
+        }
+    }
+
+    fn size_hint(self: &Self) -> (usize, Option<usize>) {
+        (self.pos, Some(self.pos))
+    }
+
+    fn count(self: Self) -> usize {
+        self.pos
+    }
+
+    fn last(self: Self) -> Option<Self::Item> {
+        if self.pos > 0 {
+            Some(())
+        } else {
+            None
+        }
+    }
+
+    fn nth(self: &mut Self, n: usize) -> Option<Self::Item> {
+        if self.pos > n {
+            self.pos -= n + 1;
+            Some(())
+        } else {
+            self.pos = 0;
+            None
+        }
+    }
+}
+
+impl iter::FusedIterator for UnitIter {}
+
+/// A vector containing unit `()` elements only (just the length is stored).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct UnitVec {
+    len: usize,
+}
+
+impl IntoIterator for UnitVec {
+    type Item = ();
+    type IntoIter = UnitIter;
+
+    fn into_iter(self: Self) -> Self::IntoIter {
+        UnitIter { pos: self.len }
+    }
+}
+
+impl iter::FromIterator<()> for UnitVec {
+    fn from_iter<ITER>(iter: ITER) -> Self
+    where
+        ITER: IntoIterator<Item = ()>,
+    {
+        UnitVec {
+            len: iter.into_iter().count(),
+        }
+    }
+}
+
+impl Extend<()> for UnitVec {
+    fn extend<ITER>(self: &mut Self, iter: ITER)
+    where
+        ITER: IntoIterator<Item = ()>,
+    {
+        self.len += iter.into_iter().count();
+    }
+}
+
+impl Vector<()> for UnitVec {
+    fn new() -> Self {
+        UnitVec { len: 0 }
+    }
+
+    fn with_capacity(_capacity: usize) -> Self {
+        UnitVec { len: 0 }
+    }
+
+    fn from_elem(_elem: ()) -> Self {
+        UnitVec { len: 1 }
+    }
+
+    fn clear(self: &mut Self) {
+        self.len = 0;
+    }
+
+    fn resize(self: &mut Self, new_len: usize, _elem: ()) {
+        self.len = new_len
+    }
+
+    fn reserve(self: &mut Self, _additional: usize) {}
+
+    fn push(self: &mut Self, _elem: ()) {
+        self.len += 1;
+    }
+
+    fn pop(self: &mut Self) -> Option<()> {
+        if self.len > 0 {
+            self.len -= 1;
+            Some(())
+        } else {
+            None
+        }
+    }
+
+    fn append(self: &mut Self, other: &mut Self) {
+        self.len += other.len;
+        other.len = 0;
+    }
+
+    fn get(self: &Self, index: usize) {
+        assert!(index < self.len);
+    }
+
+    unsafe fn get_unchecked(self: &Self, _index: usize) {}
+
+    fn set(self: &mut Self, index: usize, _elem: ()) {
+        assert!(index < self.len);
+    }
+
+    unsafe fn set_unchecked(self: &mut Self, _index: usize, _elem: ()) {}
+
+    fn len(self: &Self) -> usize {
+        self.len
+    }
+
+    fn capacity(self: &Self) -> usize {
+        usize::max_value()
+    }
+}
+
 /// A helper trait to find the right generic vector for a given element.
 pub trait Element: Copy {
     /// A type that can be used for storing a vector of elements.
@@ -435,7 +564,7 @@ impl Element for solver::Literal {
 }
 
 impl Element for () {
-    type Vector = VecImpl<Vec<Self>>;
+    type Vector = UnitVec;
 }
 
 /// Returns the generic vector type that can hold the given element.
@@ -447,9 +576,9 @@ mod tests {
 
     #[test]
     fn resize() {
-        let mut v1: VecImpl<bit_vec::BitVec> = Vector::new();
-        let mut v2: VecImpl<Vec<bool>> = Vector::new();
-        let mut v3: VecImpl<Vec<()>> = Vector::new();
+        let mut v1: VecImpl<Vec<bool>> = Vector::new();
+        let mut v2: VectorFor<bool> = Vector::new();
+        let mut v3: VectorFor<()> = Vector::new();
 
         for i in 0..50 {
             let b = i % 2 == 0;

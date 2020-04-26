@@ -193,7 +193,7 @@ pub struct Tensor<Elem: Element> {
 
 impl<Elem: Element> Tensor<Elem> {
     /// Creates a tensor of the given shape and with the given elements.
-    pub fn new(shape: Shape, elems: VectorFor<Elem>) -> Self {
+    fn new(shape: Shape, elems: VectorFor<Elem>) -> Self {
         assert_eq!(shape.size(), elems.len());
         Tensor { shape, elems }
     }
@@ -201,11 +201,6 @@ impl<Elem: Element> Tensor<Elem> {
     /// Returns the shape of the tensor.
     pub fn shape(self: &Self) -> &Shape {
         &self.shape
-    }
-
-    /// Returns the underlying element vector.
-    pub fn elems(self: &Self) -> &VectorFor<Elem> {
-        &self.elems
     }
 
     /// Returns the element at the given index.

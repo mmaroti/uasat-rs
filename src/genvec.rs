@@ -548,7 +548,7 @@ impl Vector<()> for UnitVec {
 /// A helper trait to find the right generic vector for a given element.
 pub trait Element: Copy {
     /// A type that can be used for storing a vector of elements.
-    type Vector: Vector<Self> + fmt::Debug;
+    type Vector: Vector<Self> + PartialEq + fmt::Debug;
 }
 
 impl Element for bool {

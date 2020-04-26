@@ -17,9 +17,10 @@
 
 //! Basic multidimensional array type and operations over boolean algebras.
 
-use super::boolean::{BoolAlg, BoolSat};
-use super::genvec::{Element, Vector, VectorFor};
-use std::ops::Index;
+use super::boolean;
+use super::genvec;
+use super::genvec::Vector as _;
+use std::ops;
 
 pub use super::boolean::{Boolean, Solver, Trivial};
 
@@ -121,7 +122,7 @@ impl Shape {
     }
 }
 
-impl Index<usize> for Shape {
+impl ops::Index<usize> for Shape {
     type Output = usize;
 
     fn index(self: &Self, idx: usize) -> &Self::Output {
@@ -185,15 +186,15 @@ impl Iterator for StrideIter {
 }
 
 /// A multidimensional array of elements.
-#[derive(Clone, Debug)]
-pub struct Tensor<Elem: Element> {
+#[derive(Clone, Debug, PartialEq)]
+pub struct Tensor<Elem: genvec::Element> {
     shape: Shape,
-    elems: VectorFor<Elem>,
+    elems: genvec::VectorFor<Elem>,
 }
 
-impl<Elem: Element> Tensor<Elem> {
+impl<Elem: genvec::Element> Tensor<Elem> {
     /// Creates a tensor of the given shape and with the given elements.
-    fn new(shape: Shape, elems: VectorFor<Elem>) -> Self {
+    fn new(shape: Shape, elems: genvec::VectorFor<Elem>) -> Self {
         assert_eq!(shape.size(), elems.len());
         Tensor { shape, elems }
     }
@@ -201,6 +202,31 @@ impl<Elem: Element> Tensor<Elem> {
     /// Returns the shape of the tensor.
     pub fn shape(self: &Self) -> &Shape {
         &self.shape
+    }
+
+    /// Creates a new tensor of the given shape where the elements
+    /// are calculated by an operation.
+    pub fn create<OP>(shape: Shape, mut op: OP) -> Self
+    where
+        OP: FnMut(&[usize]) -> Elem,
+    {
+        let mut coords = vec![0; shape.len()];
+        let elems = (0..shape.size())
+            .map(|_| {
+                let e = op(&coords);
+                for (a, b) in coords.iter_mut().zip(shape.dims.iter()) {
+                    *a += 1;
+                    if *a >= *b {
+                        *a = 0;
+                    } else {
+                        break;
+                    }
+                }
+                e
+            })
+            .collect();
+
+        Tensor::new(shape, elems)
     }
 
     /// Returns the element at the given index.
@@ -227,20 +253,15 @@ impl<Elem: Element> Tensor<Elem> {
             iter.add_stride(*val, strides[idx]);
         }
 
-        let elems: VectorFor<Elem> = iter.map(|i| self.elems.get(i)).collect();
+        let elems: genvec::VectorFor<Elem> = iter.map(|i| self.elems.get(i)).collect();
         Tensor::new(shape, elems)
     }
 
-    /// Joins the first `count` many dimensions into a new dimension. The
-    /// underlying data will not change, only its shape.
-    pub fn reshape_join(self: &mut Self, count: usize) {
-        assert!(count <= self.shape.len());
-
-        let mut dims = Vec::with_capacity(1 + self.shape.len() - count);
-        dims.push(self.shape.dims[..count].iter().product());
-        dims.extend(self.shape.dims[count..].iter());
-
-        self.shape = Shape::new(dims);
+    /// Changes the shape of the underlying data without changing the data
+    /// itself. The new shape must have the same size as the original one.
+    pub fn reshape(self: &mut Self, shape: Shape) {
+        assert_eq!(shape.size(), self.elems.len());
+        self.shape = shape;
     }
 }
 
@@ -253,14 +274,24 @@ pub trait TensorAlg {
     fn shape(elem: &Self::Elem) -> &Shape;
 
     /// Creates a new tensor from the given bool tensor.
-    fn tensor_lift(self: &Self, elem: &Tensor<bool>) -> Self::Elem;
+    fn lift(self: &Self, elem: &Tensor<bool>) -> Self::Elem;
+
+    /// Creates a new tensor of the given shape where the elements
+    /// are calculated by an operation.
+    fn create<OP>(self: &Self, shape: Shape, op: OP) -> Self::Elem
+    where
+        OP: FnMut(&[usize]) -> bool;
 
     /// Creates a new scalar tensor for the given element.
-    fn scalar(self: &Self, elem: bool) -> Self::Elem;
+    fn scalar(self: &Self, elem: bool) -> Self::Elem {
+        self.create(Shape::new(vec![]), |_| elem)
+    }
 
     /// Returns a diagonal tensor of rank two with true elements on the
     /// diagonal and false everywhere else.
-    fn diagonal(self: &Self, dim: usize) -> Self::Elem;
+    fn diagonal(self: &Self, dim: usize) -> Self::Elem {
+        self.create(Shape::new(vec![dim, dim]), |c| c[0] == c[1])
+    }
 
     /// Creates a new tensor of the given shape from the given old tensor with
     /// permuted, identified or new dummy coordinates. The mapping is a vector
@@ -268,9 +299,9 @@ pub trait TensorAlg {
     /// coordinate in the new tensor.
     fn polymer(self: &Self, elem: &Self::Elem, shape: Shape, mapping: &[usize]) -> Self::Elem;
 
-    /// Joins the first `count` many dimensions into a new dimension. The
-    /// underlying data will not change, only its shape.
-    fn reshape_join(self: &Self, elem: &Self::Elem, count: usize) -> Self::Elem;
+    /// Returns the same underlying data but with a new shape. The new shape
+    /// must have the same size as the original one.
+    fn reshape(self: &Self, elem: &Self::Elem, shape: Shape) -> Self::Elem;
 
     /// Returns a new tensor whose elements are all negated of the original.
     fn tensor_not(self: &mut Self, elem: &Self::Elem) -> Self::Elem;
@@ -310,7 +341,7 @@ pub trait TensorAlg {
 
 impl<ALG> TensorAlg for ALG
 where
-    ALG: BoolAlg,
+    ALG: boolean::BoolAlg,
 {
     type Elem = Tensor<ALG::Elem>;
 
@@ -318,45 +349,25 @@ where
         &elem.shape
     }
 
-    fn tensor_lift(self: &Self, elem: &Tensor<bool>) -> Self::Elem {
+    fn lift(self: &Self, elem: &Tensor<bool>) -> Self::Elem {
         let elems = elem.elems.iter().map(|b| self.bool_lift(b)).collect();
         Tensor::new(elem.shape.clone(), elems)
     }
 
-    fn scalar(self: &Self, elem: bool) -> Self::Elem {
-        Tensor::new(
-            Shape::new(vec![]),
-            [self.bool_lift(elem)].iter().cloned().collect(),
-        )
-    }
-
-    fn diagonal(self: &Self, dim: usize) -> Self::Elem {
-        let unit = self.bool_unit();
-        let zero = self.bool_zero();
-        let mut idx = 0;
-        Tensor::new(
-            Shape::new(vec![dim, dim]),
-            (0..dim * dim)
-                .map(|_| {
-                    if idx == 0 {
-                        idx = dim;
-                        unit
-                    } else {
-                        idx -= 1;
-                        zero
-                    }
-                })
-                .collect(),
-        )
+    fn create<OP>(self: &Self, shape: Shape, mut op: OP) -> Self::Elem
+    where
+        OP: FnMut(&[usize]) -> bool,
+    {
+        Tensor::create(shape, |c| self.bool_lift(op(c)))
     }
 
     fn polymer(self: &Self, tensor: &Self::Elem, shape: Shape, mapping: &[usize]) -> Self::Elem {
         tensor.polymer(shape, mapping)
     }
 
-    fn reshape_join(self: &Self, tensor: &Self::Elem, count: usize) -> Self::Elem {
+    fn reshape(self: &Self, tensor: &Self::Elem, shape: Shape) -> Self::Elem {
         let mut tensor = tensor.clone();
-        tensor.reshape_join(count);
+        tensor.reshape(shape);
         tensor
     }
 
@@ -494,7 +505,7 @@ pub trait TensorSat: TensorAlg {
 
 impl<ALG> TensorSat for ALG
 where
-    ALG: BoolSat,
+    ALG: boolean::BoolSat,
 {
     fn tensor_add_variable(self: &mut Self, shape: Shape) -> Self::Elem {
         let elems = (0..shape.size())
@@ -553,7 +564,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::super::boolean::Boolean;
     use super::*;
     use std::iter;
 
@@ -600,6 +610,15 @@ mod tests {
         assert_eq!(t3.very_slow_get(&[1, 0]), false);
         assert_eq!(t3.very_slow_get(&[1, 1]), false);
         assert_eq!(t3.very_slow_get(&[1, 2]), false);
+
+        let t4 = alg.create(Shape::new(vec![2, 3]), |c| c[0] == 0 && c[1] == 1);
+        assert_eq!(t3, t4);
+
+        let t5 = alg.diagonal(2);
+        assert_eq!(t5.very_slow_get(&[0, 0]), true);
+        assert_eq!(t5.very_slow_get(&[0, 1]), false);
+        assert_eq!(t5.very_slow_get(&[1, 0]), false);
+        assert_eq!(t5.very_slow_get(&[1, 1]), true);
     }
 
     #[test]
@@ -621,7 +640,7 @@ mod tests {
         assert_eq!(t2.very_slow_get(&[2]), false);
         assert_eq!(t2.very_slow_get(&[3]), true);
 
-        let t3 = alg.reshape_join(&t1, 2);
+        let t3 = alg.reshape(&t1, Shape::new(vec![8]));
         let t3 = alg.tensor_all(&t3);
         assert_eq!(t3.shape, Shape::new(vec![]));
         assert_eq!(t3.very_slow_get(&[]), false);

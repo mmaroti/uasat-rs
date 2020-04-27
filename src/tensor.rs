@@ -325,6 +325,7 @@ pub trait TensorAlg {
 impl<ALG> TensorAlg for ALG
 where
     ALG: boolean::BoolAlg,
+    ALG::Elem: genvec::Element,
 {
     type Elem = Tensor<ALG::Elem>;
 
@@ -481,6 +482,7 @@ pub trait TensorSat: TensorAlg {
 impl<ALG> TensorSat for ALG
 where
     ALG: boolean::BoolSat,
+    ALG::Elem: genvec::Element,
 {
     fn tensor_add_variable(self: &mut Self, shape: Shape) -> Self::Elem {
         let elems = (0..shape.size())

@@ -25,22 +25,20 @@ use super::solver;
 /// A boolean algebra supporting boolean calculation.
 pub trait BoolAlg {
     /// The element type of this bool algebra.
-    type Elem: genvec::Element;
+    type Elem: Clone;
 
     /// Returns the logical true (top) element of the algebra.
-    fn bool_unit(self: &Self) -> Self::Elem;
+    fn bool_unit(self: &Self) -> Self::Elem {
+        self.bool_lift(true)
+    }
 
     /// Returns the logical false (bottom) element of the algebra.
-    fn bool_zero(self: &Self) -> Self::Elem;
+    fn bool_zero(self: &Self) -> Self::Elem {
+        self.bool_lift(false)
+    }
 
     /// Returns either the unit or zero element depending of the argument.
-    fn bool_lift(self: &Self, elem: bool) -> Self::Elem {
-        if elem {
-            self.bool_unit()
-        } else {
-            self.bool_zero()
-        }
-    }
+    fn bool_lift(self: &Self, elem: bool) -> Self::Elem;
 
     /// Return the logical negation of the element.
     fn bool_not(self: &mut Self, elem: Self::Elem) -> Self::Elem;
@@ -89,8 +87,8 @@ pub trait BoolAlg {
         elem2: Self::Elem,
         elem3: Self::Elem,
     ) -> Self::Elem {
-        let tmp1 = self.bool_and(elem1, elem2);
-        let tmp2 = self.bool_and(elem1, elem3);
+        let tmp1 = self.bool_and(elem1.clone(), elem2.clone());
+        let tmp2 = self.bool_and(elem1, elem3.clone());
         let tmp3 = self.bool_and(elem2, elem3);
         let tmp4 = self.bool_or(tmp1, tmp2);
         self.bool_or(tmp3, tmp4)
@@ -139,9 +137,7 @@ pub struct Trivial();
 impl BoolAlg for Trivial {
     type Elem = ();
 
-    fn bool_unit(self: &Self) -> Self::Elem {}
-
-    fn bool_zero(self: &Self) -> Self::Elem {}
+    fn bool_lift(self: &Self, _elem: bool) -> Self::Elem {}
 
     fn bool_not(self: &mut Self, _elem: Self::Elem) -> Self::Elem {}
 
@@ -220,12 +216,12 @@ impl Solver {
 impl BoolAlg for Solver {
     type Elem = solver::Literal;
 
-    fn bool_unit(self: &Self) -> Self::Elem {
-        self.unit
-    }
-
-    fn bool_zero(self: &Self) -> Self::Elem {
-        self.zero
+    fn bool_lift(self: &Self, elem: bool) -> Self::Elem {
+        if elem {
+            self.unit
+        } else {
+            self.zero
+        }
     }
 
     fn bool_not(self: &mut Self, elem: Self::Elem) -> Self::Elem {

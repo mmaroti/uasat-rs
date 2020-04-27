@@ -15,6 +15,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use super::boolean;
 use super::tensor;
 
 pub struct Universe<ALG>
@@ -29,6 +30,10 @@ impl<ALG> Universe<ALG>
 where
     ALG: tensor::TensorAlg,
 {
+    pub fn is_scalar(self: &Self, elem: &ALG::Elem) -> bool {
+        ALG::shape(elem).is_empty()
+    }
+
     pub fn is_relation(self: &Self, elem: &ALG::Elem) -> bool {
         ALG::shape(elem).is_rectangular(self.size)
     }
@@ -41,6 +46,54 @@ where
         let mut shape = Vec::with_capacity(len);
         shape.resize(len, self.size);
         tensor::Shape::new(shape)
+    }
+}
+
+// TODO: move this to tensors
+impl<ALG> boolean::BoolAlg for Universe<ALG>
+where
+    ALG: tensor::TensorAlg,
+{
+    type Elem = ALG::Elem;
+
+    fn bool_lift(self: &Self, elem: bool) -> Self::Elem {
+        self.alg
+            .tensor_lift(&tensor::Tensor::create(self.new_shape(0), |_| elem))
+    }
+
+    fn bool_not(self: &mut Self, elem: Self::Elem) -> Self::Elem {
+        assert!(self.is_scalar(&elem));
+        self.alg.tensor_not(&elem)
+    }
+
+    fn bool_or(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+        assert!(self.is_scalar(&elem1));
+        assert!(self.is_scalar(&elem2));
+        self.alg.tensor_or(&elem1, &elem2)
+    }
+
+    fn bool_xor(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+        assert!(self.is_scalar(&elem1));
+        assert!(self.is_scalar(&elem2));
+        self.alg.tensor_xor(&elem1, &elem2)
+    }
+
+    fn bool_and(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+        assert!(self.is_scalar(&elem1));
+        assert!(self.is_scalar(&elem2));
+        self.alg.tensor_and(&elem1, &elem2)
+    }
+
+    fn bool_equ(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+        assert!(self.is_scalar(&elem1));
+        assert!(self.is_scalar(&elem2));
+        self.alg.tensor_equ(&elem1, &elem2)
+    }
+
+    fn bool_imp(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+        assert!(self.is_scalar(&elem1));
+        assert!(self.is_scalar(&elem2));
+        self.alg.tensor_imp(&elem1, &elem2)
     }
 }
 
@@ -121,6 +174,8 @@ where
     }
 
     fn binrel_circ(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+        assert!(self.is_binary_rel(elem1));
+        assert!(self.is_binary_rel(elem2));
         let elem1 = self.alg.tensor_polymer(elem1, self.new_shape(3), &[1, 0]);
         let elem2 = self.alg.tensor_polymer(elem2, self.new_shape(3), &[0, 2]);
         let elem3 = self.alg.tensor_and(&elem1, &elem2);

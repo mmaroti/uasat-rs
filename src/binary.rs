@@ -98,6 +98,7 @@ pub trait BinaryAlg {
 impl<ALG> BinaryAlg for ALG
 where
     ALG: boolean::BoolAlg,
+    ALG::Elem: genvec::Element,
 {
     type Elem = genvec::VectorFor<ALG::Elem>;
 

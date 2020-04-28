@@ -54,7 +54,7 @@ impl Shape {
     /// Returns the head and tail of this shape. The shape must have at
     /// least one dimension.
     pub fn split(self: &Self) -> (usize, Self) {
-        assert!(!self.is_empty());
+        debug_assert!(!self.is_empty());
         (self.dims[0], Shape::new(self.dims[1..].to_vec()))
     }
 
@@ -70,7 +70,7 @@ impl Shape {
     /// Returns a new shape that is the same as this shape but a few new
     /// dimension are inserted into the shape at the given position.
     pub fn insert(self: &Self, pos: usize, dims: &[usize]) -> Self {
-        assert!(pos <= self.len());
+        debug_assert!(pos <= self.len());
         let mut dims2 = self.dims.clone();
         dims2.reserve(dims.len());
         for (idx, dim) in dims.iter().enumerate() {
@@ -83,10 +83,10 @@ impl Shape {
     /// segment is provided and the rest is filled in starting at the rest
     /// position.
     pub fn mapping(self: &Self, part: &[usize], rest: usize) -> Vec<usize> {
-        assert!(part.len() <= self.len());
+        debug_assert!(part.len() <= self.len());
         let mut mapping = Vec::with_capacity(self.len());
         for dim in part {
-            assert!(*dim < rest);
+            debug_assert!(*dim < rest);
             mapping.push(*dim);
         }
         for i in 0..(self.len() - part.len()) {
@@ -97,11 +97,11 @@ impl Shape {
 
     /// Returns the linear index of an element given by coordinates.
     fn index(self: &Self, coords: &[usize]) -> usize {
-        assert_eq!(coords.len(), self.len());
+        debug_assert_eq!(coords.len(), self.len());
         let mut index = 0;
         let mut size = 1;
         for (coord, dim) in coords.iter().zip(self.dims.iter()) {
-            assert!(coord < dim);
+            debug_assert!(coord < dim);
             index += *coord * size;
             size *= *dim;
         }
@@ -195,7 +195,7 @@ pub struct Tensor<Elem: genvec::Element> {
 impl<Elem: genvec::Element> Tensor<Elem> {
     /// Creates a tensor of the given shape and with the given elements.
     fn new(shape: Shape, elems: genvec::VectorFor<Elem>) -> Self {
-        assert_eq!(shape.size(), elems.len());
+        debug_assert_eq!(shape.size(), elems.len());
         Tensor { shape, elems }
     }
 
@@ -410,7 +410,7 @@ where
     fn tensor_all(self: &mut Self, elem: &Self::Elem) -> Self::Elem {
         let (head, shape) = elem.shape.split();
         let elems = (0..shape.size())
-            .map(|i| self.bool_all(elem.elems.range(i * head, i * head + head)))
+            .map(|i| self.bool_fold_all(elem.elems.range(i * head, i * head + head)))
             .collect();
 
         Tensor::new(shape, elems)
@@ -419,7 +419,7 @@ where
     fn tensor_any(self: &mut Self, elem: &Self::Elem) -> Self::Elem {
         let (head, shape) = elem.shape.split();
         let elems = (0..shape.size())
-            .map(|i| self.bool_any(elem.elems.range(i * head, i * head + head)))
+            .map(|i| self.bool_fold_any(elem.elems.range(i * head, i * head + head)))
             .collect();
 
         Tensor::new(shape, elems)
@@ -428,7 +428,7 @@ where
     fn tensor_sum(self: &mut Self, elem: &Self::Elem) -> Self::Elem {
         let (head, shape) = elem.shape.split();
         let elems = (0..shape.size())
-            .map(|i| self.bool_sum(elem.elems.range(i * head, i * head + head)))
+            .map(|i| self.bool_fold_sum(elem.elems.range(i * head, i * head + head)))
             .collect();
 
         Tensor::new(shape, elems)
@@ -535,7 +535,7 @@ where
 
     fn tensor_find_num_models(self: &mut Self, elems: &[&Self::Elem]) -> usize {
         let all_elems = elems.iter().map(|t| t.elems.iter()).flatten();
-        self.bool_find_num_models(all_elems)
+        self.bool_find_num_models_method1(all_elems)
     }
 }
 

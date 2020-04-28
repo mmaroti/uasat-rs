@@ -21,6 +21,7 @@
 
 use super::genvec;
 use super::solver;
+use std::iter;
 
 /// A boolean algebra supporting boolean calculation.
 pub trait BoolAlg {
@@ -95,7 +96,7 @@ pub trait BoolAlg {
     }
 
     /// Computes the conjunction of the elements.
-    fn bool_all<ITER>(self: &mut Self, elems: ITER) -> Self::Elem
+    fn bool_fold_all<ITER>(self: &mut Self, elems: ITER) -> Self::Elem
     where
         ITER: Iterator<Item = Self::Elem>,
     {
@@ -107,7 +108,7 @@ pub trait BoolAlg {
     }
 
     /// Computes the disjunction of the elements.
-    fn bool_any<ITER>(self: &mut Self, elems: ITER) -> Self::Elem
+    fn bool_fold_any<ITER>(self: &mut Self, elems: ITER) -> Self::Elem
     where
         ITER: Iterator<Item = Self::Elem>,
     {
@@ -119,13 +120,61 @@ pub trait BoolAlg {
     }
 
     /// Computes the boolean sum of the elements.
-    fn bool_sum<ITER>(self: &mut Self, elems: ITER) -> Self::Elem
+    fn bool_fold_sum<ITER>(self: &mut Self, elems: ITER) -> Self::Elem
     where
         ITER: Iterator<Item = Self::Elem>,
     {
         let mut result = self.bool_zero();
         for elem in elems {
             result = self.bool_xor(result, elem);
+        }
+        result
+    }
+
+    fn bool_fold_equ<ITER>(self: &mut Self, pairs: ITER) -> Self::Elem
+    where
+        ITER: Iterator<Item = (Self::Elem, Self::Elem)>,
+    {
+        let mut result = self.bool_unit();
+        for (a, b) in pairs {
+            let c = self.bool_equ(a, b);
+            result = self.bool_and(result, c);
+        }
+        result
+    }
+
+    fn bool_fold_neq<ITER>(self: &mut Self, pairs: ITER) -> Self::Elem
+    where
+        ITER: Iterator<Item = (Self::Elem, Self::Elem)>,
+    {
+        let mut result = self.bool_zero();
+        for (a, b) in pairs {
+            let c = self.bool_xor(a, b);
+            result = self.bool_or(result, c);
+        }
+        result
+    }
+
+    fn bool_fold_leq<ITER>(self: &mut Self, pairs: ITER) -> Self::Elem
+    where
+        ITER: Iterator<Item = (Self::Elem, Self::Elem)>,
+    {
+        let mut result = self.bool_unit();
+        for (a, b) in pairs {
+            let a = self.bool_not(a);
+            result = self.bool_maj(a, b, result);
+        }
+        result
+    }
+
+    fn bool_fold_ltn<ITER>(self: &mut Self, pairs: ITER) -> Self::Elem
+    where
+        ITER: Iterator<Item = (Self::Elem, Self::Elem)>,
+    {
+        let mut result = self.bool_zero();
+        for (a, b) in pairs {
+            let a = self.bool_not(a);
+            result = self.bool_maj(a, b, result);
         }
         result
     }
@@ -152,14 +201,6 @@ pub struct Boolean();
 
 impl BoolAlg for Boolean {
     type Elem = bool;
-
-    fn bool_unit(self: &Self) -> Self::Elem {
-        true
-    }
-
-    fn bool_zero(self: &Self) -> Self::Elem {
-        false
-    }
 
     fn bool_lift(self: &Self, elem: bool) -> Self::Elem {
         elem
@@ -229,7 +270,6 @@ impl BoolAlg for Solver {
     }
 
     fn bool_or(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
-        let not_elem1 = self.solver.negate(elem1);
         let not_elem2 = self.solver.negate(elem2);
         if elem1 == self.unit || elem2 == self.unit || elem1 == not_elem2 {
             self.unit
@@ -238,6 +278,7 @@ impl BoolAlg for Solver {
         } else if elem2 == self.zero {
             elem1
         } else {
+            let not_elem1 = self.solver.negate(elem1);
             let elem3 = self.solver.add_variable();
             let not_elem3 = self.solver.negate(elem3);
             self.solver.add_clause(&[not_elem1, elem3]);
@@ -248,7 +289,6 @@ impl BoolAlg for Solver {
     }
 
     fn bool_xor(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
-        let not_elem1 = self.solver.negate(elem1);
         let not_elem2 = self.solver.negate(elem2);
         if elem1 == self.zero {
             elem2
@@ -257,7 +297,7 @@ impl BoolAlg for Solver {
         } else if elem2 == self.zero {
             elem1
         } else if elem2 == self.unit {
-            not_elem1
+            self.solver.negate(elem1)
         } else if elem1 == elem2 {
             self.zero
         } else if elem1 == not_elem2 {
@@ -278,16 +318,70 @@ pub trait BoolSat: BoolAlg {
     /// Adds the given (disjunctive) clause to the solver.
     fn bool_add_clause(self: &mut Self, elems: &[Self::Elem]);
 
-    /// Runs the solver and returns the value of the given literals if a
+    /// Runs the solver and returns the value of the given elements if a
     /// solution is found.
-    fn bool_find_one_model<ITER>(self: &mut Self, iter: ITER) -> Option<genvec::VectorFor<bool>>
+    fn bool_find_one_model<ITER>(self: &mut Self, elems: ITER) -> Option<genvec::VectorFor<bool>>
     where
         ITER: Iterator<Item = Self::Elem>;
 
-    /// Returns the number of models with respect to the given literals.
-    fn bool_find_num_models<ITER>(self: &mut Self, iter: ITER) -> usize
+    /// Returns the number of models with respect to the given elements.
+    fn bool_find_num_models_method1<ITER>(self: &mut Self, elems: ITER) -> usize
     where
-        ITER: Iterator<Item = Self::Elem>;
+        ITER: Iterator<Item = Self::Elem>,
+    {
+        let mut count = 0;
+        let elems: Vec<Self::Elem> = elems.collect();
+        let mut clause: Vec<Self::Elem> = Vec::with_capacity(elems.len());
+        while let Some(result) = self.bool_find_one_model(elems.iter().cloned()) {
+            count += 1;
+            clause.clear();
+            clause.extend(elems.iter().zip(result.into_iter()).map(|(e, b)| {
+                let b = self.bool_lift(b);
+                self.bool_xor(b, e.clone())
+            }));
+            self.bool_add_clause(&clause);
+        }
+        count
+    }
+
+    /// Returns the number of models with respect to the given literals.
+    fn bool_find_num_models_method2<ITER>(self: &mut Self, elems: ITER) -> usize
+    where
+        ITER: Iterator<Item = Self::Elem>,
+    {
+        let mut elems: Vec<Self::Elem> = elems.collect();
+        let len = elems.len();
+        let _limit_vars: Vec<Self::Elem> = (0..(2 * len + 2))
+            .map(|_| self.bool_add_variable())
+            .collect();
+        let _vals: Vec<bool> = iter::repeat(true)
+            .take(len)
+            .chain(iter::repeat(false).take(len + 1))
+            .chain(iter::once(true))
+            .collect();
+
+        elems.push(self.bool_unit());
+
+        let lower_lit: Vec<Self::Elem> = (0..(elems.len() + 1))
+            .map(|_| self.bool_add_variable())
+            .collect();
+
+        elems.push(self.bool_unit());
+        let result = self.bool_fold_ltn(lower_lit.iter().cloned().zip(elems.iter().cloned()));
+        self.bool_add_clause(&[result]);
+        elems.pop();
+
+        let upper_lit: Vec<Self::Elem> = (0..(elems.len() + 1))
+            .map(|_| self.bool_add_variable())
+            .collect();
+
+        elems.push(self.bool_zero());
+        let result = self.bool_fold_ltn(elems.iter().cloned().zip(upper_lit.iter().cloned()));
+        self.bool_add_clause(&[result]);
+        elems.pop();
+
+        0
+    }
 }
 
 impl BoolSat for Solver {
@@ -299,38 +393,15 @@ impl BoolSat for Solver {
         self.solver.add_clause(elems)
     }
 
-    fn bool_find_one_model<ITER>(self: &mut Self, iter: ITER) -> Option<genvec::VectorFor<bool>>
+    fn bool_find_one_model<ITER>(self: &mut Self, elems: ITER) -> Option<genvec::VectorFor<bool>>
     where
         ITER: Iterator<Item = Self::Elem>,
     {
         if self.solver.solve_with(&[]) {
-            Some(iter.map(|e| self.solver.get_value(e)).collect())
+            Some(elems.map(|e| self.solver.get_value(e)).collect())
         } else {
             None
         }
-    }
-
-    fn bool_find_num_models<ITER>(self: &mut Self, iter: ITER) -> usize
-    where
-        ITER: Iterator<Item = Self::Elem>,
-    {
-        let mut count = 0;
-        let elems: Vec<Self::Elem> = iter.collect();
-        let mut clause: Vec<Self::Elem> = Vec::with_capacity(elems.len());
-        while self.solver.solve() {
-            count += 1;
-            clause.clear();
-            clause.extend(elems.iter().map(|e| {
-                let b = self.solver.get_value(*e);
-                if b {
-                    self.bool_not(*e)
-                } else {
-                    *e
-                }
-            }));
-            self.bool_add_clause(&clause);
-        }
-        count
     }
 }
 

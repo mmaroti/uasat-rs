@@ -129,7 +129,7 @@ where
     VEC: Vector<ELEM>,
 {
     fn new(vec: &'a VEC, start: usize, end: usize) -> Self {
-        assert!(start <= end && end <= vec.len());
+        debug_assert!(start <= end && end <= vec.len());
         VecIter {
             pos: start,
             end,
@@ -525,13 +525,13 @@ impl Vector<()> for UnitVec {
     }
 
     fn get(self: &Self, index: usize) {
-        assert!(index < self.len);
+        debug_assert!(index < self.len);
     }
 
     unsafe fn get_unchecked(self: &Self, _index: usize) {}
 
     fn set(self: &mut Self, index: usize, _elem: ()) {
-        assert!(index < self.len);
+        debug_assert!(index < self.len);
     }
 
     unsafe fn set_unchecked(self: &mut Self, _index: usize, _elem: ()) {}

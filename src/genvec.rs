@@ -48,6 +48,11 @@ where
     /// Clears the vector, removing all values.
     fn clear(self: &mut Self);
 
+    /// Shortens the vector, keeping the first `new_len` many elements and
+    /// dropping the rest. This method panics if the current `len` is smaller
+    /// than `new_len`.
+    fn truncate(self: &mut Self, new_len: usize);
+
     /// Resizes the vector in-place so that `len` is equal to `new_len`.
     /// If `new_len` is greater than `len`, the the vector is extended by the
     /// difference, with each additional slot filled with `elem`.
@@ -269,6 +274,11 @@ where
         self.data.clear();
     }
 
+    fn truncate(self: &mut Self, new_len: usize) {
+        assert!(new_len <= self.data.len());
+        self.data.truncate(new_len);
+    }
+
     fn resize(self: &mut Self, new_len: usize, elem: ELEM) {
         self.data.resize(new_len, elem);
     }
@@ -333,6 +343,11 @@ impl Vector<bool> for VecImpl<bit_vec::BitVec> {
 
     fn clear(self: &mut Self) {
         self.data.truncate(0);
+    }
+
+    fn truncate(self: &mut Self, new_len: usize) {
+        assert!(new_len <= self.data.len());
+        self.data.truncate(new_len);
     }
 
     fn resize(self: &mut Self, new_len: usize, elem: bool) {
@@ -500,8 +515,13 @@ impl Vector<()> for UnitVec {
         self.len = 0;
     }
 
+    fn truncate(self: &mut Self, new_len: usize) {
+        assert!(new_len <= self.len);
+        self.len = new_len;
+    }
+
     fn resize(self: &mut Self, new_len: usize, _elem: ()) {
-        self.len = new_len
+        self.len = new_len;
     }
 
     fn reserve(self: &mut Self, _additional: usize) {}

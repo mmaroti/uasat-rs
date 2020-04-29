@@ -441,7 +441,7 @@ pub trait TensorSat: TensorAlg {
     fn tensor_add_variable(self: &mut Self, shape: Shape) -> Self::Elem;
 
     /// Adds the given (disjunctive) clause to the solver.
-    fn tensor_add_clause(self: &mut Self, elems: &[&Self::Elem]);
+    fn tensor_add_clause(self: &mut Self, clause: &[&Self::Elem]);
 
     /// Runs the solver and returns a model if it exists. The shapes of the
     /// returned tensors match the ones that were passed in.
@@ -476,7 +476,7 @@ pub trait TensorSat: TensorAlg {
     }
 
     /// Returns the number of models with respect to the given tensors.
-    fn tensor_find_num_models(self: &mut Self, elems: &[&Self::Elem]) -> usize;
+    fn tensor_find_num_models(self: Self, elems: &[&Self::Elem]) -> usize;
 }
 
 impl<ALG> TensorSat for ALG
@@ -491,14 +491,14 @@ where
         Tensor::new(shape, elems)
     }
 
-    fn tensor_add_clause(self: &mut Self, elems: &[&Self::Elem]) {
-        if elems.is_empty() {
+    fn tensor_add_clause(self: &mut Self, clause: &[&Self::Elem]) {
+        if clause.is_empty() {
             self.bool_add_clause(&[]);
             return;
         }
 
-        let shape = elems[0].shape();
-        for t in elems.iter().skip(1) {
+        let shape = clause[0].shape();
+        for t in clause.iter().skip(1) {
             assert_eq!(t.shape(), shape);
         }
 
@@ -506,17 +506,17 @@ where
             return;
         }
 
-        let mut clause: Vec<ALG::Elem> = Vec::with_capacity(elems.len());
+        let mut clause2: Vec<ALG::Elem> = Vec::with_capacity(clause.len());
         for i in 0..shape.size() {
-            clause.clear();
-            clause.extend(elems.iter().map(|t| t.elems.get(i)));
-            self.bool_add_clause(&clause);
+            clause2.clear();
+            clause2.extend(clause.iter().map(|t| t.elems.get(i)));
+            self.bool_add_clause(&clause2);
         }
     }
 
     fn tensor_find_one_model(self: &mut Self, elems: &[&Self::Elem]) -> Option<Vec<Tensor<bool>>> {
-        let all_elems = elems.iter().map(|t| t.elems.iter()).flatten();
-        if let Some(values) = self.bool_find_one_model(all_elems) {
+        let literals2 = elems.iter().map(|t| t.elems.iter()).flatten();
+        if let Some(values) = self.bool_find_one_model(&[], literals2) {
             let mut result: Vec<Tensor<bool>> = Vec::with_capacity(elems.len());
             let mut pos = 0;
             for t in elems {
@@ -533,9 +533,9 @@ where
         }
     }
 
-    fn tensor_find_num_models(self: &mut Self, elems: &[&Self::Elem]) -> usize {
+    fn tensor_find_num_models(self: Self, elems: &[&Self::Elem]) -> usize {
         let all_elems = elems.iter().map(|t| t.elems.iter()).flatten();
-        self.bool_find_num_models_method1(all_elems)
+        self.bool_find_num_models_method2(all_elems)
     }
 }
 

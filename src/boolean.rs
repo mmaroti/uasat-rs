@@ -23,6 +23,8 @@ use super::genvec;
 use super::solver;
 use std::iter;
 
+use super::genvec::Vector as _;
+
 /// A boolean algebra supporting boolean calculation.
 pub trait BoolAlg {
     /// The element type of this bool algebra.
@@ -147,12 +149,8 @@ pub trait BoolAlg {
     where
         ITER: Iterator<Item = (Self::Elem, Self::Elem)>,
     {
-        let mut result = self.bool_zero();
-        for (a, b) in pairs {
-            let c = self.bool_xor(a, b);
-            result = self.bool_or(result, c);
-        }
-        result
+        let result = self.bool_fold_equ(pairs);
+        self.bool_not(result)
     }
 
     fn bool_fold_leq<ITER>(self: &mut Self, pairs: ITER) -> Self::Elem
@@ -311,76 +309,113 @@ impl BoolAlg for Solver {
 }
 
 /// Constraint solving over a boolean algebra.
-pub trait BoolSat: BoolAlg {
+pub trait BoolSat: BoolAlg + Sized
+where
+    Self::Elem: genvec::Element,
+{
     /// Adds a new variable to the solver
     fn bool_add_variable(self: &mut Self) -> Self::Elem;
 
     /// Adds the given (disjunctive) clause to the solver.
-    fn bool_add_clause(self: &mut Self, elems: &[Self::Elem]);
+    fn bool_add_clause(self: &mut Self, clause: &[Self::Elem]);
 
-    /// Runs the solver and returns the value of the given elements if a
-    /// solution is found.
-    fn bool_find_one_model<ITER>(self: &mut Self, elems: ITER) -> Option<genvec::VectorFor<bool>>
+    /// Runs the solver with the given assumptions and returns the value of
+    /// the given literals if a solution is found.
+    fn bool_find_one_model<ITER>(
+        self: &mut Self,
+        assumptions: &[Self::Elem],
+        literals: ITER,
+    ) -> Option<genvec::VectorFor<bool>>
     where
         ITER: Iterator<Item = Self::Elem>;
 
     /// Returns the number of models with respect to the given elements.
-    fn bool_find_num_models_method1<ITER>(self: &mut Self, elems: ITER) -> usize
+    fn bool_find_num_models_method1<ITER>(mut self: Self, literals: ITER) -> usize
     where
         ITER: Iterator<Item = Self::Elem>,
     {
         let mut count = 0;
-        let elems: Vec<Self::Elem> = elems.collect();
-        let mut clause: Vec<Self::Elem> = Vec::with_capacity(elems.len());
-        while let Some(result) = self.bool_find_one_model(elems.iter().cloned()) {
+        let literals: genvec::VectorFor<Self::Elem> = literals.collect();
+        let mut clause: Vec<Self::Elem> = Vec::with_capacity(literals.len());
+        while let Some(result) = self.bool_find_one_model(&[], literals.iter()) {
             count += 1;
             clause.clear();
-            clause.extend(elems.iter().zip(result.into_iter()).map(|(e, b)| {
-                let b = self.bool_lift(b);
-                self.bool_xor(b, e.clone())
-            }));
+            clause.extend(
+                literals
+                    .iter()
+                    .zip(result.into_iter())
+                    .map(|(l, b)| self.bool_xor(self.bool_lift(b), l)),
+            );
             self.bool_add_clause(&clause);
         }
         count
     }
 
     /// Returns the number of models with respect to the given literals.
-    fn bool_find_num_models_method2<ITER>(self: &mut Self, elems: ITER) -> usize
+    fn bool_find_num_models_method2<ITER>(mut self: Self, literals: ITER) -> usize
     where
         ITER: Iterator<Item = Self::Elem>,
     {
-        let mut elems: Vec<Self::Elem> = elems.collect();
-        let len = elems.len();
-        let _limit_vars: Vec<Self::Elem> = (0..(2 * len + 2))
-            .map(|_| self.bool_add_variable())
+        let literals: genvec::VectorFor<Self::Elem> = literals
+            .chain([self.bool_unit(), self.bool_zero()].iter().cloned())
             .collect();
-        let _vals: Vec<bool> = iter::repeat(true)
-            .take(len)
-            .chain(iter::repeat(false).take(len + 1))
-            .chain(iter::once(true))
-            .collect();
+        let len = literals.len();
 
-        elems.push(self.bool_unit());
+        // bound variables
+        let variables: genvec::VectorFor<Self::Elem> =
+            (0..(2 * len)).map(|_| self.bool_add_variable()).collect();
 
-        let lower_lit: Vec<Self::Elem> = (0..(elems.len() + 1))
-            .map(|_| self.bool_add_variable())
-            .collect();
-
-        elems.push(self.bool_unit());
-        let result = self.bool_fold_ltn(lower_lit.iter().cloned().zip(elems.iter().cloned()));
+        // lower bound
+        let result = self.bool_fold_ltn(variables.range(0, len).zip(literals.iter()));
         self.bool_add_clause(&[result]);
-        elems.pop();
 
-        let upper_lit: Vec<Self::Elem> = (0..(elems.len() + 1))
-            .map(|_| self.bool_add_variable())
+        // upper bound
+        let result = self.bool_fold_ltn(literals.iter().zip(variables.range(len, 2 * len)));
+        self.bool_add_clause(&[result]);
+
+        let mut lower_bound: genvec::VectorFor<bool> = iter::repeat(true)
+            .take(len - 2)
+            .chain([false, false].iter().cloned())
+            .collect();
+        let mut upper_bounds: genvec::VectorFor<bool> = iter::repeat(false)
+            .take(len - 2)
+            .chain([false, true].iter().cloned())
             .collect();
 
-        elems.push(self.bool_zero());
-        let result = self.bool_fold_ltn(elems.iter().cloned().zip(upper_lit.iter().cloned()));
-        self.bool_add_clause(&[result]);
-        elems.pop();
+        let mut count = 0;
+        let mut assumptions: Vec<Self::Elem> = Vec::with_capacity(2 * len);
+        while !upper_bounds.is_empty() {
+            let end = upper_bounds.len();
+            let last = end - len;
+            assumptions.clear();
+            assumptions.extend(
+                variables
+                    .range(0, len)
+                    .zip(lower_bound.iter())
+                    .map(|(v, b)| self.bool_equ(self.bool_lift(b), v)),
+            );
+            assumptions.extend(
+                variables
+                    .range(len, 2 * len)
+                    .zip(upper_bounds.range(last, end))
+                    .map(|(v, b)| self.bool_equ(self.bool_lift(b), v)),
+            );
 
-        0
+            match self.bool_find_one_model(&assumptions, literals.iter()) {
+                None => {
+                    lower_bound.clear();
+                    lower_bound.extend(upper_bounds.range(last, end));
+                    upper_bounds.truncate(last);
+                }
+                Some(result) => {
+                    count += 1;
+                    assert_eq!(result.len(), len);
+                    upper_bounds.extend(result.iter());
+                }
+            }
+        }
+
+        count
     }
 }
 
@@ -389,16 +424,20 @@ impl BoolSat for Solver {
         self.solver.add_variable()
     }
 
-    fn bool_add_clause(self: &mut Self, elems: &[Self::Elem]) {
-        self.solver.add_clause(elems)
+    fn bool_add_clause(self: &mut Self, clause: &[Self::Elem]) {
+        self.solver.add_clause(clause)
     }
 
-    fn bool_find_one_model<ITER>(self: &mut Self, elems: ITER) -> Option<genvec::VectorFor<bool>>
+    fn bool_find_one_model<ITER>(
+        self: &mut Self,
+        assumptions: &[Self::Elem],
+        literals: ITER,
+    ) -> Option<genvec::VectorFor<bool>>
     where
         ITER: Iterator<Item = Self::Elem>,
     {
-        if self.solver.solve_with(&[]) {
-            Some(elems.map(|e| self.solver.get_value(e)).collect())
+        if self.solver.solve_with(assumptions) {
+            Some(literals.map(|e| self.solver.get_value(e)).collect())
         } else {
             None
         }
@@ -426,7 +465,7 @@ mod tests {
         let b = alg.bool_add_variable();
         let c = alg.bool_and(a, b);
         alg.bool_add_clause(&[c]);
-        let s = alg.bool_find_one_model([a, b].iter().cloned());
+        let s = alg.bool_find_one_model(&[], [a, b].iter().cloned());
         assert!(s.is_some());
         let s = s.unwrap();
         assert_eq!(s.len(), 2);

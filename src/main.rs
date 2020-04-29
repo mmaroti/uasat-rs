@@ -111,6 +111,9 @@ pub fn test_solver2(solver_name: &str, size: usize) -> String {
     let start = Instant::now();
 
     let mut sol = Solver::new(solver_name);
+    let name = sol.get_name();
+
+    // relation
     let rel = sol.tensor_add_variable(Shape::new(vec![size, size]));
 
     // reflexive
@@ -134,12 +137,7 @@ pub fn test_solver2(solver_name: &str, size: usize) -> String {
     let count = sol.tensor_find_num_models(&[&rel]);
 
     let duration = Instant::now().duration_since(start);
-    format!(
-        "Test2 {} result {} in {:?}",
-        sol.get_name(),
-        count,
-        duration
-    )
+    format!("Test2 {} result {} in {:?}", name, count, duration)
 }
 
 #[wasm_bindgen]

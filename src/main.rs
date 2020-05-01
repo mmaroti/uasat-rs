@@ -117,24 +117,24 @@ pub fn test_solver2(solver_name: &str, size: usize) -> String {
     let rel = sol.tensor_add_variable(Shape::new(vec![size, size]));
 
     // reflexive
-    let tmp = sol.tensor_polymer(&rel, Shape::new(vec![size]), &[0, 0]);
-    sol.tensor_add_clause(&[&tmp]);
+    let tmp = sol.tensor_polymer(rel.clone(), Shape::new(vec![size]), &[0, 0]);
+    sol.tensor_add_clause(&[tmp]);
 
     // symmetric
-    let tmp = sol.tensor_polymer(&rel, Shape::new(vec![size, size]), &[1, 0]);
-    let tmp = sol.tensor_not(&tmp);
-    sol.tensor_add_clause(&[&rel, &tmp]);
+    let tmp = sol.tensor_polymer(rel.clone(), Shape::new(vec![size, size]), &[1, 0]);
+    let tmp = sol.tensor_not(tmp);
+    sol.tensor_add_clause(&[rel.clone(), tmp]);
 
     // transitive
-    let r01 = sol.tensor_polymer(&rel, Shape::new(vec![size, size, size]), &[0, 1]);
-    let r01 = sol.tensor_not(&r01);
-    let r12 = sol.tensor_polymer(&rel, Shape::new(vec![size, size, size]), &[1, 2]);
-    let r12 = sol.tensor_not(&r12);
-    let r02 = sol.tensor_polymer(&rel, Shape::new(vec![size, size, size]), &[0, 2]);
-    sol.tensor_add_clause(&[&r01, &r12, &r02]);
+    let r01 = sol.tensor_polymer(rel.clone(), Shape::new(vec![size, size, size]), &[0, 1]);
+    let r01 = sol.tensor_not(r01);
+    let r12 = sol.tensor_polymer(rel.clone(), Shape::new(vec![size, size, size]), &[1, 2]);
+    let r12 = sol.tensor_not(r12);
+    let r02 = sol.tensor_polymer(rel.clone(), Shape::new(vec![size, size, size]), &[0, 2]);
+    sol.tensor_add_clause(&[r01, r12, r02]);
 
     // find all solutions
-    let count = sol.tensor_find_num_models(&[&rel]);
+    let count = sol.tensor_find_num_models(&[rel]);
 
     let duration = Instant::now().duration_since(start);
     format!("Test2 {} result {} in {:?}", name, count, duration)

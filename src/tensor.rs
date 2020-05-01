@@ -187,14 +187,20 @@ impl Iterator for StrideIter {
 
 /// A multidimensional array of elements.
 #[derive(Clone, Debug, PartialEq)]
-pub struct Tensor<Elem: genvec::Element> {
+pub struct Tensor<ELEM>
+where
+    ELEM: genvec::Element,
+{
     shape: Shape,
-    elems: genvec::VectorFor<Elem>,
+    elems: genvec::VectorFor<ELEM>,
 }
 
-impl<Elem: genvec::Element> Tensor<Elem> {
+impl<ELEM> Tensor<ELEM>
+where
+    ELEM: genvec::Element,
+{
     /// Creates a tensor of the given shape and with the given elements.
-    fn new(shape: Shape, elems: genvec::VectorFor<Elem>) -> Self {
+    fn new(shape: Shape, elems: genvec::VectorFor<ELEM>) -> Self {
         debug_assert_eq!(shape.size(), elems.len());
         Tensor { shape, elems }
     }
@@ -208,7 +214,7 @@ impl<Elem: genvec::Element> Tensor<Elem> {
     /// are calculated by an operation.
     pub fn create<OP>(shape: Shape, mut op: OP) -> Self
     where
-        OP: FnMut(&[usize]) -> Elem,
+        OP: FnMut(&[usize]) -> ELEM,
     {
         let mut coords = vec![0; shape.len()];
         let elems = (0..shape.size())
@@ -230,12 +236,12 @@ impl<Elem: genvec::Element> Tensor<Elem> {
     }
 
     /// Returns the element at the given index.
-    pub fn very_slow_get(self: &Self, coords: &[usize]) -> Elem {
+    pub fn very_slow_get(self: &Self, coords: &[usize]) -> ELEM {
         self.elems.get(self.shape.index(coords))
     }
 
     /// Sets the element at the given index.
-    pub fn very_slow_set(self: &mut Self, coords: &[usize], elem: Elem) {
+    pub fn very_slow_set(self: &mut Self, coords: &[usize], elem: ELEM) {
         self.elems.set(self.shape.index(coords), elem);
     }
 
@@ -253,7 +259,7 @@ impl<Elem: genvec::Element> Tensor<Elem> {
             iter.add_stride(*val, strides[idx]);
         }
 
-        let elems: genvec::VectorFor<Elem> = iter.map(|i| self.elems.get(i)).collect();
+        let elems: genvec::VectorFor<ELEM> = iter.map(|i| self.elems.get(i)).collect();
         Tensor::new(shape, elems)
     }
 
@@ -273,53 +279,49 @@ pub trait TensorAlg {
     fn shape(elem: &Self::Elem) -> &Shape;
 
     /// Creates a new tensor from the given bool tensor.
-    fn tensor_lift(self: &Self, elem: &Tensor<bool>) -> Self::Elem;
+    fn tensor_lift(self: &Self, elem: Tensor<bool>) -> Self::Elem;
 
     /// Creates a new tensor of the given shape from the given old tensor with
     /// permuted, identified or new dummy coordinates. The mapping is a vector
     /// of length of the old tensor shape with entries identifying the
     /// coordinate in the new tensor.
-    fn tensor_polymer(
-        self: &Self,
-        elem: &Self::Elem,
-        shape: Shape,
-        mapping: &[usize],
-    ) -> Self::Elem;
+    fn tensor_polymer(self: &Self, elem: Self::Elem, shape: Shape, mapping: &[usize])
+        -> Self::Elem;
 
     /// Returns a new tensor whose elements are all negated of the original.
-    fn tensor_not(self: &mut Self, elem: &Self::Elem) -> Self::Elem;
+    fn tensor_not(self: &mut Self, elem: Self::Elem) -> Self::Elem;
 
     /// Returns a new tensor whose elements are disjunctions of the original
     /// elements.
-    fn tensor_or(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
+    fn tensor_or(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
 
     /// Returns a new tensor whose elements are the conjunctions of the
     /// original elements.
-    fn tensor_and(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
+    fn tensor_and(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
 
     /// Returns a new tensor whose elements are the boolean additions of the
     /// original elements.
-    fn tensor_xor(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
+    fn tensor_xor(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
 
     /// Returns a new tensor whose elements are the logical equivalence of the
     /// original elements.
-    fn tensor_equ(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
+    fn tensor_equ(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
 
     /// Returns a new tensor whose elements are the logical implication of the
     /// original elements.
-    fn tensor_imp(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem;
+    fn tensor_imp(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
 
     /// Returns a new tensor with the first dimension removed where the result
     /// is the conjunction of the elements.
-    fn tensor_all(self: &mut Self, elem: &Self::Elem) -> Self::Elem;
+    fn tensor_all(self: &mut Self, elem: Self::Elem) -> Self::Elem;
 
     /// Returns a new tensor with the first dimension removed where the result
     /// is the disjunction of the elements.
-    fn tensor_any(self: &mut Self, elem: &Self::Elem) -> Self::Elem;
+    fn tensor_any(self: &mut Self, elem: Self::Elem) -> Self::Elem;
 
     /// Returns a new tensor with the first dimension removed where the result
     /// is the binary sum of the elements.
-    fn tensor_sum(self: &mut Self, elem: &Self::Elem) -> Self::Elem;
+    fn tensor_sum(self: &mut Self, elem: Self::Elem) -> Self::Elem;
 }
 
 impl<ALG> TensorAlg for ALG
@@ -333,26 +335,26 @@ where
         &elem.shape
     }
 
-    fn tensor_lift(self: &Self, elem: &Tensor<bool>) -> Self::Elem {
+    fn tensor_lift(self: &Self, elem: Tensor<bool>) -> Self::Elem {
         let elems = elem.elems.iter().map(|b| self.bool_lift(b)).collect();
         Tensor::new(elem.shape.clone(), elems)
     }
 
     fn tensor_polymer(
         self: &Self,
-        tensor: &Self::Elem,
+        tensor: Self::Elem,
         shape: Shape,
         mapping: &[usize],
     ) -> Self::Elem {
         tensor.polymer(shape, mapping)
     }
 
-    fn tensor_not(self: &mut Self, tensor: &Self::Elem) -> Self::Elem {
+    fn tensor_not(self: &mut Self, tensor: Self::Elem) -> Self::Elem {
         let elems = tensor.elems.iter().map(|b| self.bool_not(b)).collect();
         Tensor::new(tensor.shape.clone(), elems)
     }
 
-    fn tensor_or(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+    fn tensor_or(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         assert_eq!(elem1.shape, elem2.shape);
         let elems = elem1
             .elems
@@ -363,7 +365,7 @@ where
         Tensor::new(elem1.shape.clone(), elems)
     }
 
-    fn tensor_and(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+    fn tensor_and(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         assert_eq!(elem1.shape, elem2.shape);
         let elems = elem1
             .elems
@@ -374,7 +376,7 @@ where
         Tensor::new(elem1.shape.clone(), elems)
     }
 
-    fn tensor_xor(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+    fn tensor_xor(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         assert_eq!(elem1.shape, elem2.shape);
         let elems = elem1
             .elems
@@ -385,7 +387,7 @@ where
         Tensor::new(elem1.shape.clone(), elems)
     }
 
-    fn tensor_equ(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+    fn tensor_equ(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         assert_eq!(elem1.shape, elem2.shape);
         let elems = elem1
             .elems
@@ -396,7 +398,7 @@ where
         Tensor::new(elem1.shape.clone(), elems)
     }
 
-    fn tensor_imp(self: &mut Self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
+    fn tensor_imp(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         assert_eq!(elem1.shape, elem2.shape);
         let elems = elem1
             .elems
@@ -407,7 +409,7 @@ where
         Tensor::new(elem1.shape.clone(), elems)
     }
 
-    fn tensor_all(self: &mut Self, elem: &Self::Elem) -> Self::Elem {
+    fn tensor_all(self: &mut Self, elem: Self::Elem) -> Self::Elem {
         let (head, shape) = elem.shape.split();
         let elems = (0..shape.size())
             .map(|i| self.bool_fold_all(elem.elems.range(i * head, i * head + head)))
@@ -416,7 +418,7 @@ where
         Tensor::new(shape, elems)
     }
 
-    fn tensor_any(self: &mut Self, elem: &Self::Elem) -> Self::Elem {
+    fn tensor_any(self: &mut Self, elem: Self::Elem) -> Self::Elem {
         let (head, shape) = elem.shape.split();
         let elems = (0..shape.size())
             .map(|i| self.bool_fold_any(elem.elems.range(i * head, i * head + head)))
@@ -425,7 +427,7 @@ where
         Tensor::new(shape, elems)
     }
 
-    fn tensor_sum(self: &mut Self, elem: &Self::Elem) -> Self::Elem {
+    fn tensor_sum(self: &mut Self, elem: Self::Elem) -> Self::Elem {
         let (head, shape) = elem.shape.split();
         let elems = (0..shape.size())
             .map(|i| self.bool_fold_sum(elem.elems.range(i * head, i * head + head)))
@@ -441,15 +443,15 @@ pub trait TensorSat: TensorAlg {
     fn tensor_add_variable(self: &mut Self, shape: Shape) -> Self::Elem;
 
     /// Adds the given (disjunctive) clause to the solver.
-    fn tensor_add_clause(self: &mut Self, clause: &[&Self::Elem]);
+    fn tensor_add_clause(self: &mut Self, clause: &[Self::Elem]);
 
     /// Runs the solver and returns a model if it exists. The shapes of the
     /// returned tensors match the ones that were passed in.
-    fn tensor_find_one_model(self: &mut Self, elems: &[&Self::Elem]) -> Option<Vec<Tensor<bool>>>;
+    fn tensor_find_one_model(self: &mut Self, elems: &[Self::Elem]) -> Option<Vec<Tensor<bool>>>;
 
     /// Runs the solver and returns a model if it exists. The shapes of the
     /// returned tensors match the ones that were passed in.
-    fn tensor_find_one_model1(self: &mut Self, elem1: &Self::Elem) -> Option<Tensor<bool>> {
+    fn tensor_find_one_model1(self: &mut Self, elem1: Self::Elem) -> Option<Tensor<bool>> {
         if let Some(mut result) = self.tensor_find_one_model(&[elem1]) {
             assert_eq!(result.len(), 1);
             result.pop()
@@ -462,8 +464,8 @@ pub trait TensorSat: TensorAlg {
     /// returned tensors match the ones that were passed in.
     fn tensor_find_one_model2(
         self: &mut Self,
-        elem1: &Self::Elem,
-        elem2: &Self::Elem,
+        elem1: Self::Elem,
+        elem2: Self::Elem,
     ) -> Option<(Tensor<bool>, Tensor<bool>)> {
         if let Some(mut result) = self.tensor_find_one_model(&[elem1, elem2]) {
             assert_eq!(result.len(), 2);
@@ -476,7 +478,7 @@ pub trait TensorSat: TensorAlg {
     }
 
     /// Returns the number of models with respect to the given tensors.
-    fn tensor_find_num_models(self: Self, elems: &[&Self::Elem]) -> usize;
+    fn tensor_find_num_models(self: Self, elems: &[Self::Elem]) -> usize;
 }
 
 impl<ALG> TensorSat for ALG
@@ -491,7 +493,7 @@ where
         Tensor::new(shape, elems)
     }
 
-    fn tensor_add_clause(self: &mut Self, clause: &[&Self::Elem]) {
+    fn tensor_add_clause(self: &mut Self, clause: &[Self::Elem]) {
         if clause.is_empty() {
             self.bool_add_clause(&[]);
             return;
@@ -514,7 +516,7 @@ where
         }
     }
 
-    fn tensor_find_one_model(self: &mut Self, elems: &[&Self::Elem]) -> Option<Vec<Tensor<bool>>> {
+    fn tensor_find_one_model(self: &mut Self, elems: &[Self::Elem]) -> Option<Vec<Tensor<bool>>> {
         let literals2 = elems.iter().map(|t| t.elems.iter()).flatten();
         if let Some(values) = self.bool_find_one_model(&[], literals2) {
             let mut result: Vec<Tensor<bool>> = Vec::with_capacity(elems.len());
@@ -533,9 +535,9 @@ where
         }
     }
 
-    fn tensor_find_num_models(self: Self, elems: &[&Self::Elem]) -> usize {
+    fn tensor_find_num_models(self: Self, elems: &[Self::Elem]) -> usize {
         let all_elems = elems.iter().map(|t| t.elems.iter()).flatten();
-        self.bool_find_num_models_method2(all_elems)
+        self.bool_find_num_models_method1(all_elems)
     }
 }
 
@@ -575,12 +577,12 @@ mod tests {
         t1.very_slow_set(&[1, 1], true);
         t1.very_slow_set(&[1, 2], true);
 
-        let t2 = alg.tensor_not(&t1);
+        let t2 = alg.tensor_not(t1.clone());
         assert_eq!(t2.very_slow_get(&[0, 0]), false);
         assert_eq!(t2.very_slow_get(&[0, 1]), true);
 
         t1.very_slow_set(&[0, 1], true);
-        let t3 = alg.tensor_and(&t1, &t2);
+        let t3 = alg.tensor_and(t1, t2);
         assert_eq!(t3.very_slow_get(&[0, 0]), false);
         assert_eq!(t3.very_slow_get(&[0, 1]), true);
         assert_eq!(t3.very_slow_get(&[0, 2]), false);
@@ -604,7 +606,7 @@ mod tests {
         t1.very_slow_set(&[0, 3], true);
         t1.very_slow_set(&[1, 3], true);
 
-        let t2 = alg.tensor_all(&t1);
+        let t2 = alg.tensor_all(t1.clone());
         assert_eq!(t2.shape, Shape::new(vec![4]));
         assert_eq!(t2.very_slow_get(&[0]), false);
         assert_eq!(t2.very_slow_get(&[1]), false);
@@ -612,7 +614,7 @@ mod tests {
         assert_eq!(t2.very_slow_get(&[3]), true);
 
         let t3 = t1.reshape(Shape::new(vec![8]));
-        let t3 = alg.tensor_all(&t3);
+        let t3 = alg.tensor_all(t3);
         assert_eq!(t3.shape, Shape::new(vec![]));
         assert_eq!(t3.very_slow_get(&[]), false);
     }

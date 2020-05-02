@@ -337,7 +337,7 @@ where
 
     fn tensor_lift(self: &Self, elem: Tensor<bool>) -> Self::Elem {
         let elems = elem.elems.iter().map(|b| self.bool_lift(b)).collect();
-        Tensor::new(elem.shape.clone(), elems)
+        Tensor::new(elem.shape, elems)
     }
 
     fn tensor_polymer(
@@ -351,7 +351,7 @@ where
 
     fn tensor_not(self: &mut Self, tensor: Self::Elem) -> Self::Elem {
         let elems = tensor.elems.iter().map(|b| self.bool_not(b)).collect();
-        Tensor::new(tensor.shape.clone(), elems)
+        Tensor::new(tensor.shape, elems)
     }
 
     fn tensor_or(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
@@ -362,7 +362,7 @@ where
             .zip(elem2.elems.iter())
             .map(|(a, b)| self.bool_or(a, b))
             .collect();
-        Tensor::new(elem1.shape.clone(), elems)
+        Tensor::new(elem1.shape, elems)
     }
 
     fn tensor_and(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
@@ -373,7 +373,7 @@ where
             .zip(elem2.elems.iter())
             .map(|(a, b)| self.bool_and(a, b))
             .collect();
-        Tensor::new(elem1.shape.clone(), elems)
+        Tensor::new(elem1.shape, elems)
     }
 
     fn tensor_xor(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
@@ -384,7 +384,7 @@ where
             .zip(elem2.elems.iter())
             .map(|(a, b)| self.bool_xor(a, b))
             .collect();
-        Tensor::new(elem1.shape.clone(), elems)
+        Tensor::new(elem1.shape, elems)
     }
 
     fn tensor_equ(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
@@ -395,7 +395,7 @@ where
             .zip(elem2.elems.iter())
             .map(|(a, b)| self.bool_equ(a, b))
             .collect();
-        Tensor::new(elem1.shape.clone(), elems)
+        Tensor::new(elem1.shape, elems)
     }
 
     fn tensor_imp(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
@@ -406,7 +406,7 @@ where
             .zip(elem2.elems.iter())
             .map(|(a, b)| self.bool_imp(a, b))
             .collect();
-        Tensor::new(elem1.shape.clone(), elems)
+        Tensor::new(elem1.shape, elems)
     }
 
     fn tensor_all(self: &mut Self, elem: Self::Elem) -> Self::Elem {

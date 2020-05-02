@@ -357,7 +357,7 @@ where
         ITER: Iterator<Item = Self::Elem>,
     {
         let literals: genvec::VectorFor<Self::Elem> = literals
-            .chain([self.bool_unit(), self.bool_zero()].iter().cloned())
+            .chain([self.bool_unit(), self.bool_zero()].iter().copied())
             .collect();
         let len = literals.len();
 
@@ -375,11 +375,11 @@ where
 
         let mut lower_bound: genvec::VectorFor<bool> = iter::repeat(true)
             .take(len - 2)
-            .chain([false, false].iter().cloned())
+            .chain([false, false].iter().copied())
             .collect();
         let mut upper_bounds: genvec::VectorFor<bool> = iter::repeat(false)
             .take(len - 2)
-            .chain([false, true].iter().cloned())
+            .chain([false, true].iter().copied())
             .collect();
 
         let mut count = 0;
@@ -465,7 +465,7 @@ mod tests {
         let b = alg.bool_add_variable();
         let c = alg.bool_and(a, b);
         alg.bool_add_clause(&[c]);
-        let s = alg.bool_find_one_model(&[], [a, b].iter().cloned());
+        let s = alg.bool_find_one_model(&[], [a, b].iter().copied());
         assert!(s.is_some());
         let s = s.unwrap();
         assert_eq!(s.len(), 2);

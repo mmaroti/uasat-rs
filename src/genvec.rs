@@ -20,7 +20,7 @@
 extern crate bit_vec;
 use super::solver;
 use bit_vec::BitBlock as _;
-use std::{fmt, iter};
+use std::{fmt, iter, marker};
 
 /// Generic interface for regular and bit vectors.
 pub trait Vector<ELEM>
@@ -37,6 +37,30 @@ where
     /// Constructs a new empty vector with the specified capacity. The vector
     /// will be able to hold exactly capacity elements without reallocating.
     fn with_capacity(capacity: usize) -> Self;
+
+    /// Concatenates the given vectors into a new one.
+    fn concat(parts: Vec<Self>) -> Self {
+        let len = parts.iter().map(|a| a.len()).sum();
+        let mut result: Self = Vector::with_capacity(len);
+        for elem in parts.into_iter() {
+            result.extend(elem.into_iter());
+        }
+        result
+    }
+
+    /// Splits this vector into equal sized vectors
+    fn split(self: Self, len: usize) -> Vec<Self> {
+        if self.len() == 0 {
+            return Vec::new();
+        }
+        assert_ne!(len, 0);
+        let count = self.len() / len;
+        let mut result: Vec<Self> = Vec::with_capacity(count);
+        for i in 0..count {
+            result.push(self.range(i * len, (i + 1) * len).collect());
+        }
+        result
+    }
 
     /// Creates a vector with a single element.
     fn from_elem(elem: ELEM) -> Self {
@@ -121,11 +145,12 @@ where
 }
 
 /// Generic read only iterator over the vector.
+/// TODO: get rid of this and provide specialized iterators for each type
 pub struct VecIter<'a, ELEM, VEC> {
     pos: usize,
     end: usize,
     vec: &'a VEC,
-    phantom: std::marker::PhantomData<ELEM>,
+    phantom: marker::PhantomData<ELEM>,
 }
 
 impl<'a, ELEM, VEC> VecIter<'a, ELEM, VEC>
@@ -646,7 +671,7 @@ mod tests {
         assert_eq!(iter.next(), None);
 
         let e1 = [true, false];
-        let v1: VectorFor<bool> = e1.iter().cloned().collect();
+        let v1: VectorFor<bool> = e1.iter().copied().collect();
         let mut v2: VectorFor<bool> = Vector::new();
         for b in &e1 {
             v2.push(*b);

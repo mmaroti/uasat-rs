@@ -411,28 +411,34 @@ where
 
     fn tensor_all(self: &mut Self, elem: Self::Elem) -> Self::Elem {
         let (head, shape) = elem.shape.split();
-        let elems = (0..shape.size())
-            .map(|i| self.bool_fold_all(elem.elems.range(i * head, i * head + head)))
+        let elems = elem
+            .elems
+            .split(head)
+            .iter()
+            .map(|v| self.bool_fold_all(v.iter()))
             .collect();
-
         Tensor::new(shape, elems)
     }
 
     fn tensor_any(self: &mut Self, elem: Self::Elem) -> Self::Elem {
         let (head, shape) = elem.shape.split();
-        let elems = (0..shape.size())
-            .map(|i| self.bool_fold_any(elem.elems.range(i * head, i * head + head)))
+        let elems = elem
+            .elems
+            .split(head)
+            .iter()
+            .map(|v| self.bool_fold_any(v.iter()))
             .collect();
-
         Tensor::new(shape, elems)
     }
 
     fn tensor_sum(self: &mut Self, elem: Self::Elem) -> Self::Elem {
         let (head, shape) = elem.shape.split();
-        let elems = (0..shape.size())
-            .map(|i| self.bool_fold_sum(elem.elems.range(i * head, i * head + head)))
+        let elems = elem
+            .elems
+            .split(head)
+            .iter()
+            .map(|v| self.bool_fold_sum(v.iter()))
             .collect();
-
         Tensor::new(shape, elems)
     }
 }
@@ -525,7 +531,7 @@ where
                 let size = t.shape().size();
                 result.push(Tensor::new(
                     t.shape().clone(),
-                    values.range(pos, pos + size).collect(),
+                    values.iter().skip(pos).take(size).collect(),
                 ));
                 pos += size;
             }

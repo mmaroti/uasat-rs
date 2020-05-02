@@ -20,7 +20,7 @@
 extern crate bit_vec;
 use super::solver;
 use bit_vec::BitBlock as _;
-use std::{fmt, iter, marker};
+use std::{fmt, iter};
 
 /// Generic interface for regular and bit vectors.
 pub trait Vector<ELEM>
@@ -48,7 +48,8 @@ where
         result
     }
 
-    /// Splits this vector into equal sized vectors
+    /// Splits this vector into equal sized vectors.
+    /// TODO: implement more efficient specialized versions
     fn split(self: Self, len: usize) -> Vec<Self> {
         if self.len() == 0 {
             return Vec::new();
@@ -56,8 +57,13 @@ where
         assert_ne!(len, 0);
         let count = self.len() / len;
         let mut result: Vec<Self> = Vec::with_capacity(count);
-        for i in 0..count {
-            result.push(self.range(i * len, (i + 1) * len).collect());
+        let mut iter = self.into_iter();
+        for _ in 0..count {
+            let mut vec: Self = Vector::with_capacity(len);
+            for _ in 0..len {
+                vec.push(iter.next().unwrap());
+            }
+            result.push(vec);
         }
         result
     }
@@ -133,103 +139,13 @@ where
     /// Returns the number of elements the vector can hold without reallocating.
     fn capacity(self: &Self) -> usize;
 
-    /// Returns an iterator for the given range of elements.
-    fn range(self: &Self, start: usize, end: usize) -> VecIter<'_, ELEM, Self> {
-        VecIter::new(self, start, end)
+    /// Returns an iterator over copied elements of the vector.
+    fn iter<'a>(self: &'a Self) -> <Self as CopyIterable<'a, ELEM>>::Iter
+    where
+        Self: CopyIterable<'a, ELEM>,
+    {
+        self.iter_copy()
     }
-
-    /// Returns an iterator over the elements of the vector.
-    fn iter(self: &Self) -> VecIter<'_, ELEM, Self> {
-        self.range(0, self.len())
-    }
-}
-
-/// Generic read only iterator over the vector.
-/// TODO: get rid of this and provide specialized iterators for each type
-pub struct VecIter<'a, ELEM, VEC> {
-    pos: usize,
-    end: usize,
-    vec: &'a VEC,
-    phantom: marker::PhantomData<ELEM>,
-}
-
-impl<'a, ELEM, VEC> VecIter<'a, ELEM, VEC>
-where
-    ELEM: Copy,
-    VEC: Vector<ELEM>,
-{
-    fn new(vec: &'a VEC, start: usize, end: usize) -> Self {
-        debug_assert!(start <= end && end <= vec.len());
-        VecIter {
-            pos: start,
-            end,
-            vec,
-            phantom: Default::default(),
-        }
-    }
-}
-
-impl<'a, ELEM, VEC> Iterator for VecIter<'a, ELEM, VEC>
-where
-    ELEM: Copy,
-    VEC: Vector<ELEM>,
-{
-    type Item = ELEM;
-
-    fn next(self: &mut Self) -> Option<Self::Item> {
-        if self.pos < self.end {
-            let elem = unsafe { self.vec.get_unchecked(self.pos) };
-            self.pos += 1;
-            Some(elem)
-        } else {
-            None
-        }
-    }
-
-    fn size_hint(self: &Self) -> (usize, Option<usize>) {
-        (self.end - self.pos, Some(self.end - self.pos))
-    }
-
-    fn count(self: Self) -> usize {
-        self.end - self.pos
-    }
-
-    fn last(self: Self) -> Option<Self::Item> {
-        if self.pos < self.end {
-            let elem = unsafe { self.vec.get_unchecked(self.end - 1) };
-            Some(elem)
-        } else {
-            None
-        }
-    }
-
-    fn nth(self: &mut Self, n: usize) -> Option<Self::Item> {
-        if self.end - self.pos < n {
-            let elem = unsafe { self.vec.get_unchecked(self.pos + n) };
-            self.pos += n + 1;
-            Some(elem)
-        } else {
-            self.pos = self.end;
-            None
-        }
-    }
-}
-
-impl<'a, ELEM, VEC> ExactSizeIterator for VecIter<'a, ELEM, VEC>
-where
-    ELEM: Copy,
-    VEC: Vector<ELEM>,
-{
-    fn len(self: &Self) -> usize {
-        self.end - self.pos
-    }
-}
-
-impl<'a, ELEM, VEC> iter::FusedIterator for VecIter<'a, ELEM, VEC>
-where
-    ELEM: Copy,
-    VEC: Vector<ELEM>,
-{
 }
 
 /// A wrapper around standard containers to present them as generic vectors.
@@ -532,6 +448,14 @@ impl Vector<()> for UnitVec {
         UnitVec { len: 0 }
     }
 
+    fn split(self: Self, len: usize) -> Vec<Self> {
+        if self.len == 0 {
+            return Vec::new();
+        }
+        assert_ne!(len, 0);
+        iter::repeat(UnitVec { len }).take(self.len / len).collect()
+    }
+
     fn from_elem(_elem: ()) -> Self {
         UnitVec { len: 1 }
     }
@@ -590,10 +514,42 @@ impl Vector<()> for UnitVec {
     }
 }
 
+/// A helper trait to find the right iterator that returns elements and not
+/// references.
+pub trait CopyIterable<'a, ELEM: 'a> {
+    type Iter: Iterator<Item = ELEM>;
+
+    fn iter_copy(self: &'a Self) -> Self::Iter;
+}
+
+impl<'a, ELEM: 'a + Copy> CopyIterable<'a, ELEM> for VecImpl<Vec<ELEM>> {
+    type Iter = std::iter::Copied<std::slice::Iter<'a, ELEM>>;
+
+    fn iter_copy(self: &'a Self) -> Self::Iter {
+        self.data.iter().copied()
+    }
+}
+
+impl<'a> CopyIterable<'a, bool> for VecImpl<bit_vec::BitVec> {
+    type Iter = bit_vec::Iter<'a>;
+
+    fn iter_copy(self: &'a Self) -> Self::Iter {
+        self.data.iter()
+    }
+}
+
+impl<'a> CopyIterable<'a, ()> for UnitVec {
+    type Iter = UnitIter;
+
+    fn iter_copy(self: &'a Self) -> Self::Iter {
+        self.into_iter()
+    }
+}
+
 /// A helper trait to find the right generic vector for a given element.
 pub trait Element: Copy {
     /// A type that can be used for storing a vector of elements.
-    type Vector: Vector<Self> + PartialEq + fmt::Debug;
+    type Vector: Vector<Self> + PartialEq + fmt::Debug + for<'a> CopyIterable<'a, Self>;
 }
 
 impl Element for bool {
@@ -665,7 +621,7 @@ mod tests {
         }
         assert_eq!(v1, v2);
 
-        let mut iter = Vector::range(&v1, 1, 3);
+        let mut iter = v1.iter().skip(1);
         assert_eq!(iter.next(), Some(false));
         assert_eq!(iter.next(), Some(true));
         assert_eq!(iter.next(), None);

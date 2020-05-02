@@ -366,11 +366,11 @@ where
             (0..(2 * len)).map(|_| self.bool_add_variable()).collect();
 
         // lower bound
-        let result = self.bool_fold_ltn(variables.range(0, len).zip(literals.iter()));
+        let result = self.bool_fold_ltn(variables.iter().take(len).zip(literals.iter()));
         self.bool_add_clause(&[result]);
 
         // upper bound
-        let result = self.bool_fold_ltn(literals.iter().zip(variables.range(len, 2 * len)));
+        let result = self.bool_fold_ltn(literals.iter().zip(variables.iter().skip(len)));
         self.bool_add_clause(&[result]);
 
         let mut lower_bound: genvec::VectorFor<bool> = iter::repeat(true)
@@ -390,21 +390,23 @@ where
             assumptions.clear();
             assumptions.extend(
                 variables
-                    .range(0, len)
+                    .iter()
+                    .take(len)
                     .zip(lower_bound.iter())
                     .map(|(v, b)| self.bool_equ(self.bool_lift(b), v)),
             );
             assumptions.extend(
                 variables
-                    .range(len, 2 * len)
-                    .zip(upper_bounds.range(last, end))
+                    .iter()
+                    .skip(len)
+                    .zip(upper_bounds.iter().skip(last))
                     .map(|(v, b)| self.bool_equ(self.bool_lift(b), v)),
             );
 
             match self.bool_find_one_model(&assumptions, literals.iter()) {
                 None => {
                     lower_bound.clear();
-                    lower_bound.extend(upper_bounds.range(last, end));
+                    lower_bound.extend(upper_bounds.iter().skip(last));
                     upper_bounds.truncate(last);
                 }
                 Some(result) => {

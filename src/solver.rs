@@ -17,6 +17,8 @@
 
 //! A generic trait to work with various SAT solvers.
 
+#[cfg(feature = "batsat")]
+extern crate batsat;
 #[cfg(feature = "varisat")]
 extern crate bit_vec;
 #[cfg(feature = "cryptominisat")]
@@ -26,6 +28,10 @@ extern crate minisat;
 #[cfg(feature = "varisat")]
 extern crate varisat;
 
+#[cfg(feature = "batsat")]
+use batsat::intmap::AsIndex as _;
+#[cfg(feature = "batsat")]
+use batsat::SolverInterface as _;
 use std::fmt;
 #[cfg(feature = "varisat")]
 use varisat::ExtendFormula as _;
@@ -114,6 +120,15 @@ pub fn create_solver(name: &str) -> Box<dyn Solver> {
         }
     }
 
+    #[cfg(feature = "batsat")]
+    {
+        enabled_solvers += 1;
+        if name == "batsat" || name == "" {
+            let sat: BatSat = Default::default();
+            return Box::new(sat);
+        }
+    }
+
     if enabled_solvers == 0 {
         panic!("No SAT solvers are available.")
     } else {
@@ -141,7 +156,6 @@ pub struct MiniSat {
 
 #[cfg(feature = "minisat")]
 impl Default for MiniSat {
-    /// Creates a new solver instance.
     fn default() -> Self {
         let ptr = unsafe { minisat::sys::minisat_new() };
         unsafe { minisat::sys::minisat_eliminate(ptr, 1) };
@@ -229,7 +243,6 @@ pub struct VariSat<'a> {
 
 #[cfg(feature = "varisat")]
 impl<'a> Default for VariSat<'a> {
-    /// Creates a new solver instance.
     fn default() -> Self {
         VariSat {
             num_variables: 0,
@@ -316,7 +329,6 @@ pub struct CryptoMiniSat {
 
 #[cfg(feature = "cryptominisat")]
 impl Default for CryptoMiniSat {
-    /// Creates a new solver instance.
     fn default() -> Self {
         CryptoMiniSat {
             solver: cryptominisat::Solver::new(),
@@ -390,6 +402,74 @@ impl Solver for CryptoMiniSat {
     }
 }
 
+/// MiniSAT reimplemented in pure rust.
+#[cfg(feature = "batsat")]
+pub struct BatSat {
+    solver: batsat::BasicSolver,
+}
+
+#[cfg(feature = "batsat")]
+impl Default for BatSat {
+    fn default() -> Self {
+        BatSat {
+            solver: batsat::Solver::new(Default::default(), Default::default()),
+        }
+    }
+}
+
+#[cfg(feature = "batsat")]
+impl BatSat {
+    fn encode(lit: batsat::Lit) -> Literal {
+        Literal {
+            value: lit.as_index() as u32,
+        }
+    }
+
+    fn decode(lit: Literal) -> batsat::Lit {
+        batsat::intmap::AsIndex::from_index(lit.value as usize)
+    }
+}
+
+#[cfg(feature = "batsat")]
+impl Solver for BatSat {
+    fn add_variable(self: &mut Self) -> Literal {
+        let var = self.solver.new_var_default();
+        BatSat::encode(batsat::Lit::new(var, true))
+    }
+
+    fn negate(self: &Self, lit: Literal) -> Literal {
+        Literal {
+            value: lit.value ^ 1,
+        }
+    }
+
+    fn add_clause(self: &mut Self, lits: &[Literal]) {
+        let mut lits: Vec<batsat::Lit> = lits.iter().map(|lit| BatSat::decode(*lit)).collect();
+        self.solver.add_clause_reuse(&mut lits);
+    }
+
+    fn solve_with(self: &mut Self, lits: &[Literal]) -> bool {
+        let lits: Vec<batsat::Lit> = lits.iter().map(|lit| BatSat::decode(*lit)).collect();
+        self.solver.solve_limited(&lits) == batsat::lbool::TRUE
+    }
+
+    fn get_value(self: &Self, lit: Literal) -> bool {
+        self.solver.value_lit(BatSat::decode(lit)) == batsat::lbool::TRUE
+    }
+
+    fn get_name(self: &Self) -> &'static str {
+        "BatSat"
+    }
+
+    fn num_variables(self: &Self) -> u32 {
+        self.solver.num_vars()
+    }
+
+    fn num_clauses(self: &Self) -> u32 {
+        self.solver.num_clauses() as u32
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -446,6 +526,30 @@ mod tests {
     #[test]
     fn cryptominisat() {
         let mut sat: CryptoMiniSat = Default::default();
+        let a = sat.add_variable();
+        let b = sat.add_variable();
+        sat.add_clause(&[a, b]);
+        assert!(sat.solve_with(&[sat.negate(b)]));
+        assert!(sat.get_value(a));
+        assert!(!sat.get_value(b));
+        sat.add_clause(&[sat.negate(a), b]);
+        sat.add_clause(&[sat.negate(a), sat.negate(b)]);
+        assert_eq!(sat.num_variables(), 2);
+        assert_eq!(sat.num_clauses(), 3);
+        let c = sat.add_variable();
+        sat.add_xor_clause(a, b, c);
+        assert!(sat.solve());
+        assert!(!sat.get_value(a));
+        assert!(sat.get_value(b));
+        assert!(sat.get_value(c));
+        sat.add_clause(&[a, sat.negate(b)]);
+        assert!(!sat.solve());
+    }
+
+    #[cfg(feature = "batsat")]
+    #[test]
+    fn batsat() {
+        let mut sat: BatSat = Default::default();
         let a = sat.add_variable();
         let b = sat.add_variable();
         sat.add_clause(&[a, b]);

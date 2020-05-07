@@ -170,4 +170,8 @@ fn main() {
     println!("{}", test_solver("batsat", 8));
     #[cfg(feature = "batsat")]
     println!("{}", test_solver2("batsat", 8));
+    #[cfg(feature = "splr")]
+    println!("{}", test_solver("splr", 8));
+    #[cfg(feature = "splr")]
+    println!("{}", test_solver2("splr", 8));
 }

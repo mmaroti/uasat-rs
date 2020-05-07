@@ -19,12 +19,14 @@
 
 #[cfg(feature = "batsat")]
 extern crate batsat;
-#[cfg(feature = "varisat")]
+#[cfg(any(feature = "varisat", feature = "splr"))]
 extern crate bit_vec;
 #[cfg(feature = "cryptominisat")]
 extern crate cryptominisat;
 #[cfg(feature = "minisat")]
 extern crate minisat;
+#[cfg(feature = "splr")]
+extern crate splr;
 #[cfg(feature = "varisat")]
 extern crate varisat;
 
@@ -32,6 +34,10 @@ extern crate varisat;
 use batsat::intmap::AsIndex as _;
 #[cfg(feature = "batsat")]
 use batsat::SolverInterface as _;
+#[cfg(feature = "splr")]
+use splr::SolveIF as _;
+#[cfg(feature = "splr")]
+use std::convert::TryFrom as _;
 use std::fmt;
 #[cfg(feature = "varisat")]
 use varisat::ExtendFormula as _;
@@ -125,6 +131,15 @@ pub fn create_solver(name: &str) -> Box<dyn Solver> {
         enabled_solvers += 1;
         if name == "batsat" || name == "" {
             let sat: BatSat = Default::default();
+            return Box::new(sat);
+        }
+    }
+
+    #[cfg(feature = "splr")]
+    {
+        enabled_solvers += 1;
+        if name == "splr" || name == "" {
+            let sat: SplrSat = Default::default();
             return Box::new(sat);
         }
     }
@@ -289,13 +304,15 @@ impl<'a> Solver for VariSat<'a> {
         let assumptions: Vec<varisat::Lit> = lits.iter().map(|lit| VariSat::decode(*lit)).collect();
         self.solver.assume(&assumptions);
 
-        self.solution.clear();
+        self.solution.truncate(0);
         let solvable = self.solver.solve().unwrap();
         if solvable {
             self.solution.grow(self.num_variables() as usize, false);
             for lit in self.solver.model().unwrap() {
-                let var = lit.index();
-                self.solution.set(var, lit.is_positive());
+                if lit.is_positive() {
+                    let var = lit.index();
+                    self.solution.set(var, true);
+                }
             }
         }
         solvable
@@ -470,6 +487,87 @@ impl Solver for BatSat {
     }
 }
 
+/// MiniSAT reimplemented in pure rust.
+#[cfg(feature = "splr")]
+pub struct SplrSat {
+    variables: i32,
+    clauses: Vec<Vec<i32>>,
+    solution: bit_vec::BitVec,
+}
+
+#[cfg(feature = "splr")]
+impl Default for SplrSat {
+    fn default() -> Self {
+        SplrSat {
+            variables: 0,
+            clauses: Default::default(),
+            solution: Default::default(),
+        }
+    }
+}
+
+#[cfg(feature = "splr")]
+impl Solver for SplrSat {
+    fn add_variable(self: &mut Self) -> Literal {
+        self.variables += 1;
+        Literal {
+            value: self.variables as u32,
+        }
+    }
+
+    fn negate(self: &Self, lit: Literal) -> Literal {
+        let lit = lit.value as i32;
+        Literal { value: -lit as u32 }
+    }
+
+    fn add_clause(self: &mut Self, lits: &[Literal]) {
+        self.clauses
+            .push(lits.iter().map(|a| a.value as i32).collect());
+    }
+
+    fn solve_with(self: &mut Self, lits: &[Literal]) -> bool {
+        let old_len = self.clauses.len();
+        for lit in lits {
+            self.add_clause(&[*lit]);
+        }
+        let config: splr::Config = Default::default();
+        let mut solver = splr::Solver::try_from((config, self.clauses.as_ref())).unwrap();
+        self.clauses.truncate(old_len);
+
+        self.solution.clear();
+        match solver.solve().unwrap() {
+            splr::Certificate::SAT(result) => {
+                self.solution.grow(self.num_variables() as usize, false);
+                for lit in result {
+                    if lit > 0 {
+                        self.solution.set((lit - 1) as usize, true);
+                    }
+                }
+                true
+            }
+            splr::Certificate::UNSAT => false,
+        }
+    }
+
+    fn get_value(self: &Self, lit: Literal) -> bool {
+        let lit = lit.value as i32;
+        let var = (lit.abs() as u32) - 1;
+        self.solution.get(var as usize).unwrap() ^ (lit < 0)
+    }
+
+    fn get_name(self: &Self) -> &'static str {
+        "SplrSat"
+    }
+
+    fn num_variables(self: &Self) -> u32 {
+        self.variables as u32
+    }
+
+    fn num_clauses(self: &Self) -> u32 {
+        self.clauses.len() as u32
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -520,6 +618,13 @@ mod tests {
     #[test]
     fn batsat() {
         let mut sat: BatSat = Default::default();
+        test(&mut sat);
+    }
+
+    #[cfg(feature = "splr")]
+    #[test]
+    fn splr() {
+        let mut sat: SplrSat = Default::default();
         test(&mut sat);
     }
 }

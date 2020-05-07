@@ -166,4 +166,8 @@ fn main() {
     println!("{}", test_solver("cryptominisat", 8));
     #[cfg(feature = "cryptominisat")]
     println!("{}", test_solver2("cryptominisat", 8));
+    #[cfg(feature = "batsat")]
+    println!("{}", test_solver("batsat", 8));
+    #[cfg(feature = "batsat")]
+    println!("{}", test_solver2("batsat", 8));
 }

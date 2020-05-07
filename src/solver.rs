@@ -474,10 +474,7 @@ impl Solver for BatSat {
 mod tests {
     use super::*;
 
-    #[cfg(feature = "minisat")]
-    #[test]
-    fn minisat() {
-        let mut sat: MiniSat = Default::default();
+    fn test(sat: &mut dyn Solver) {
         let a = sat.add_variable();
         let b = sat.add_variable();
         sat.add_clause(&[a, b]);
@@ -496,77 +493,33 @@ mod tests {
         assert!(sat.get_value(c));
         sat.add_clause(&[a, sat.negate(b)]);
         assert!(!sat.solve());
+    }
+
+    #[cfg(feature = "minisat")]
+    #[test]
+    fn minisat() {
+        let mut sat: MiniSat = Default::default();
+        test(&mut sat);
     }
 
     #[cfg(feature = "varisat")]
     #[test]
     fn varisat() {
         let mut sat: VariSat = Default::default();
-        let a = sat.add_variable();
-        let b = sat.add_variable();
-        sat.add_clause(&[a, b]);
-        assert!(sat.solve_with(&[sat.negate(b)]));
-        assert!(sat.get_value(a));
-        assert!(!sat.get_value(b));
-        sat.add_clause(&[sat.negate(a), b]);
-        sat.add_clause(&[sat.negate(a), sat.negate(b)]);
-        assert_eq!(sat.num_variables(), 2);
-        assert_eq!(sat.num_clauses(), 3);
-        let c = sat.add_variable();
-        sat.add_xor_clause(a, b, c);
-        assert!(sat.solve());
-        assert!(!sat.get_value(a));
-        assert!(sat.get_value(b));
-        assert!(sat.get_value(c));
-        sat.add_clause(&[a, sat.negate(b)]);
-        assert!(!sat.solve());
+        test(&mut sat);
     }
 
     #[cfg(feature = "cryptominisat")]
     #[test]
     fn cryptominisat() {
         let mut sat: CryptoMiniSat = Default::default();
-        let a = sat.add_variable();
-        let b = sat.add_variable();
-        sat.add_clause(&[a, b]);
-        assert!(sat.solve_with(&[sat.negate(b)]));
-        assert!(sat.get_value(a));
-        assert!(!sat.get_value(b));
-        sat.add_clause(&[sat.negate(a), b]);
-        sat.add_clause(&[sat.negate(a), sat.negate(b)]);
-        assert_eq!(sat.num_variables(), 2);
-        assert_eq!(sat.num_clauses(), 3);
-        let c = sat.add_variable();
-        sat.add_xor_clause(a, b, c);
-        assert!(sat.solve());
-        assert!(!sat.get_value(a));
-        assert!(sat.get_value(b));
-        assert!(sat.get_value(c));
-        sat.add_clause(&[a, sat.negate(b)]);
-        assert!(!sat.solve());
+        test(&mut sat);
     }
 
     #[cfg(feature = "batsat")]
     #[test]
     fn batsat() {
         let mut sat: BatSat = Default::default();
-        let a = sat.add_variable();
-        let b = sat.add_variable();
-        sat.add_clause(&[a, b]);
-        assert!(sat.solve_with(&[sat.negate(b)]));
-        assert!(sat.get_value(a));
-        assert!(!sat.get_value(b));
-        sat.add_clause(&[sat.negate(a), b]);
-        sat.add_clause(&[sat.negate(a), sat.negate(b)]);
-        assert_eq!(sat.num_variables(), 2);
-        assert_eq!(sat.num_clauses(), 3);
-        let c = sat.add_variable();
-        sat.add_xor_clause(a, b, c);
-        assert!(sat.solve());
-        assert!(!sat.get_value(a));
-        assert!(sat.get_value(b));
-        assert!(sat.get_value(c));
-        sat.add_clause(&[a, sat.negate(b)]);
-        assert!(!sat.solve());
+        test(&mut sat);
     }
 }

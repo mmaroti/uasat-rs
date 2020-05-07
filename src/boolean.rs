@@ -452,7 +452,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn boolops() {
+    fn bool_ops() {
         let mut alg = Boolean();
         let a = alg.bool_unit();
         let b = alg.bool_not(a);

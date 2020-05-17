@@ -252,8 +252,9 @@ impl Drop for MiniSat {
 pub struct VariSat<'a> {
     num_variables: u32,
     num_clauses: u32,
-    solver: varisat::solver::Solver<'a>,
+    solver: varisat::Solver<'a>,
     solution: bit_vec::BitVec,
+    temp: Vec<varisat::Lit>,
 }
 
 #[cfg(feature = "varisat")]
@@ -262,31 +263,32 @@ impl<'a> Default for VariSat<'a> {
         VariSat {
             num_variables: 0,
             num_clauses: 0,
-            solver: varisat::solver::Solver::new(),
+            solver: varisat::Solver::new(),
             solution: bit_vec::BitVec::new(),
+            temp: Vec::new(),
         }
     }
 }
 
 #[cfg(feature = "varisat")]
 impl<'a> VariSat<'a> {
-    fn encode(lit: varisat::lit::Lit) -> Literal {
+    fn encode(lit: varisat::Lit) -> Literal {
         Literal {
             value: lit.code() as u32,
         }
     }
 
-    fn decode(lit: Literal) -> varisat::lit::Lit {
-        varisat::lit::Lit::from_code(lit.value as usize)
+    fn decode(lit: Literal) -> varisat::Lit {
+        varisat::Lit::from_code(lit.value as usize)
     }
 }
 
 #[cfg(feature = "varisat")]
 impl<'a> Solver for VariSat<'a> {
     fn add_variable(self: &mut Self) -> Literal {
-        let var = varisat::lit::Var::from_index(self.num_variables as usize);
+        let var = varisat::Var::from_index(self.num_variables as usize);
         self.num_variables += 1;
-        VariSat::encode(varisat::lit::Lit::from_var(var, false))
+        VariSat::encode(varisat::Lit::from_var(var, false))
     }
 
     fn negate(self: &Self, lit: Literal) -> Literal {
@@ -294,15 +296,18 @@ impl<'a> Solver for VariSat<'a> {
     }
 
     fn add_clause(self: &mut Self, lits: &[Literal]) {
-        // TODO: check if smallvec is better
-        let lits: Vec<varisat::lit::Lit> = lits.iter().map(|lit| VariSat::decode(*lit)).collect();
-        self.solver.add_clause(&lits);
+        self.temp.clear();
+        self.temp
+            .extend(lits.iter().map(|lit| VariSat::decode(*lit)));
+        self.solver.add_clause(&self.temp);
         self.num_clauses += 1;
     }
 
     fn solve_with(self: &mut Self, lits: &[Literal]) -> bool {
-        let assumptions: Vec<varisat::Lit> = lits.iter().map(|lit| VariSat::decode(*lit)).collect();
-        self.solver.assume(&assumptions);
+        self.temp.clear();
+        self.temp
+            .extend(lits.iter().map(|lit| VariSat::decode(*lit)));
+        self.solver.assume(&self.temp);
 
         self.solution.truncate(0);
         let solvable = self.solver.solve().unwrap();
@@ -342,6 +347,7 @@ impl<'a> Solver for VariSat<'a> {
 pub struct CryptoMiniSat {
     solver: cryptominisat::Solver,
     num_clauses: u32,
+    temp: Vec<cryptominisat::Lit>,
 }
 
 #[cfg(feature = "cryptominisat")]
@@ -350,6 +356,7 @@ impl Default for CryptoMiniSat {
         CryptoMiniSat {
             solver: cryptominisat::Solver::new(),
             num_clauses: 0,
+            temp: Vec::new(),
         }
     }
 }
@@ -380,10 +387,10 @@ impl Solver for CryptoMiniSat {
     }
 
     fn add_clause(self: &mut Self, lits: &[Literal]) {
-        // TODO: check if smallvec is better
-        let lits: Vec<cryptominisat::Lit> =
-            lits.iter().map(|lit| CryptoMiniSat::decode(*lit)).collect();
-        self.solver.add_clause(&lits);
+        self.temp.clear();
+        self.temp
+            .extend(lits.iter().map(|lit| CryptoMiniSat::decode(*lit)));
+        self.solver.add_clause(&self.temp);
         self.num_clauses += 1;
     }
 
@@ -397,8 +404,9 @@ impl Solver for CryptoMiniSat {
     }
 
     fn solve_with(self: &mut Self, lits: &[Literal]) -> bool {
-        let lits: Vec<cryptominisat::Lit> =
-            lits.iter().map(|lit| CryptoMiniSat::decode(*lit)).collect();
+        self.temp.clear();
+        self.temp
+            .clear(lits.iter().map(|lit| CryptoMiniSat::decode(*lit)));
         self.solver.solve_with_assumptions(&lits) == cryptominisat::Lbool::True
     }
 
@@ -423,6 +431,7 @@ impl Solver for CryptoMiniSat {
 #[cfg(feature = "batsat")]
 pub struct BatSat {
     solver: batsat::BasicSolver,
+    temp: Vec<batsat::Lit>,
 }
 
 #[cfg(feature = "batsat")]
@@ -430,6 +439,7 @@ impl Default for BatSat {
     fn default() -> Self {
         BatSat {
             solver: batsat::Solver::new(Default::default(), Default::default()),
+            temp: Vec::new(),
         }
     }
 }
@@ -461,13 +471,17 @@ impl Solver for BatSat {
     }
 
     fn add_clause(self: &mut Self, lits: &[Literal]) {
-        let mut lits: Vec<batsat::Lit> = lits.iter().map(|lit| BatSat::decode(*lit)).collect();
-        self.solver.add_clause_reuse(&mut lits);
+        self.temp.clear();
+        self.temp
+            .extend(lits.iter().map(|lit| BatSat::decode(*lit)));
+        self.solver.add_clause_reuse(&mut self.temp);
     }
 
     fn solve_with(self: &mut Self, lits: &[Literal]) -> bool {
-        let lits: Vec<batsat::Lit> = lits.iter().map(|lit| BatSat::decode(*lit)).collect();
-        self.solver.solve_limited(&lits) == batsat::lbool::TRUE
+        self.temp.clear();
+        self.temp
+            .extend(lits.iter().map(|lit| BatSat::decode(*lit)));
+        self.solver.solve_limited(&self.temp) == batsat::lbool::TRUE
     }
 
     fn get_value(self: &Self, lit: Literal) -> bool {

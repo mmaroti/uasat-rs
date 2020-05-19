@@ -17,7 +17,6 @@
 
 //! A generic vector trait to work with regular and bit vectors.
 
-extern crate bit_vec;
 use super::solver;
 use bit_vec::BitBlock as _;
 use std::{fmt, iter};

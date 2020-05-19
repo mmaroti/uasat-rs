@@ -5,11 +5,11 @@ license = "GPLv3"
 authors = ["Miklos Maroti <mmaroti@gmail.com>"]
 version = "0.1.3"
 edition = "2018"
-repository = "https://github.com/mmaroti/uasat.rs"
+repository = "https://github.com/mmaroti/uasat-rs"
 
 [features]
 default = ["minisat", "varisat", "cryptominisat", "batsat"]
-wasm = ["console_error_panic_hook", "varisat"]
+wasm = ["console_error_panic_hook", "varisat", "batsat"]
 
 [dependencies]
 bit-vec = "0.6"

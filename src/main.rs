@@ -27,10 +27,6 @@ pub mod solver;
 pub mod tensor;
 mod testing;
 
-#[cfg(feature = "console_error_panic_hook")]
-extern crate console_error_panic_hook;
-extern crate wasm_bindgen;
-
 use solver::*;
 #[cfg(feature = "console_error_panic_hook")]
 use std::panic;

@@ -18,19 +18,6 @@
 //! A generic trait to work with various SAT solvers.
 
 #[cfg(feature = "batsat")]
-extern crate batsat;
-#[cfg(any(feature = "varisat", feature = "splr"))]
-extern crate bit_vec;
-#[cfg(feature = "cryptominisat")]
-extern crate cryptominisat;
-#[cfg(feature = "minisat")]
-extern crate minisat;
-#[cfg(feature = "splr")]
-extern crate splr;
-#[cfg(feature = "varisat")]
-extern crate varisat;
-
-#[cfg(feature = "batsat")]
 use batsat::intmap::AsIndex as _;
 #[cfg(feature = "batsat")]
 use batsat::SolverInterface as _;
@@ -93,15 +80,12 @@ pub trait Solver {
     fn num_clauses(self: &Self) -> u32;
 }
 
-/// Tries to create a SAT solver with the given name. Currently "varisat",
-/// "minisat" and "cryptominisat" (not on wasm) are supported. Use the empty
-/// string to match the first available solver.
+/// Tries to create a SAT solver with the given name. Currently "batsat",
+/// "varisat", "minisat" and "cryptominisat" are supported, but not on all
+/// platforms. Use the empty string to match the first available solver.
 pub fn create_solver(name: &str) -> Box<dyn Solver> {
-    let mut enabled_solvers = 0;
-
     #[cfg(feature = "minisat")]
     {
-        enabled_solvers += 1;
         if name == "minisat" || name == "" {
             let sat: MiniSat = Default::default();
             return Box::new(sat);
@@ -110,7 +94,6 @@ pub fn create_solver(name: &str) -> Box<dyn Solver> {
 
     #[cfg(feature = "varisat")]
     {
-        enabled_solvers += 1;
         if name == "varisat" || name == "" {
             let sat: VariSat = Default::default();
             return Box::new(sat);
@@ -119,7 +102,6 @@ pub fn create_solver(name: &str) -> Box<dyn Solver> {
 
     #[cfg(feature = "cryptominisat")]
     {
-        enabled_solvers += 1;
         if name == "cryptominisat" || name == "" {
             let sat: CryptoMiniSat = Default::default();
             return Box::new(sat);
@@ -128,7 +110,6 @@ pub fn create_solver(name: &str) -> Box<dyn Solver> {
 
     #[cfg(feature = "batsat")]
     {
-        enabled_solvers += 1;
         if name == "batsat" || name == "" {
             let sat: BatSat = Default::default();
             return Box::new(sat);
@@ -137,18 +118,13 @@ pub fn create_solver(name: &str) -> Box<dyn Solver> {
 
     #[cfg(feature = "splr")]
     {
-        enabled_solvers += 1;
         if name == "splr" || name == "" {
             let sat: SplrSat = Default::default();
             return Box::new(sat);
         }
     }
 
-    if enabled_solvers == 0 {
-        panic!("No SAT solvers are available.")
-    } else {
-        panic!("Unknown SAT solver: {}", name);
-    }
+    panic!("Unknown SAT solver: {}", name);
 }
 
 impl fmt::Debug for dyn Solver {
@@ -406,8 +382,8 @@ impl Solver for CryptoMiniSat {
     fn solve_with(self: &mut Self, lits: &[Literal]) -> bool {
         self.temp.clear();
         self.temp
-            .clear(lits.iter().map(|lit| CryptoMiniSat::decode(*lit)));
-        self.solver.solve_with_assumptions(&lits) == cryptominisat::Lbool::True
+            .extend(lits.iter().map(|lit| CryptoMiniSat::decode(*lit)));
+        self.solver.solve_with_assumptions(&self.temp) == cryptominisat::Lbool::True
     }
 
     fn get_value(self: &Self, lit: Literal) -> bool {
@@ -501,7 +477,7 @@ impl Solver for BatSat {
     }
 }
 
-/// MiniSAT reimplemented in pure rust.
+/// A pure Rustic SAT solver, based on Glucose 4.1.
 #[cfg(feature = "splr")]
 pub struct SplrSat {
     variables: i32,

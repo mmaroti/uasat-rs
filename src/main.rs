@@ -150,24 +150,25 @@ pub fn test(input: String) -> String {
 }
 
 fn main() {
+    let size = 8;
     #[cfg(feature = "minisat")]
-    println!("{}", test_solver("minisat", 8));
+    println!("{}", test_solver("minisat", size));
     #[cfg(feature = "minisat")]
-    println!("{}", test_solver2("minisat", 8));
+    println!("{}", test_solver2("minisat", size));
     #[cfg(feature = "varisat")]
-    println!("{}", test_solver("varisat", 8));
+    println!("{}", test_solver("varisat", size));
     #[cfg(feature = "varisat")]
-    println!("{}", test_solver2("varisat", 8));
+    println!("{}", test_solver2("varisat", size));
     #[cfg(feature = "cryptominisat")]
-    println!("{}", test_solver("cryptominisat", 8));
+    println!("{}", test_solver("cryptominisat", size));
     #[cfg(feature = "cryptominisat")]
-    println!("{}", test_solver2("cryptominisat", 8));
+    println!("{}", test_solver2("cryptominisat", size));
     #[cfg(feature = "batsat")]
-    println!("{}", test_solver("batsat", 8));
+    println!("{}", test_solver("batsat", size));
     #[cfg(feature = "batsat")]
-    println!("{}", test_solver2("batsat", 8));
+    println!("{}", test_solver2("batsat", size));
     #[cfg(feature = "splr")]
-    println!("{}", test_solver("splr", 8));
+    println!("{}", test_solver("splr", size));
     #[cfg(feature = "splr")]
-    println!("{}", test_solver2("splr", 8));
+    println!("{}", test_solver2("splr", size));
 }

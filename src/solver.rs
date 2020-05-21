@@ -522,10 +522,11 @@ impl Solver for SplrSat {
         }
         let config: splr::Config = Default::default();
         let mut solver = splr::Solver::try_from((config, self.clauses.as_ref())).unwrap();
+        let result = solver.solve().unwrap();
         self.clauses.truncate(old_len);
 
         self.solution.clear();
-        match solver.solve().unwrap() {
+        match result {
             splr::Certificate::SAT(result) => {
                 self.solution.grow(self.num_variables() as usize, false);
                 for lit in result {

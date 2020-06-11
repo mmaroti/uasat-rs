@@ -8,7 +8,7 @@ edition = "2018"
 repository = "https://github.com/mmaroti/uasat-rs"
 
 [features]
-default = ["minisat", "varisat", "cryptominisat", "batsat"]
+default = ["minisat", "varisat", "cryptominisat", "batsat", "cadical"]
 wasm = ["console_error_panic_hook", "varisat", "batsat"]
 
 [dependencies]
@@ -19,6 +19,7 @@ varisat = { version = "0.2", optional = true }
 cryptominisat = { version = "5.6", optional = true }
 batsat = { version = "0.4", optional = true }
 splr = { git = "https://github.com/shnarazk/splr.git", branch = "dev-0.4.1", optional = true }
+cadical = { version = "0.1", optional = true }
 console_error_panic_hook = { version = "0.1", optional = true }
 
 [dev-dependencies]

@@ -77,7 +77,7 @@ pub trait Solver {
     fn num_variables(self: &Self) -> u32;
 
     /// Returns the number of clauses in the solver.
-    fn num_clauses(self: &Self) -> u32;
+    fn num_clauses(self: &Self) -> usize;
 }
 
 /// Tries to create a SAT solver with the given name. Currently "batsat",
@@ -120,6 +120,14 @@ pub fn create_solver(name: &str) -> Box<dyn Solver> {
     {
         if name == "splr" || name == "" {
             let sat: SplrSat = Default::default();
+            return Box::new(sat);
+        }
+    }
+
+    #[cfg(feature = "cadical")]
+    {
+        if name == "cadical" || name == "" {
+            let sat: CaDiCaL = Default::default();
             return Box::new(sat);
         }
     }
@@ -211,8 +219,8 @@ impl Solver for MiniSat {
         unsafe { minisat::sys::minisat_num_vars(self.ptr) as u32 }
     }
 
-    fn num_clauses(self: &Self) -> u32 {
-        unsafe { minisat::sys::minisat_num_clauses(self.ptr) as u32 }
+    fn num_clauses(self: &Self) -> usize {
+        unsafe { minisat::sys::minisat_num_clauses(self.ptr) as usize }
     }
 }
 
@@ -227,7 +235,7 @@ impl Drop for MiniSat {
 #[cfg(feature = "varisat")]
 pub struct VariSat<'a> {
     num_variables: u32,
-    num_clauses: u32,
+    num_clauses: usize,
     solver: varisat::Solver<'a>,
     solution: bit_vec::BitVec,
     temp: Vec<varisat::Lit>,
@@ -313,7 +321,7 @@ impl<'a> Solver for VariSat<'a> {
         self.num_variables
     }
 
-    fn num_clauses(self: &Self) -> u32 {
+    fn num_clauses(self: &Self) -> usize {
         self.num_clauses
     }
 }
@@ -322,7 +330,7 @@ impl<'a> Solver for VariSat<'a> {
 #[cfg(feature = "cryptominisat")]
 pub struct CryptoMiniSat {
     solver: cryptominisat::Solver,
-    num_clauses: u32,
+    num_clauses: usize,
     temp: Vec<cryptominisat::Lit>,
 }
 
@@ -398,7 +406,7 @@ impl Solver for CryptoMiniSat {
         self.solver.nvars()
     }
 
-    fn num_clauses(self: &Self) -> u32 {
+    fn num_clauses(self: &Self) -> usize {
         self.num_clauses
     }
 }
@@ -472,8 +480,8 @@ impl Solver for BatSat {
         self.solver.num_vars()
     }
 
-    fn num_clauses(self: &Self) -> u32 {
-        self.solver.num_clauses() as u32
+    fn num_clauses(self: &Self) -> usize {
+        self.solver.num_clauses() as usize
     }
 }
 
@@ -554,8 +562,59 @@ impl Solver for SplrSat {
         self.variables as u32
     }
 
-    fn num_clauses(self: &Self) -> u32 {
-        self.clauses.len() as u32
+    fn num_clauses(self: &Self) -> usize {
+        self.clauses.len()
+    }
+}
+
+/// MiniSAT reimplemented in pure rust.
+#[cfg(feature = "cadical")]
+#[derive(Default)]
+pub struct CaDiCaL {
+    solver: cadical::Solver,
+    num_vars: u32,
+}
+
+#[cfg(feature = "cadical")]
+impl Solver for CaDiCaL {
+    fn add_variable(self: &mut Self) -> Literal {
+        self.num_vars += 1;
+        Literal {
+            value: self.num_vars,
+        }
+    }
+
+    fn negate(self: &Self, lit: Literal) -> Literal {
+        Literal {
+            value: -(lit.value as i32) as u32,
+        }
+    }
+
+    fn add_clause(self: &mut Self, lits: &[Literal]) {
+        self.solver
+            .add_clause(lits.iter().map(|lit| lit.value as i32));
+    }
+
+    fn solve_with(self: &mut Self, lits: &[Literal]) -> bool {
+        self.solver
+            .solve_with(lits.iter().map(|lit| lit.value as i32))
+            .unwrap()
+    }
+
+    fn get_value(self: &Self, lit: Literal) -> bool {
+        self.solver.value(lit.value as i32) == Some(true)
+    }
+
+    fn get_name(self: &Self) -> &'static str {
+        "CaDiCaL"
+    }
+
+    fn num_variables(self: &Self) -> u32 {
+        self.num_vars
+    }
+
+    fn num_clauses(self: &Self) -> usize {
+        self.solver.num_clauses() as usize
     }
 }
 

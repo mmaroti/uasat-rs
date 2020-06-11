@@ -171,4 +171,8 @@ fn main() {
     println!("{}", test_solver("splr", size));
     #[cfg(feature = "splr")]
     println!("{}", test_solver2("splr", size));
+    #[cfg(feature = "cadical")]
+    println!("{}", test_solver("cadical", size));
+    #[cfg(feature = "cadical")]
+    println!("{}", test_solver2("cadical", size));
 }

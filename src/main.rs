@@ -25,6 +25,7 @@ pub mod parser;
 pub mod relation;
 pub mod solver;
 pub mod tensor;
+pub mod structure;
 mod testing;
 
 use solver::*;

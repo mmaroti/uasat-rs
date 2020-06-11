@@ -677,4 +677,11 @@ mod tests {
         let mut sat: SplrSat = Default::default();
         test(&mut sat);
     }
+
+    #[cfg(feature = "cadical")]
+    #[test]
+    fn cadical() {
+        let mut sat: CaDiCaL = Default::default();
+        test(&mut sat);
+    }
 }

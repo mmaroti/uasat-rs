@@ -245,6 +245,13 @@ where
         self.elems.set(self.shape.index(coords), elem);
     }
 
+    /// Returns the scalar value contained within a tensor of shape [].
+    pub fn scalar(&self) -> ELEM {
+        assert!(self.shape.is_empty());
+        assert!(self.elems.len() == 1);
+        self.elems.get(0)
+    }
+
     /// Creates a new tensor of the given shape from the given old tensor with
     /// permuted, identified or new dummy coordinates. The mapping is a vector
     /// of length of the original tensor shape with entries identifying the
@@ -322,6 +329,10 @@ pub trait TensorAlg {
     /// Returns a new tensor with the first dimension removed where the result
     /// is the binary sum of the elements.
     fn tensor_sum(self: &mut Self, elem: Self::Elem) -> Self::Elem;
+
+    /// Returns a new tensor with the first dimension removed where the result
+    /// is the exactly one set predicate.
+    fn tensor_one(self: &mut Self, elem: Self::Elem) -> Self::Elem;
 }
 
 impl<ALG> TensorAlg for ALG
@@ -438,6 +449,17 @@ where
             .split(head)
             .iter()
             .map(|v| self.bool_fold_sum(v.iter()))
+            .collect();
+        Tensor::new(shape, elems)
+    }
+
+    fn tensor_one(self: &mut Self, elem: Self::Elem) -> Self::Elem {
+        let (head, shape) = elem.shape.split();
+        let elems = elem
+            .elems
+            .split(head)
+            .iter()
+            .map(|v| self.bool_fold_one(v.iter()))
             .collect();
         Tensor::new(shape, elems)
     }

@@ -26,6 +26,12 @@ where
     size: usize,
 }
 
+impl<ALG: tensor::TensorAlg> Universe<ALG> {
+    pub fn new(alg: ALG, size: usize) -> Self {
+        Self { alg, size }
+    }
+}
+
 impl<ALG> Universe<ALG>
 where
     ALG: tensor::TensorAlg,

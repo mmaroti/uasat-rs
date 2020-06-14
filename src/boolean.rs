@@ -133,7 +133,24 @@ pub trait BoolAlg {
         result
     }
 
-    fn bool_fold_equ<ITER>(self: &mut Self, pairs: ITER) -> Self::Elem
+    /// Computes the exactly one predicate over the given elements.
+    fn bool_fold_one<ITER>(self: &mut Self, elems: ITER) -> Self::Elem
+    where
+        ITER: Iterator<Item = Self::Elem>,
+    {
+        let mut min1 = self.bool_zero();
+        let mut min2 = self.bool_zero();
+        for elem in elems {
+            let tmp = self.bool_and(min1.clone(), elem.clone());
+            min2 = self.bool_or(min2, tmp);
+            min1 = self.bool_or(min1, elem);
+        }
+        min2 = self.bool_not(min2);
+        self.bool_and(min1, min2)
+    }
+
+    /// Returns true if the two sequences are equal.
+    fn bool_cmp_equ<ITER>(self: &mut Self, pairs: ITER) -> Self::Elem
     where
         ITER: Iterator<Item = (Self::Elem, Self::Elem)>,
     {
@@ -145,15 +162,18 @@ pub trait BoolAlg {
         result
     }
 
-    fn bool_fold_neq<ITER>(self: &mut Self, pairs: ITER) -> Self::Elem
+    /// Returns true if the two sequences are not equal.
+    fn bool_cmp_neq<ITER>(self: &mut Self, pairs: ITER) -> Self::Elem
     where
         ITER: Iterator<Item = (Self::Elem, Self::Elem)>,
     {
-        let result = self.bool_fold_equ(pairs);
+        let result = self.bool_cmp_equ(pairs);
         self.bool_not(result)
     }
 
-    fn bool_fold_leq<ITER>(self: &mut Self, pairs: ITER) -> Self::Elem
+    /// Returns true if the first sequence is lexicographically smaller
+    /// than or equal to the second one.
+    fn bool_cmp_leq<ITER>(self: &mut Self, pairs: ITER) -> Self::Elem
     where
         ITER: Iterator<Item = (Self::Elem, Self::Elem)>,
     {
@@ -165,7 +185,9 @@ pub trait BoolAlg {
         result
     }
 
-    fn bool_fold_ltn<ITER>(self: &mut Self, pairs: ITER) -> Self::Elem
+    /// Returns true if the first sequence is lexicographically smaller
+    /// than the second one.
+    fn bool_cmp_ltn<ITER>(self: &mut Self, pairs: ITER) -> Self::Elem
     where
         ITER: Iterator<Item = (Self::Elem, Self::Elem)>,
     {
@@ -366,11 +388,11 @@ where
             (0..(2 * len)).map(|_| self.bool_add_variable()).collect();
 
         // lower bound
-        let result = self.bool_fold_ltn(variables.iter().take(len).zip(literals.iter()));
+        let result = self.bool_cmp_ltn(variables.iter().take(len).zip(literals.iter()));
         self.bool_add_clause(&[result]);
 
         // upper bound
-        let result = self.bool_fold_ltn(literals.iter().zip(variables.iter().skip(len)));
+        let result = self.bool_cmp_ltn(literals.iter().zip(variables.iter().skip(len)));
         self.bool_add_clause(&[result]);
 
         let mut lower_bound: genvec::VectorFor<bool> = iter::repeat(true)

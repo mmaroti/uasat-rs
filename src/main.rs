@@ -24,8 +24,10 @@ pub mod lexer;
 pub mod parser;
 pub mod relation;
 pub mod solver;
-pub mod tensor;
 pub mod structure;
+pub mod tensor;
+
+mod research;
 mod testing;
 
 use solver::*;
@@ -150,7 +152,7 @@ pub fn test(input: String) -> String {
     output
 }
 
-fn main() {
+pub fn main_old() {
     let size = 8;
     #[cfg(feature = "minisat")]
     println!("{}", test_solver("minisat", size));
@@ -176,4 +178,8 @@ fn main() {
     println!("{}", test_solver("cadical", size));
     #[cfg(feature = "cadical")]
     println!("{}", test_solver2("cadical", size));
+}
+
+pub fn main() {
+    research::poset::test();
 }

@@ -36,7 +36,7 @@ pub struct Token<'a> {
 }
 
 impl<'a> fmt::Display for Token<'a> {
-    fn fmt(self: &Self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(self, f)
     }
 }
@@ -68,7 +68,7 @@ impl<'a> Lexer<'a> {
     }
 
     #[inline]
-    fn read_char(self: &mut Self) {
+    fn read_char(&mut self) {
         match self.iter.next() {
             Some((p, c)) => {
                 self.offset = p;
@@ -82,7 +82,7 @@ impl<'a> Lexer<'a> {
         };
     }
 
-    fn get_range(self: &mut Self, pred: impl Fn(char) -> bool) -> &'a str {
+    fn get_range(&mut self, pred: impl Fn(char) -> bool) -> &'a str {
         let offset = self.offset;
         while let Some(c) = self.next {
             if pred(c) {
@@ -94,7 +94,7 @@ impl<'a> Lexer<'a> {
         self.data.get(offset..self.offset).unwrap()
     }
 
-    fn get_single(self: &mut Self) -> &'a str {
+    fn get_single(&mut self) -> &'a str {
         let offset = self.offset;
         self.read_char();
         self.data.get(offset..self.offset).unwrap()
@@ -104,7 +104,7 @@ impl<'a> Lexer<'a> {
 impl<'a> Iterator for Lexer<'a> {
     type Item = Token<'a>;
 
-    fn next(self: &mut Self) -> Option<Self::Item> {
+    fn next(&mut self) -> Option<Self::Item> {
         while let Some(c) = self.next {
             if c.is_alphabetic() || c == '_' {
                 return Some(Token {

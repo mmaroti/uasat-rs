@@ -31,29 +31,29 @@ pub trait BoolAlg {
     type Elem: Clone;
 
     /// Returns the logical true (top) element of the algebra.
-    fn bool_unit(self: &Self) -> Self::Elem {
+    fn bool_unit(&self) -> Self::Elem {
         self.bool_lift(true)
     }
 
     /// Returns the logical false (bottom) element of the algebra.
-    fn bool_zero(self: &Self) -> Self::Elem {
+    fn bool_zero(&self) -> Self::Elem {
         self.bool_lift(false)
     }
 
     /// Returns either the unit or zero element depending of the argument.
-    fn bool_lift(self: &Self, elem: bool) -> Self::Elem;
+    fn bool_lift(&self, elem: bool) -> Self::Elem;
 
     /// Return the logical negation of the element.
-    fn bool_not(self: &mut Self, elem: Self::Elem) -> Self::Elem;
+    fn bool_not(&mut self, elem: Self::Elem) -> Self::Elem;
 
     /// Returns the logical or (lattice join) of a pair of elements.
-    fn bool_or(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
+    fn bool_or(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
 
     /// Returns the exclusive or (boolean addition) of a pair of elements.
-    fn bool_xor(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
+    fn bool_xor(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
 
     /// Returns the logical and (lattice meet) of a pair of elements.
-    fn bool_and(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_and(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         let tmp1 = self.bool_not(elem1);
         let tmp2 = self.bool_not(elem2);
         let tmp3 = self.bool_or(tmp1, tmp2);
@@ -61,35 +61,25 @@ pub trait BoolAlg {
     }
 
     /// Returns the logical equivalence of a pair of elements.
-    fn bool_equ(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_equ(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         let tmp = self.bool_not(elem1);
         self.bool_xor(tmp, elem2)
     }
 
     /// Returns the logical implication of a pair of elements.
-    fn bool_imp(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_imp(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         let tmp = self.bool_not(elem1);
         self.bool_or(tmp, elem2)
     }
 
     /// Returns the boolean sum of three values.
-    fn bool_sum3(
-        self: &mut Self,
-        elem1: Self::Elem,
-        elem2: Self::Elem,
-        elem3: Self::Elem,
-    ) -> Self::Elem {
+    fn bool_sum3(&mut self, elem1: Self::Elem, elem2: Self::Elem, elem3: Self::Elem) -> Self::Elem {
         let tmp = self.bool_xor(elem1, elem2);
         self.bool_xor(tmp, elem3)
     }
 
     /// Returns the majority of the given values.
-    fn bool_maj(
-        self: &mut Self,
-        elem1: Self::Elem,
-        elem2: Self::Elem,
-        elem3: Self::Elem,
-    ) -> Self::Elem {
+    fn bool_maj(&mut self, elem1: Self::Elem, elem2: Self::Elem, elem3: Self::Elem) -> Self::Elem {
         let tmp1 = self.bool_and(elem1.clone(), elem2.clone());
         let tmp2 = self.bool_and(elem1, elem3.clone());
         let tmp3 = self.bool_and(elem2, elem3);
@@ -98,7 +88,7 @@ pub trait BoolAlg {
     }
 
     /// Computes the conjunction of the elements.
-    fn bool_fold_all<ITER>(self: &mut Self, elems: ITER) -> Self::Elem
+    fn bool_fold_all<ITER>(&mut self, elems: ITER) -> Self::Elem
     where
         ITER: Iterator<Item = Self::Elem>,
     {
@@ -110,7 +100,7 @@ pub trait BoolAlg {
     }
 
     /// Computes the disjunction of the elements.
-    fn bool_fold_any<ITER>(self: &mut Self, elems: ITER) -> Self::Elem
+    fn bool_fold_any<ITER>(&mut self, elems: ITER) -> Self::Elem
     where
         ITER: Iterator<Item = Self::Elem>,
     {
@@ -122,7 +112,7 @@ pub trait BoolAlg {
     }
 
     /// Computes the boolean sum of the elements.
-    fn bool_fold_sum<ITER>(self: &mut Self, elems: ITER) -> Self::Elem
+    fn bool_fold_sum<ITER>(&mut self, elems: ITER) -> Self::Elem
     where
         ITER: Iterator<Item = Self::Elem>,
     {
@@ -134,7 +124,7 @@ pub trait BoolAlg {
     }
 
     /// Computes the exactly one predicate over the given elements.
-    fn bool_fold_one<ITER>(self: &mut Self, elems: ITER) -> Self::Elem
+    fn bool_fold_one<ITER>(&mut self, elems: ITER) -> Self::Elem
     where
         ITER: Iterator<Item = Self::Elem>,
     {
@@ -150,7 +140,7 @@ pub trait BoolAlg {
     }
 
     /// Returns true if the two sequences are equal.
-    fn bool_cmp_equ<ITER>(self: &mut Self, pairs: ITER) -> Self::Elem
+    fn bool_cmp_equ<ITER>(&mut self, pairs: ITER) -> Self::Elem
     where
         ITER: Iterator<Item = (Self::Elem, Self::Elem)>,
     {
@@ -163,7 +153,7 @@ pub trait BoolAlg {
     }
 
     /// Returns true if the two sequences are not equal.
-    fn bool_cmp_neq<ITER>(self: &mut Self, pairs: ITER) -> Self::Elem
+    fn bool_cmp_neq<ITER>(&mut self, pairs: ITER) -> Self::Elem
     where
         ITER: Iterator<Item = (Self::Elem, Self::Elem)>,
     {
@@ -173,7 +163,7 @@ pub trait BoolAlg {
 
     /// Returns true if the first sequence is lexicographically smaller
     /// than or equal to the second one.
-    fn bool_cmp_leq<ITER>(self: &mut Self, pairs: ITER) -> Self::Elem
+    fn bool_cmp_leq<ITER>(&mut self, pairs: ITER) -> Self::Elem
     where
         ITER: Iterator<Item = (Self::Elem, Self::Elem)>,
     {
@@ -187,7 +177,7 @@ pub trait BoolAlg {
 
     /// Returns true if the first sequence is lexicographically smaller
     /// than the second one.
-    fn bool_cmp_ltn<ITER>(self: &mut Self, pairs: ITER) -> Self::Elem
+    fn bool_cmp_ltn<ITER>(&mut self, pairs: ITER) -> Self::Elem
     where
         ITER: Iterator<Item = (Self::Elem, Self::Elem)>,
     {
@@ -206,13 +196,13 @@ pub struct Trivial();
 impl BoolAlg for Trivial {
     type Elem = ();
 
-    fn bool_lift(self: &Self, _elem: bool) -> Self::Elem {}
+    fn bool_lift(&self, _elem: bool) -> Self::Elem {}
 
-    fn bool_not(self: &mut Self, _elem: Self::Elem) -> Self::Elem {}
+    fn bool_not(&mut self, _elem: Self::Elem) -> Self::Elem {}
 
-    fn bool_or(self: &mut Self, _elem1: Self::Elem, _elem2: Self::Elem) -> Self::Elem {}
+    fn bool_or(&mut self, _elem1: Self::Elem, _elem2: Self::Elem) -> Self::Elem {}
 
-    fn bool_xor(self: &mut Self, _elem1: Self::Elem, _elem2: Self::Elem) -> Self::Elem {}
+    fn bool_xor(&mut self, _elem1: Self::Elem, _elem2: Self::Elem) -> Self::Elem {}
 }
 
 /// The two element boolean algebra with native `bool` elements.
@@ -222,31 +212,31 @@ pub struct Boolean();
 impl BoolAlg for Boolean {
     type Elem = bool;
 
-    fn bool_lift(self: &Self, elem: bool) -> Self::Elem {
+    fn bool_lift(&self, elem: bool) -> Self::Elem {
         elem
     }
 
-    fn bool_not(self: &mut Self, elem: Self::Elem) -> Self::Elem {
+    fn bool_not(&mut self, elem: Self::Elem) -> Self::Elem {
         !elem
     }
 
-    fn bool_or(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_or(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         elem1 || elem2
     }
 
-    fn bool_xor(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_xor(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         elem1 ^ elem2
     }
 
-    fn bool_and(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_and(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         elem1 && elem2
     }
 
-    fn bool_equ(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_equ(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         elem1 == elem2
     }
 
-    fn bool_imp(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_imp(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         elem1 <= elem2
     }
 }
@@ -269,7 +259,7 @@ impl Solver {
         Solver { solver, unit, zero }
     }
 
-    pub fn get_name(self: &Self) -> &'static str {
+    pub fn get_name(&self) -> &'static str {
         self.solver.get_name()
     }
 }
@@ -277,7 +267,7 @@ impl Solver {
 impl BoolAlg for Solver {
     type Elem = solver::Literal;
 
-    fn bool_lift(self: &Self, elem: bool) -> Self::Elem {
+    fn bool_lift(&self, elem: bool) -> Self::Elem {
         if elem {
             self.unit
         } else {
@@ -285,11 +275,11 @@ impl BoolAlg for Solver {
         }
     }
 
-    fn bool_not(self: &mut Self, elem: Self::Elem) -> Self::Elem {
+    fn bool_not(&mut self, elem: Self::Elem) -> Self::Elem {
         self.solver.negate(elem)
     }
 
-    fn bool_or(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_or(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         let not_elem2 = self.solver.negate(elem2);
         if elem1 == self.unit || elem2 == self.unit || elem1 == not_elem2 {
             self.unit
@@ -308,7 +298,7 @@ impl BoolAlg for Solver {
         }
     }
 
-    fn bool_xor(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_xor(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         let not_elem2 = self.solver.negate(elem2);
         if elem1 == self.zero {
             elem2
@@ -336,15 +326,15 @@ where
     Self::Elem: genvec::Element,
 {
     /// Adds a new variable to the solver
-    fn bool_add_variable(self: &mut Self) -> Self::Elem;
+    fn bool_add_variable(&mut self) -> Self::Elem;
 
     /// Adds the given (disjunctive) clause to the solver.
-    fn bool_add_clause(self: &mut Self, clause: &[Self::Elem]);
+    fn bool_add_clause(&mut self, clause: &[Self::Elem]);
 
     /// Runs the solver with the given assumptions and returns the value of
     /// the given literals if a solution is found.
     fn bool_find_one_model<ITER>(
-        self: &mut Self,
+        &mut self,
         assumptions: &[Self::Elem],
         literals: ITER,
     ) -> Option<genvec::VectorFor<bool>>
@@ -444,16 +434,16 @@ where
 }
 
 impl BoolSat for Solver {
-    fn bool_add_variable(self: &mut Self) -> Self::Elem {
+    fn bool_add_variable(&mut self) -> Self::Elem {
         self.solver.add_variable()
     }
 
-    fn bool_add_clause(self: &mut Self, clause: &[Self::Elem]) {
+    fn bool_add_clause(&mut self, clause: &[Self::Elem]) {
         self.solver.add_clause(clause)
     }
 
     fn bool_find_one_model<ITER>(
-        self: &mut Self,
+        &mut self,
         assumptions: &[Self::Elem],
         literals: ITER,
     ) -> Option<genvec::VectorFor<bool>>

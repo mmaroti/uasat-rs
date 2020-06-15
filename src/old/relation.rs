@@ -36,19 +36,19 @@ impl<ALG> Universe<ALG>
 where
     ALG: tensor::TensorAlg,
 {
-    pub fn is_scalar(self: &Self, elem: &ALG::Elem) -> bool {
+    pub fn is_scalar(&self, elem: &ALG::Elem) -> bool {
         self.alg.shape(elem).is_empty()
     }
 
-    pub fn is_relation(self: &Self, elem: &ALG::Elem) -> bool {
+    pub fn is_relation(&self, elem: &ALG::Elem) -> bool {
         self.alg.shape(elem).is_rectangular(self.size)
     }
 
-    pub fn is_binary_rel(self: &Self, elem: &ALG::Elem) -> bool {
+    pub fn is_binary_rel(&self, elem: &ALG::Elem) -> bool {
         self.alg.shape(elem).len() == 2 && self.is_relation(elem)
     }
 
-    fn new_shape(self: &Self, len: usize) -> tensor::Shape {
+    fn new_shape(&self, len: usize) -> tensor::Shape {
         let mut shape = Vec::with_capacity(len);
         shape.resize(len, self.size);
         tensor::Shape::new(shape)
@@ -62,41 +62,41 @@ where
 {
     type Elem = ALG::Elem;
 
-    fn bool_lift(self: &Self, elem: bool) -> Self::Elem {
+    fn bool_lift(&self, elem: bool) -> Self::Elem {
         self.alg
             .tensor_lift(tensor::Tensor::create(self.new_shape(0), |_| elem))
     }
 
-    fn bool_not(self: &mut Self, elem: Self::Elem) -> Self::Elem {
+    fn bool_not(&mut self, elem: Self::Elem) -> Self::Elem {
         assert!(self.is_scalar(&elem));
         self.alg.tensor_not(elem)
     }
 
-    fn bool_or(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_or(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         assert!(self.is_scalar(&elem1));
         assert!(self.is_scalar(&elem2));
         self.alg.tensor_or(elem1, elem2)
     }
 
-    fn bool_xor(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_xor(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         assert!(self.is_scalar(&elem1));
         assert!(self.is_scalar(&elem2));
         self.alg.tensor_xor(elem1, elem2)
     }
 
-    fn bool_and(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_and(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         assert!(self.is_scalar(&elem1));
         assert!(self.is_scalar(&elem2));
         self.alg.tensor_and(elem1, elem2)
     }
 
-    fn bool_equ(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_equ(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         assert!(self.is_scalar(&elem1));
         assert!(self.is_scalar(&elem2));
         self.alg.tensor_equ(elem1, elem2)
     }
 
-    fn bool_imp(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bool_imp(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         assert!(self.is_scalar(&elem1));
         assert!(self.is_scalar(&elem2));
         self.alg.tensor_imp(elem1, elem2)
@@ -107,29 +107,29 @@ pub trait BinaryRelAlg {
     type Elem: Clone;
 
     /// Returns the empty or total relation.
-    fn binrel_lift(self: &mut Self, elem: bool) -> Self::Elem;
+    fn binrel_lift(&mut self, elem: bool) -> Self::Elem;
 
     /// Returns the empty relation.
-    fn binrel_empty(self: &mut Self) -> Self::Elem {
+    fn binrel_empty(&mut self) -> Self::Elem {
         self.binrel_lift(false)
     }
 
     /// Returns the total relation.
-    fn binrel_total(self: &mut Self) -> Self::Elem {
+    fn binrel_total(&mut self) -> Self::Elem {
         self.binrel_lift(true)
     }
 
     /// Returns the diagonal relation.
-    fn binrel_diag(self: &mut Self) -> Self::Elem;
+    fn binrel_diag(&mut self) -> Self::Elem;
 
     /// Returns the complement of the given relation.
-    fn binrel_comp(self: &mut Self, elem: Self::Elem) -> Self::Elem;
+    fn binrel_comp(&mut self, elem: Self::Elem) -> Self::Elem;
 
     /// Intersection of a pair of relations.
-    fn binrel_meet(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
+    fn binrel_meet(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
 
     /// Union of a pair of relations.
-    fn binrel_join(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn binrel_join(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         let elem1 = self.binrel_comp(elem1);
         let elem2 = self.binrel_comp(elem2);
         let elem3 = self.binrel_meet(elem1, elem2);
@@ -137,10 +137,10 @@ pub trait BinaryRelAlg {
     }
 
     /// Returns the inverse of the relation.
-    fn binrel_inv(self: &mut Self, elem: Self::Elem) -> Self::Elem;
+    fn binrel_inv(&mut self, elem: Self::Elem) -> Self::Elem;
 
     /// Returns the composition of a pair of relations.
-    fn binrel_circ(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
+    fn binrel_circ(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
 }
 
 impl<ALG> BinaryRelAlg for Universe<ALG>
@@ -149,37 +149,37 @@ where
 {
     type Elem = ALG::Elem;
 
-    fn binrel_lift(self: &mut Self, elem: bool) -> Self::Elem {
+    fn binrel_lift(&mut self, elem: bool) -> Self::Elem {
         self.alg
             .tensor_lift(tensor::Tensor::create(self.new_shape(2), |_| elem))
     }
 
-    fn binrel_diag(self: &mut Self) -> Self::Elem {
+    fn binrel_diag(&mut self) -> Self::Elem {
         self.alg
             .tensor_lift(tensor::Tensor::create(self.new_shape(2), |c| c[0] == c[1]))
     }
 
-    fn binrel_comp(self: &mut Self, elem: Self::Elem) -> Self::Elem {
+    fn binrel_comp(&mut self, elem: Self::Elem) -> Self::Elem {
         assert!(self.is_binary_rel(&elem));
         self.alg.tensor_not(elem)
     }
 
-    fn binrel_meet(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn binrel_meet(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         assert!(self.is_binary_rel(&elem1));
         self.alg.tensor_and(elem1, elem2)
     }
 
-    fn binrel_join(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn binrel_join(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         assert!(self.is_binary_rel(&elem1));
         self.alg.tensor_or(elem1, elem2)
     }
 
-    fn binrel_inv(self: &mut Self, elem: Self::Elem) -> Self::Elem {
+    fn binrel_inv(&mut self, elem: Self::Elem) -> Self::Elem {
         assert!(self.is_binary_rel(&elem));
         self.alg.tensor_polymer(elem, self.new_shape(2), &[1, 0])
     }
 
-    fn binrel_circ(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn binrel_circ(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         assert!(self.is_binary_rel(&elem1));
         assert!(self.is_binary_rel(&elem2));
         let elem1 = self.alg.tensor_polymer(elem1, self.new_shape(3), &[1, 0]);

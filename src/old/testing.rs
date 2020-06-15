@@ -19,9 +19,9 @@ pub trait MyVec<ELEM>
 where
     ELEM: Copy,
 {
-    fn len(self: &Self) -> usize;
+    fn len(&self) -> usize;
 
-    fn get(self: &Self, index: usize) -> ELEM;
+    fn get(&self, index: usize) -> ELEM;
 }
 
 pub struct MyIter<VEC> {
@@ -35,7 +35,7 @@ where
 {
     type Item = u32;
 
-    fn next(self: &mut Self) -> Option<Self::Item> {
+    fn next(&mut self) -> Option<Self::Item> {
         if self.pos < self.vec.len() {
             let a = self.vec.get(self.pos);
             self.pos += 1;
@@ -59,7 +59,7 @@ where
     Self: Default + Clone + IntoIterator,
     Self: std::iter::FromIterator<<Self as IntoIterator>::Item>,
 {
-    fn get(self: &Self, index: usize) -> <Self as IntoIterator>::Item;
+    fn get(&self, index: usize) -> <Self as IntoIterator>::Item;
 }
 
 pub trait HasElem {
@@ -72,5 +72,5 @@ where
     Self: IntoIterator<Item = <Self as HasElem>::Elem>,
     Self: std::iter::FromIterator<<Self as HasElem>::Elem>,
 {
-    fn get(self: &Self, index: usize) -> <Self as HasElem>::Elem;
+    fn get(&self, index: usize) -> <Self as HasElem>::Elem;
 }

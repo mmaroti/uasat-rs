@@ -24,7 +24,7 @@ pub struct Error {
 pub trait Parser: Sized + Clone {
     type Output;
 
-    fn parse(self: &Self, text: &mut &str) -> Result<Self::Output, Error>;
+    fn parse(&self, text: &mut &str) -> Result<Self::Output, Error>;
 
     fn map<O, F>(self: Self, fun: F) -> Map<Self, O, F>
     where
@@ -51,7 +51,7 @@ pub struct Tag(&'static str, &'static str);
 impl Parser for Tag {
     type Output = &'static str;
 
-    fn parse(self: &Self, text: &mut &str) -> Result<Self::Output, Error> {
+    fn parse(&self, text: &mut &str) -> Result<Self::Output, Error> {
         let len = self.0.len();
         if Some(self.0) == text.get(..len) {
             *text = &text[len..];
@@ -68,7 +68,7 @@ impl Parser for Tag {
 impl<P0: Parser, P1: Parser> Parser for (P0, P1) {
     type Output = (P0::Output, P1::Output);
 
-    fn parse(self: &Self, text: &mut &str) -> Result<Self::Output, Error> {
+    fn parse(&self, text: &mut &str) -> Result<Self::Output, Error> {
         let old = *text;
         match self.0.parse(text) {
             Err(err) => {
@@ -103,7 +103,7 @@ where
 {
     type Output = O;
 
-    fn parse(self: &Self, text: &mut &str) -> Result<Self::Output, Error> {
+    fn parse(&self, text: &mut &str) -> Result<Self::Output, Error> {
         let old = *text;
         match self.par.parse(text) {
             Err(err) => {
@@ -146,7 +146,7 @@ where
 {
     type Output = Option<P::Output>;
 
-    fn parse(self: &Self, text: &mut &str) -> Result<Self::Output, Error> {
+    fn parse(&self, text: &mut &str) -> Result<Self::Output, Error> {
         match self.0.parse(text) {
             Ok(val) => Ok(Some(val)),
             Err(_) => Ok(None),

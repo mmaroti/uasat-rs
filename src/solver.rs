@@ -38,17 +38,17 @@ pub struct Literal {
 /// Generic SAT solver interface
 pub trait Solver {
     /// Adds a fresh variable to the solver.
-    fn add_variable(self: &mut Self) -> Literal;
+    fn add_variable(&mut self) -> Literal;
 
     /// Negates the given literal.
-    fn negate(self: &Self, lit: Literal) -> Literal;
+    fn negate(&self, lit: Literal) -> Literal;
 
     /// Adds the clause to the solver.
-    fn add_clause(self: &mut Self, lits: &[Literal]);
+    fn add_clause(&mut self, lits: &[Literal]);
 
     /// Adds an XOR clause to the solver where the binary sum of the literals
     /// must be zero.
-    fn add_xor_clause(self: &mut Self, lit1: Literal, lit2: Literal, lit3: Literal) {
+    fn add_xor_clause(&mut self, lit1: Literal, lit2: Literal, lit3: Literal) {
         let not_lit1 = self.negate(lit1);
         let not_lit2 = self.negate(lit2);
         let not_lit3 = self.negate(lit3);
@@ -59,25 +59,25 @@ pub trait Solver {
     }
 
     /// Runs the solver and returns true if a solution is available.
-    fn solve(self: &mut Self) -> bool {
+    fn solve(&mut self) -> bool {
         self.solve_with(&[])
     }
 
     /// Runs the solver with the given assumptions and finds a model satisfying
     /// all requirements. Returns false is no solution was found.
-    fn solve_with(self: &mut Self, lits: &[Literal]) -> bool;
+    fn solve_with(&mut self, lits: &[Literal]) -> bool;
 
     /// Returns the value of the literal in the found model.
-    fn get_value(self: &Self, lit: Literal) -> bool;
+    fn get_value(&self, lit: Literal) -> bool;
 
     /// Returns the name of the solver
-    fn get_name(self: &Self) -> &'static str;
+    fn get_name(&self) -> &'static str;
 
     /// Returns the number of variables in the solver.
-    fn num_variables(self: &Self) -> u32;
+    fn num_variables(&self) -> u32;
 
     /// Returns the number of clauses in the solver.
-    fn num_clauses(self: &Self) -> usize;
+    fn num_clauses(&self) -> usize;
 }
 
 /// Tries to create a SAT solver with the given name. Currently "batsat",
@@ -181,15 +181,15 @@ impl MiniSat {
 
 #[cfg(feature = "minisat")]
 impl Solver for MiniSat {
-    fn add_variable(self: &mut Self) -> Literal {
+    fn add_variable(&mut self) -> Literal {
         MiniSat::encode(unsafe { minisat::sys::minisat_newLit(self.ptr) })
     }
 
-    fn negate(self: &Self, lit: Literal) -> Literal {
+    fn negate(&self, lit: Literal) -> Literal {
         MiniSat::encode(unsafe { minisat::sys::minisat_negate(MiniSat::decode(lit)) })
     }
 
-    fn add_clause(self: &mut Self, lits: &[Literal]) {
+    fn add_clause(&mut self, lits: &[Literal]) {
         unsafe { minisat::sys::minisat_addClause_begin(self.ptr) };
         for lit in lits {
             unsafe { minisat::sys::minisat_addClause_addLit(self.ptr, MiniSat::decode(*lit)) };
@@ -197,7 +197,7 @@ impl Solver for MiniSat {
         unsafe { minisat::sys::minisat_addClause_commit(self.ptr) };
     }
 
-    fn solve_with(self: &mut Self, lits: &[Literal]) -> bool {
+    fn solve_with(&mut self, lits: &[Literal]) -> bool {
         unsafe { minisat::sys::minisat_solve_begin(self.ptr) };
         for lit in lits {
             unsafe { minisat::sys::minisat_solve_addLit(self.ptr, MiniSat::decode(*lit)) };
@@ -205,21 +205,21 @@ impl Solver for MiniSat {
         MiniSat::is_true(unsafe { minisat::sys::minisat_solve_commit(self.ptr) })
     }
 
-    fn get_value(self: &Self, lit: Literal) -> bool {
+    fn get_value(&self, lit: Literal) -> bool {
         MiniSat::is_true(unsafe {
             minisat::sys::minisat_modelValue_Lit(self.ptr, MiniSat::decode(lit))
         })
     }
 
-    fn get_name(self: &Self) -> &'static str {
+    fn get_name(&self) -> &'static str {
         "MiniSat"
     }
 
-    fn num_variables(self: &Self) -> u32 {
+    fn num_variables(&self) -> u32 {
         unsafe { minisat::sys::minisat_num_vars(self.ptr) as u32 }
     }
 
-    fn num_clauses(self: &Self) -> usize {
+    fn num_clauses(&self) -> usize {
         unsafe { minisat::sys::minisat_num_clauses(self.ptr) as usize }
     }
 }
@@ -269,17 +269,17 @@ impl<'a> VariSat<'a> {
 
 #[cfg(feature = "varisat")]
 impl<'a> Solver for VariSat<'a> {
-    fn add_variable(self: &mut Self) -> Literal {
+    fn add_variable(&mut self) -> Literal {
         let var = varisat::Var::from_index(self.num_variables as usize);
         self.num_variables += 1;
         VariSat::encode(varisat::Lit::from_var(var, false))
     }
 
-    fn negate(self: &Self, lit: Literal) -> Literal {
+    fn negate(&self, lit: Literal) -> Literal {
         VariSat::encode(!VariSat::decode(lit))
     }
 
-    fn add_clause(self: &mut Self, lits: &[Literal]) {
+    fn add_clause(&mut self, lits: &[Literal]) {
         self.temp.clear();
         self.temp
             .extend(lits.iter().map(|lit| VariSat::decode(*lit)));
@@ -287,7 +287,7 @@ impl<'a> Solver for VariSat<'a> {
         self.num_clauses += 1;
     }
 
-    fn solve_with(self: &mut Self, lits: &[Literal]) -> bool {
+    fn solve_with(&mut self, lits: &[Literal]) -> bool {
         self.temp.clear();
         self.temp
             .extend(lits.iter().map(|lit| VariSat::decode(*lit)));
@@ -307,21 +307,21 @@ impl<'a> Solver for VariSat<'a> {
         solvable
     }
 
-    fn get_value(self: &Self, lit: Literal) -> bool {
+    fn get_value(&self, lit: Literal) -> bool {
         let lit = VariSat::decode(lit);
         let var = lit.index();
         self.solution.get(var).unwrap() ^ lit.is_negative()
     }
 
-    fn get_name(self: &Self) -> &'static str {
+    fn get_name(&self) -> &'static str {
         "VariSat"
     }
 
-    fn num_variables(self: &Self) -> u32 {
+    fn num_variables(&self) -> u32 {
         self.num_variables
     }
 
-    fn num_clauses(self: &Self) -> usize {
+    fn num_clauses(&self) -> usize {
         self.num_clauses
     }
 }
@@ -360,17 +360,17 @@ impl CryptoMiniSat {
 
 #[cfg(feature = "cryptominisat")]
 impl Solver for CryptoMiniSat {
-    fn add_variable(self: &mut Self) -> Literal {
+    fn add_variable(&mut self) -> Literal {
         CryptoMiniSat::encode(self.solver.new_var())
     }
 
-    fn negate(self: &Self, lit: Literal) -> Literal {
+    fn negate(&self, lit: Literal) -> Literal {
         Literal {
             value: lit.value ^ 1,
         }
     }
 
-    fn add_clause(self: &mut Self, lits: &[Literal]) {
+    fn add_clause(&mut self, lits: &[Literal]) {
         self.temp.clear();
         self.temp
             .extend(lits.iter().map(|lit| CryptoMiniSat::decode(*lit)));
@@ -378,7 +378,7 @@ impl Solver for CryptoMiniSat {
         self.num_clauses += 1;
     }
 
-    fn add_xor_clause(self: &mut Self, lit1: Literal, lit2: Literal, lit3: Literal) {
+    fn add_xor_clause(&mut self, lit1: Literal, lit2: Literal, lit3: Literal) {
         let lits = [
             CryptoMiniSat::decode(lit1),
             CryptoMiniSat::decode(lit2),
@@ -387,26 +387,26 @@ impl Solver for CryptoMiniSat {
         self.solver.add_xor_literal_clause(&lits, false);
     }
 
-    fn solve_with(self: &mut Self, lits: &[Literal]) -> bool {
+    fn solve_with(&mut self, lits: &[Literal]) -> bool {
         self.temp.clear();
         self.temp
             .extend(lits.iter().map(|lit| CryptoMiniSat::decode(*lit)));
         self.solver.solve_with_assumptions(&self.temp) == cryptominisat::Lbool::True
     }
 
-    fn get_value(self: &Self, lit: Literal) -> bool {
+    fn get_value(&self, lit: Literal) -> bool {
         self.solver.is_true(CryptoMiniSat::decode(lit))
     }
 
-    fn get_name(self: &Self) -> &'static str {
+    fn get_name(&self) -> &'static str {
         "CryptoMiniSat"
     }
 
-    fn num_variables(self: &Self) -> u32 {
+    fn num_variables(&self) -> u32 {
         self.solver.nvars()
     }
 
-    fn num_clauses(self: &Self) -> usize {
+    fn num_clauses(&self) -> usize {
         self.num_clauses
     }
 }
@@ -443,44 +443,44 @@ impl BatSat {
 
 #[cfg(feature = "batsat")]
 impl Solver for BatSat {
-    fn add_variable(self: &mut Self) -> Literal {
+    fn add_variable(&mut self) -> Literal {
         let var = self.solver.new_var_default();
         BatSat::encode(batsat::Lit::new(var, true))
     }
 
-    fn negate(self: &Self, lit: Literal) -> Literal {
+    fn negate(&self, lit: Literal) -> Literal {
         Literal {
             value: lit.value ^ 1,
         }
     }
 
-    fn add_clause(self: &mut Self, lits: &[Literal]) {
+    fn add_clause(&mut self, lits: &[Literal]) {
         self.temp.clear();
         self.temp
             .extend(lits.iter().map(|lit| BatSat::decode(*lit)));
         self.solver.add_clause_reuse(&mut self.temp);
     }
 
-    fn solve_with(self: &mut Self, lits: &[Literal]) -> bool {
+    fn solve_with(&mut self, lits: &[Literal]) -> bool {
         self.temp.clear();
         self.temp
             .extend(lits.iter().map(|lit| BatSat::decode(*lit)));
         self.solver.solve_limited(&self.temp) == batsat::lbool::TRUE
     }
 
-    fn get_value(self: &Self, lit: Literal) -> bool {
+    fn get_value(&self, lit: Literal) -> bool {
         self.solver.value_lit(BatSat::decode(lit)) == batsat::lbool::TRUE
     }
 
-    fn get_name(self: &Self) -> &'static str {
+    fn get_name(&self) -> &'static str {
         "BatSat"
     }
 
-    fn num_variables(self: &Self) -> u32 {
+    fn num_variables(&self) -> u32 {
         self.solver.num_vars()
     }
 
-    fn num_clauses(self: &Self) -> usize {
+    fn num_clauses(&self) -> usize {
         self.solver.num_clauses() as usize
     }
 }
@@ -506,24 +506,24 @@ impl Default for SplrSat {
 
 #[cfg(feature = "splr")]
 impl Solver for SplrSat {
-    fn add_variable(self: &mut Self) -> Literal {
+    fn add_variable(&mut self) -> Literal {
         self.variables += 1;
         Literal {
             value: self.variables as u32,
         }
     }
 
-    fn negate(self: &Self, lit: Literal) -> Literal {
+    fn negate(&self, lit: Literal) -> Literal {
         let lit = lit.value as i32;
         Literal { value: -lit as u32 }
     }
 
-    fn add_clause(self: &mut Self, lits: &[Literal]) {
+    fn add_clause(&mut self, lits: &[Literal]) {
         self.clauses
             .push(lits.iter().map(|a| a.value as i32).collect());
     }
 
-    fn solve_with(self: &mut Self, lits: &[Literal]) -> bool {
+    fn solve_with(&mut self, lits: &[Literal]) -> bool {
         let old_len = self.clauses.len();
         for lit in lits {
             self.add_clause(&[*lit]);
@@ -548,21 +548,21 @@ impl Solver for SplrSat {
         }
     }
 
-    fn get_value(self: &Self, lit: Literal) -> bool {
+    fn get_value(&self, lit: Literal) -> bool {
         let lit = lit.value as i32;
         let var = (lit.abs() as u32) - 1;
         self.solution.get(var as usize).unwrap() ^ (lit < 0)
     }
 
-    fn get_name(self: &Self) -> &'static str {
+    fn get_name(&self) -> &'static str {
         "SplrSat"
     }
 
-    fn num_variables(self: &Self) -> u32 {
+    fn num_variables(&self) -> u32 {
         self.variables as u32
     }
 
-    fn num_clauses(self: &Self) -> usize {
+    fn num_clauses(&self) -> usize {
         self.clauses.len()
     }
 }
@@ -577,43 +577,43 @@ pub struct CaDiCaL {
 
 #[cfg(feature = "cadical")]
 impl Solver for CaDiCaL {
-    fn add_variable(self: &mut Self) -> Literal {
+    fn add_variable(&mut self) -> Literal {
         self.num_vars += 1;
         Literal {
             value: self.num_vars,
         }
     }
 
-    fn negate(self: &Self, lit: Literal) -> Literal {
+    fn negate(&self, lit: Literal) -> Literal {
         Literal {
             value: -(lit.value as i32) as u32,
         }
     }
 
-    fn add_clause(self: &mut Self, lits: &[Literal]) {
+    fn add_clause(&mut self, lits: &[Literal]) {
         self.solver
             .add_clause(lits.iter().map(|lit| lit.value as i32));
     }
 
-    fn solve_with(self: &mut Self, lits: &[Literal]) -> bool {
+    fn solve_with(&mut self, lits: &[Literal]) -> bool {
         self.solver
             .solve_with(lits.iter().map(|lit| lit.value as i32))
             .unwrap()
     }
 
-    fn get_value(self: &Self, lit: Literal) -> bool {
+    fn get_value(&self, lit: Literal) -> bool {
         self.solver.value(lit.value as i32) == Some(true)
     }
 
-    fn get_name(self: &Self) -> &'static str {
+    fn get_name(&self) -> &'static str {
         "CaDiCaL"
     }
 
-    fn num_variables(self: &Self) -> u32 {
+    fn num_variables(&self) -> u32 {
         self.num_vars
     }
 
-    fn num_clauses(self: &Self) -> usize {
+    fn num_clauses(&self) -> usize {
         self.solver.num_clauses() as usize
     }
 }

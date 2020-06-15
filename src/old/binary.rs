@@ -26,27 +26,27 @@ pub trait BinaryAlg {
     type Elem;
 
     /// Returns the length of the array.
-    fn len(self: &Self, elem: &Self::Elem) -> usize;
+    fn len(&self, elem: &Self::Elem) -> usize;
 
     /// Concatenates the given vectors into a single one.
-    fn concat(self: &Self, elems: Vec<Self::Elem>) -> Self::Elem;
+    fn concat(&self, elems: Vec<Self::Elem>) -> Self::Elem;
 
     /// Splits this vector into equal sized vectors
-    fn split(self: &Self, elem: Self::Elem, len: usize) -> Vec<Self::Elem>;
+    fn split(&self, elem: Self::Elem, len: usize) -> Vec<Self::Elem>;
 
     /// Creates a new vector of the given length containing the element.
-    fn bit_lift(self: &mut Self, elem: &[bool]) -> Self::Elem;
+    fn bit_lift(&mut self, elem: &[bool]) -> Self::Elem;
 
     /// Returns the element wise negation of the vector.
-    fn bit_not(self: &mut Self, elem: Self::Elem) -> Self::Elem;
+    fn bit_not(&mut self, elem: Self::Elem) -> Self::Elem;
 
     /// Returns a new vector whose elements are disjunctions of the original
     /// elements.
-    fn bit_or(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
+    fn bit_or(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
 
     /// Returns a new vector whose elements are conjunction of the original
     /// elements.
-    fn bit_and(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bit_and(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         let elem2 = self.bit_not(elem2);
         let elem3 = self.bit_imp(elem1, elem2);
         self.bit_not(elem3)
@@ -54,27 +54,27 @@ pub trait BinaryAlg {
 
     /// Returns a new vector whose elements are the exclusive or of the
     /// original elements.
-    fn bit_xor(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
+    fn bit_xor(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
 
     /// Returns a new vector whose elements are the are the logical equivalence
     /// of the original elements.
-    fn bit_equ(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bit_equ(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         let elem1 = self.bit_not(elem1);
         self.bit_xor(elem1, elem2)
     }
 
     /// Returns a new vector whose elements are the are the logical implication
     /// of the original elements.
-    fn bit_imp(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bit_imp(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         let elem1 = self.bit_not(elem1);
         self.bit_or(elem1, elem2)
     }
 
     /// Returns the conjunction of all elements as a 1-element vector.
-    fn bit_all(self: &mut Self, elem: Self::Elem) -> Self::Elem;
+    fn bit_all(&mut self, elem: Self::Elem) -> Self::Elem;
 
     /// Returns the conjunction of all elements as a 1-element vector.
-    fn bit_any(self: &mut Self, elem: Self::Elem) -> Self::Elem {
+    fn bit_any(&mut self, elem: Self::Elem) -> Self::Elem {
         let elem = self.bit_not(elem);
         let elem = self.bit_all(elem);
         self.bit_not(elem)
@@ -82,10 +82,10 @@ pub trait BinaryAlg {
 
     /// Creates a new vector of the given length representing the given binary
     /// number.
-    fn num_lift(self: &Self, len: usize, elem: i64) -> Self::Elem;
+    fn num_lift(&self, len: usize, elem: i64) -> Self::Elem;
 
     /// Returns the negative of the given binary number in two's complement.
-    fn num_neg(self: &mut Self, elem: Self::Elem) -> Self::Elem {
+    fn num_neg(&mut self, elem: Self::Elem) -> Self::Elem {
         let elem = self.bit_not(elem);
         let one = self.num_lift(self.len(&elem), 1);
         self.num_add(elem, one)
@@ -93,36 +93,36 @@ pub trait BinaryAlg {
 
     /// Returns the sum of the two binary numbers of the same length in
     /// two's complement.
-    fn num_add(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
+    fn num_add(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
 
     /// Returns the difference of the two binary numbers of the same length in
     /// two's complement.
-    fn num_sub(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn num_sub(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         let elem2 = self.num_neg(elem2);
         self.num_add(elem1, elem2)
     }
 
     /// Returns whether the first binary number is equal to the second one
     /// as a 1-element vector.
-    fn num_eq(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn num_eq(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         let elem3 = self.bit_equ(elem1, elem2);
         self.bit_all(elem3)
     }
 
     /// Returns whether the first binary number is not equal to the second one
     /// as a 1-element vector.
-    fn num_ne(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn num_ne(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         let tmp = self.num_eq(elem1, elem2);
         self.bit_not(tmp)
     }
 
     /// Returns whether the first unsigned binary number is less than or equal
     /// to the second one as a 1-element vector.
-    fn num_le(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
+    fn num_le(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
 
     /// Returns whether the first unsigned binary number is less than the
     /// second one as a 1-element vector.
-    fn num_lt(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn num_lt(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         let tmp = self.num_le(elem2, elem1);
         self.bit_not(tmp)
     }
@@ -135,27 +135,27 @@ where
 {
     type Elem = genvec::VectorFor<ALG::Elem>;
 
-    fn len(self: &Self, elem: &Self::Elem) -> usize {
+    fn len(&self, elem: &Self::Elem) -> usize {
         elem.len()
     }
 
-    fn concat(self: &Self, elems: Vec<Self::Elem>) -> Self::Elem {
+    fn concat(&self, elems: Vec<Self::Elem>) -> Self::Elem {
         genvec::Vector::concat(elems)
     }
 
-    fn split(self: &Self, elem: Self::Elem, len: usize) -> Vec<Self::Elem> {
+    fn split(&self, elem: Self::Elem, len: usize) -> Vec<Self::Elem> {
         genvec::Vector::split(elem, len)
     }
 
-    fn bit_lift(self: &mut Self, elem: &[bool]) -> Self::Elem {
+    fn bit_lift(&mut self, elem: &[bool]) -> Self::Elem {
         elem.iter().map(|a| self.bool_lift(*a)).collect()
     }
 
-    fn bit_not(self: &mut Self, elem: Self::Elem) -> Self::Elem {
+    fn bit_not(&mut self, elem: Self::Elem) -> Self::Elem {
         elem.iter().map(|a| self.bool_not(a)).collect()
     }
 
-    fn bit_or(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bit_or(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         assert_eq!(elem1.len(), elem2.len());
         elem1
             .iter()
@@ -164,7 +164,7 @@ where
             .collect()
     }
 
-    fn bit_and(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bit_and(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         assert_eq!(elem1.len(), elem2.len());
         elem1
             .iter()
@@ -173,7 +173,7 @@ where
             .collect()
     }
 
-    fn bit_xor(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bit_xor(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         assert_eq!(elem1.len(), elem2.len());
         elem1
             .iter()
@@ -182,7 +182,7 @@ where
             .collect()
     }
 
-    fn bit_equ(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bit_equ(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         assert_eq!(elem1.len(), elem2.len());
         elem1
             .iter()
@@ -191,7 +191,7 @@ where
             .collect()
     }
 
-    fn bit_imp(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn bit_imp(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         assert_eq!(elem1.len(), elem2.len());
         elem1
             .iter()
@@ -200,7 +200,7 @@ where
             .collect()
     }
 
-    fn bit_all(self: &mut Self, elem: Self::Elem) -> Self::Elem {
+    fn bit_all(&mut self, elem: Self::Elem) -> Self::Elem {
         let mut result = self.bool_unit();
         for a in elem.iter() {
             result = self.bool_and(result, a);
@@ -208,7 +208,7 @@ where
         genvec::Vector::from_elem(result)
     }
 
-    fn bit_any(self: &mut Self, elem: Self::Elem) -> Self::Elem {
+    fn bit_any(&mut self, elem: Self::Elem) -> Self::Elem {
         let mut result = self.bool_zero();
         for a in elem.iter() {
             result = self.bool_or(result, a);
@@ -216,13 +216,13 @@ where
         genvec::Vector::from_elem(result)
     }
 
-    fn num_lift(self: &Self, len: usize, elem: i64) -> Self::Elem {
+    fn num_lift(&self, len: usize, elem: i64) -> Self::Elem {
         (0..len)
             .map(|i| self.bool_lift((elem >> i) & 1 != 0))
             .collect()
     }
 
-    fn num_neg(self: &mut Self, elem: Self::Elem) -> Self::Elem {
+    fn num_neg(&mut self, elem: Self::Elem) -> Self::Elem {
         let mut carry = self.bool_unit();
         elem.iter()
             .map(|a| {
@@ -234,7 +234,7 @@ where
             .collect()
     }
 
-    fn num_add(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn num_add(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         assert_eq!(elem1.len(), elem2.len());
         let mut carry = self.bool_zero();
         elem1
@@ -248,7 +248,7 @@ where
             .collect()
     }
 
-    fn num_sub(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn num_sub(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         assert_eq!(elem1.len(), elem2.len());
         let mut carry = self.bool_unit();
         elem1
@@ -263,7 +263,7 @@ where
             .collect()
     }
 
-    fn num_eq(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn num_eq(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         assert_eq!(elem1.len(), elem2.len());
         let mut result = self.bool_unit();
         for (a, b) in elem1.iter().zip(elem2.iter()) {
@@ -273,13 +273,13 @@ where
         genvec::Vector::from_elem(result)
     }
 
-    fn num_ne(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn num_ne(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         let mut elem = self.num_eq(elem1, elem2);
         elem.set(0, self.bool_not(elem.get(0)));
         elem
     }
 
-    fn num_le(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn num_le(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         assert_eq!(elem1.len(), elem2.len());
         let mut result = self.bool_unit();
         for (a, b) in elem1.iter().zip(elem2.iter()) {
@@ -289,7 +289,7 @@ where
         genvec::Vector::from_elem(result)
     }
 
-    fn num_lt(self: &mut Self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
+    fn num_lt(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {
         let mut elem = self.num_le(elem2, elem1);
         elem.set(0, self.bool_not(elem.get(0)));
         elem

@@ -75,68 +75,68 @@ where
     }
 
     /// Clears the vector, removing all values.
-    fn clear(self: &mut Self);
+    fn clear(&mut self);
 
     /// Shortens the vector, keeping the first `new_len` many elements and
     /// dropping the rest. This method panics if the current `len` is smaller
     /// than `new_len`.
-    fn truncate(self: &mut Self, new_len: usize);
+    fn truncate(&mut self, new_len: usize);
 
     /// Resizes the vector in-place so that `len` is equal to `new_len`.
     /// If `new_len` is greater than `len`, the the vector is extended by the
     /// difference, with each additional slot filled with `elem`.
     /// If `new_len` is less than `len`, then the vector is simply truncated.
-    fn resize(self: &mut Self, new_len: usize, elem: ELEM);
+    fn resize(&mut self, new_len: usize, elem: ELEM);
 
     /// Reserves capacity for at least additional more bits to be inserted in
     /// the given vector. The collection may reserve more space to avoid
     /// frequent reallocations.
-    fn reserve(self: &mut Self, additional: usize);
+    fn reserve(&mut self, additional: usize);
 
     /// Appends an element to the back of the vector.
-    fn push(self: &mut Self, elem: ELEM);
+    fn push(&mut self, elem: ELEM);
 
     /// Removes the last element from a vector and returns it, or `None` if
     /// it is empty.
-    fn pop(self: &mut Self) -> Option<ELEM>;
+    fn pop(&mut self) -> Option<ELEM>;
 
     /// Extends this vector by moving all elements from the other vector,
     /// leaving the other vector empty.
-    fn append(self: &mut Self, other: &mut Self);
+    fn append(&mut self, other: &mut Self);
 
     /// Returns the element at the given index. Panics if the index is
     /// out of bounds.
-    fn get(self: &Self, index: usize) -> ELEM;
+    fn get(&self, index: usize) -> ELEM;
 
     /// Returns the element at the given index without bound checks.
     /// # Safety
     /// Do not use this in general code, use `ranges` if possible.
-    unsafe fn get_unchecked(self: &Self, index: usize) -> ELEM {
+    unsafe fn get_unchecked(&self, index: usize) -> ELEM {
         self.get(index)
     }
 
     /// Sets the element at the given index to the new value. Panics if the
     /// index is out of bounds.
-    fn set(self: &mut Self, index: usize, elem: ELEM);
+    fn set(&mut self, index: usize, elem: ELEM);
 
     /// Sets the element at the given index to the new value without bound
     /// checks.
     /// # Safety
     /// Do not use this in general code.
-    unsafe fn set_unchecked(self: &mut Self, index: usize, elem: ELEM) {
+    unsafe fn set_unchecked(&mut self, index: usize, elem: ELEM) {
         self.set(index, elem);
     }
 
     /// Returns the number of elements in the vector.
-    fn len(self: &Self) -> usize;
+    fn len(&self) -> usize;
 
     /// Returns `true` if the length is zero.
-    fn is_empty(self: &Self) -> bool {
+    fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
     /// Returns the number of elements the vector can hold without reallocating.
-    fn capacity(self: &Self) -> usize;
+    fn capacity(&self) -> usize;
 
     /// Returns an iterator over copied elements of the vector.
     fn iter<'a>(self: &'a Self) -> <Self as CopyIterable<'a, ELEM>>::Iter
@@ -184,7 +184,7 @@ impl<DATA, ELEM> iter::Extend<ELEM> for VecImpl<DATA>
 where
     DATA: iter::Extend<ELEM>,
 {
-    fn extend<ITER>(self: &mut Self, iter: ITER)
+    fn extend<ITER>(&mut self, iter: ITER)
     where
         ITER: IntoIterator<Item = ELEM>,
     {
@@ -210,60 +210,60 @@ where
         VecImpl { data: vec![elem] }
     }
 
-    fn clear(self: &mut Self) {
+    fn clear(&mut self) {
         self.data.clear();
     }
 
-    fn truncate(self: &mut Self, new_len: usize) {
+    fn truncate(&mut self, new_len: usize) {
         assert!(new_len <= self.data.len());
         self.data.truncate(new_len);
     }
 
-    fn resize(self: &mut Self, new_len: usize, elem: ELEM) {
+    fn resize(&mut self, new_len: usize, elem: ELEM) {
         self.data.resize(new_len, elem);
     }
 
-    fn reserve(self: &mut Self, additional: usize) {
+    fn reserve(&mut self, additional: usize) {
         self.data.reserve(additional);
     }
 
-    fn push(self: &mut Self, elem: ELEM) {
+    fn push(&mut self, elem: ELEM) {
         self.data.push(elem);
     }
 
-    fn pop(self: &mut Self) -> Option<ELEM> {
+    fn pop(&mut self) -> Option<ELEM> {
         self.data.pop()
     }
 
-    fn append(self: &mut Self, other: &mut Self) {
+    fn append(&mut self, other: &mut Self) {
         self.data.append(&mut other.data);
     }
 
-    fn get(self: &Self, index: usize) -> ELEM {
+    fn get(&self, index: usize) -> ELEM {
         self.data[index]
     }
 
-    unsafe fn get_unchecked(self: &Self, index: usize) -> ELEM {
+    unsafe fn get_unchecked(&self, index: usize) -> ELEM {
         *self.data.get_unchecked(index)
     }
 
-    fn set(self: &mut Self, index: usize, elem: ELEM) {
+    fn set(&mut self, index: usize, elem: ELEM) {
         self.data[index] = elem;
     }
 
-    unsafe fn set_unchecked(self: &mut Self, index: usize, elem: ELEM) {
+    unsafe fn set_unchecked(&mut self, index: usize, elem: ELEM) {
         *self.data.get_unchecked_mut(index) = elem;
     }
 
-    fn len(self: &Self) -> usize {
+    fn len(&self) -> usize {
         self.data.len()
     }
 
-    fn is_empty(self: &Self) -> bool {
+    fn is_empty(&self) -> bool {
         self.data.is_empty()
     }
 
-    fn capacity(self: &Self) -> usize {
+    fn capacity(&self) -> usize {
         self.data.capacity()
     }
 }
@@ -281,16 +281,16 @@ impl Vector<bool> for VecImpl<bit_vec::BitVec> {
         }
     }
 
-    fn clear(self: &mut Self) {
+    fn clear(&mut self) {
         self.data.truncate(0);
     }
 
-    fn truncate(self: &mut Self, new_len: usize) {
+    fn truncate(&mut self, new_len: usize) {
         assert!(new_len <= self.data.len());
         self.data.truncate(new_len);
     }
 
-    fn resize(self: &mut Self, new_len: usize, elem: bool) {
+    fn resize(&mut self, new_len: usize, elem: bool) {
         if new_len > self.len() {
             self.data.grow(new_len - self.len(), elem);
         } else {
@@ -298,27 +298,27 @@ impl Vector<bool> for VecImpl<bit_vec::BitVec> {
         }
     }
 
-    fn reserve(self: &mut Self, additional: usize) {
+    fn reserve(&mut self, additional: usize) {
         self.data.reserve(additional);
     }
 
-    fn push(self: &mut Self, elem: bool) {
+    fn push(&mut self, elem: bool) {
         self.data.push(elem);
     }
 
-    fn pop(self: &mut Self) -> Option<bool> {
+    fn pop(&mut self) -> Option<bool> {
         self.data.pop()
     }
 
-    fn append(self: &mut Self, other: &mut Self) {
+    fn append(&mut self, other: &mut Self) {
         self.data.append(&mut other.data);
     }
 
-    fn get(self: &Self, index: usize) -> bool {
+    fn get(&self, index: usize) -> bool {
         self.data.get(index).unwrap()
     }
 
-    unsafe fn get_unchecked(self: &Self, index: usize) -> bool {
+    unsafe fn get_unchecked(&self, index: usize) -> bool {
         type B = u32;
         let w = index / B::bits();
         let b = index % B::bits();
@@ -327,11 +327,11 @@ impl Vector<bool> for VecImpl<bit_vec::BitVec> {
         (x & y) != B::zero()
     }
 
-    fn set(self: &mut Self, index: usize, elem: bool) {
+    fn set(&mut self, index: usize, elem: bool) {
         self.data.set(index, elem);
     }
 
-    unsafe fn set_unchecked(self: &mut Self, index: usize, elem: bool) {
+    unsafe fn set_unchecked(&mut self, index: usize, elem: bool) {
         type B = u32;
         let w = index / B::bits();
         let b = index % B::bits();
@@ -344,15 +344,15 @@ impl Vector<bool> for VecImpl<bit_vec::BitVec> {
         }
     }
 
-    fn len(self: &Self) -> usize {
+    fn len(&self) -> usize {
         self.data.len()
     }
 
-    fn is_empty(self: &Self) -> bool {
+    fn is_empty(&self) -> bool {
         self.data.is_empty()
     }
 
-    fn capacity(self: &Self) -> usize {
+    fn capacity(&self) -> usize {
         self.data.capacity()
     }
 }
@@ -365,7 +365,7 @@ pub struct UnitIter {
 impl Iterator for UnitIter {
     type Item = ();
 
-    fn next(self: &mut Self) -> Option<Self::Item> {
+    fn next(&mut self) -> Option<Self::Item> {
         if self.pos > 0 {
             self.pos -= 1;
             Some(())
@@ -374,7 +374,7 @@ impl Iterator for UnitIter {
         }
     }
 
-    fn size_hint(self: &Self) -> (usize, Option<usize>) {
+    fn size_hint(&self) -> (usize, Option<usize>) {
         (self.pos, Some(self.pos))
     }
 
@@ -390,7 +390,7 @@ impl Iterator for UnitIter {
         }
     }
 
-    fn nth(self: &mut Self, n: usize) -> Option<Self::Item> {
+    fn nth(&mut self, n: usize) -> Option<Self::Item> {
         if self.pos > n {
             self.pos -= n + 1;
             Some(())
@@ -430,7 +430,7 @@ impl iter::FromIterator<()> for UnitVec {
 }
 
 impl Extend<()> for UnitVec {
-    fn extend<ITER>(self: &mut Self, iter: ITER)
+    fn extend<ITER>(&mut self, iter: ITER)
     where
         ITER: IntoIterator<Item = ()>,
     {
@@ -459,26 +459,26 @@ impl Vector<()> for UnitVec {
         UnitVec { len: 1 }
     }
 
-    fn clear(self: &mut Self) {
+    fn clear(&mut self) {
         self.len = 0;
     }
 
-    fn truncate(self: &mut Self, new_len: usize) {
+    fn truncate(&mut self, new_len: usize) {
         assert!(new_len <= self.len);
         self.len = new_len;
     }
 
-    fn resize(self: &mut Self, new_len: usize, _elem: ()) {
+    fn resize(&mut self, new_len: usize, _elem: ()) {
         self.len = new_len;
     }
 
-    fn reserve(self: &mut Self, _additional: usize) {}
+    fn reserve(&mut self, _additional: usize) {}
 
-    fn push(self: &mut Self, _elem: ()) {
+    fn push(&mut self, _elem: ()) {
         self.len += 1;
     }
 
-    fn pop(self: &mut Self) -> Option<()> {
+    fn pop(&mut self) -> Option<()> {
         if self.len > 0 {
             self.len -= 1;
             Some(())
@@ -487,28 +487,28 @@ impl Vector<()> for UnitVec {
         }
     }
 
-    fn append(self: &mut Self, other: &mut Self) {
+    fn append(&mut self, other: &mut Self) {
         self.len += other.len;
         other.len = 0;
     }
 
-    fn get(self: &Self, index: usize) {
+    fn get(&self, index: usize) {
         debug_assert!(index < self.len);
     }
 
-    unsafe fn get_unchecked(self: &Self, _index: usize) {}
+    unsafe fn get_unchecked(&self, _index: usize) {}
 
-    fn set(self: &mut Self, index: usize, _elem: ()) {
+    fn set(&mut self, index: usize, _elem: ()) {
         debug_assert!(index < self.len);
     }
 
-    unsafe fn set_unchecked(self: &mut Self, _index: usize, _elem: ()) {}
+    unsafe fn set_unchecked(&mut self, _index: usize, _elem: ()) {}
 
-    fn len(self: &Self) -> usize {
+    fn len(&self) -> usize {
         self.len
     }
 
-    fn capacity(self: &Self) -> usize {
+    fn capacity(&self) -> usize {
         usize::max_value()
     }
 }

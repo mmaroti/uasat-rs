@@ -27,7 +27,7 @@ pub mod solver;
 pub mod structure;
 pub mod tensor;
 
-mod research;
+mod math;
 mod testing;
 
 use solver::*;
@@ -181,5 +181,5 @@ pub fn main_old() {
 }
 
 pub fn main() {
-    research::poset::test();
+    math::binrel::test();
 }

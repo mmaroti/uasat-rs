@@ -17,4 +17,4 @@
 
 //! Module for doing research experimentation using the uasat crate.
 
-pub mod poset;
+pub mod binrel;

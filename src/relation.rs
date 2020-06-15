@@ -37,15 +37,15 @@ where
     ALG: tensor::TensorAlg,
 {
     pub fn is_scalar(self: &Self, elem: &ALG::Elem) -> bool {
-        ALG::shape(elem).is_empty()
+        self.alg.shape(elem).is_empty()
     }
 
     pub fn is_relation(self: &Self, elem: &ALG::Elem) -> bool {
-        ALG::shape(elem).is_rectangular(self.size)
+        self.alg.shape(elem).is_rectangular(self.size)
     }
 
     pub fn is_binary_rel(self: &Self, elem: &ALG::Elem) -> bool {
-        ALG::shape(elem).len() == 2 && self.is_relation(elem)
+        self.alg.shape(elem).len() == 2 && self.is_relation(elem)
     }
 
     fn new_shape(self: &Self, len: usize) -> tensor::Shape {

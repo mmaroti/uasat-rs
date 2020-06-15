@@ -46,6 +46,11 @@ impl Shape {
         self.dims.is_empty()
     }
 
+    /// Returns the dimensions.
+    pub fn dims(&self) -> &[usize] {
+        &self.dims
+    }
+
     /// Checks if all dimensions are equal to the given one.
     pub fn is_rectangular(self: &Self, dim: usize) -> bool {
         self.dims.iter().all(|d| *d == dim)
@@ -53,9 +58,29 @@ impl Shape {
 
     /// Returns the head and tail of this shape. The shape must have at
     /// least one dimension.
-    pub fn split(self: &Self) -> (usize, Self) {
-        debug_assert!(!self.is_empty());
+    pub fn split1(self: &Self) -> (usize, Self) {
+        assert!(self.dims.len() >= 1);
         (self.dims[0], Shape::new(self.dims[1..].to_vec()))
+    }
+
+    /// Returns a pair of heads and tail of this shape. The shape must
+    /// have at least two dimensions.
+    pub fn split2(self: &Self) -> (usize, usize, Self) {
+        assert!(!self.dims.len() >= 2);
+        (
+            self.dims[0],
+            self.dims[1],
+            Shape::new(self.dims[2..].to_vec()),
+        )
+    }
+
+    /// Returns a new shape that is the same as this one but a few new
+    /// dimension are added to the front.
+    pub fn join(self: &Self, prefix: &[usize]) -> Self {
+        let mut dims = Vec::with_capacity(self.dims.len() + prefix.len());
+        dims.extend(prefix);
+        dims.extend(&self.dims);
+        Shape { dims }
     }
 
     /// Returns the number of elements this shape represents.
@@ -65,18 +90,6 @@ impl Shape {
             size *= *dim;
         }
         size
-    }
-
-    /// Returns a new shape that is the same as this shape but a few new
-    /// dimension are inserted into the shape at the given position.
-    pub fn insert(self: &Self, pos: usize, dims: &[usize]) -> Self {
-        debug_assert!(pos <= self.len());
-        let mut dims2 = self.dims.clone();
-        dims2.reserve(dims.len());
-        for (idx, dim) in dims.iter().enumerate() {
-            dims2.insert(pos + idx, *dim);
-        }
-        Shape { dims: dims2 }
     }
 
     /// Creates a mapping suitable for a polymer operation where the initial
@@ -283,7 +296,7 @@ pub trait TensorAlg {
     type Elem: Clone;
 
     /// Returns the shape of the tensor.
-    fn shape(elem: &Self::Elem) -> &Shape;
+    fn shape<'e>(&self, elem: &'e Self::Elem) -> &'e Shape;
 
     /// Creates a new tensor from the given bool tensor.
     fn tensor_lift(self: &Self, elem: Tensor<bool>) -> Self::Elem;
@@ -342,7 +355,7 @@ where
 {
     type Elem = Tensor<ALG::Elem>;
 
-    fn shape(elem: &Self::Elem) -> &Shape {
+    fn shape<'e>(&self, elem: &'e Self::Elem) -> &'e Shape {
         &elem.shape
     }
 
@@ -421,7 +434,7 @@ where
     }
 
     fn tensor_all(self: &mut Self, elem: Self::Elem) -> Self::Elem {
-        let (head, shape) = elem.shape.split();
+        let (head, shape) = elem.shape.split1();
         let elems = elem
             .elems
             .split(head)
@@ -432,7 +445,7 @@ where
     }
 
     fn tensor_any(self: &mut Self, elem: Self::Elem) -> Self::Elem {
-        let (head, shape) = elem.shape.split();
+        let (head, shape) = elem.shape.split1();
         let elems = elem
             .elems
             .split(head)
@@ -443,7 +456,7 @@ where
     }
 
     fn tensor_sum(self: &mut Self, elem: Self::Elem) -> Self::Elem {
-        let (head, shape) = elem.shape.split();
+        let (head, shape) = elem.shape.split1();
         let elems = elem
             .elems
             .split(head)
@@ -454,7 +467,7 @@ where
     }
 
     fn tensor_one(self: &mut Self, elem: Self::Elem) -> Self::Elem {
-        let (head, shape) = elem.shape.split();
+        let (head, shape) = elem.shape.split1();
         let elems = elem
             .elems
             .split(head)

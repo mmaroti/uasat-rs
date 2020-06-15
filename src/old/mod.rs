@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2019-2020, Miklos Maroti
+* Copyright (C) 2020, Miklos Maroti
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -15,26 +15,23 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//! A SAT based discrete mathematics and universal algebra calculator.
+//! Module for doing research experimentation using the uasat crate.
 
-pub mod boolean;
-pub mod genvec;
-pub mod solver;
-pub mod tensor;
+pub mod binary;
+pub mod lexer;
+pub mod parser;
+pub mod relation;
+pub mod structure;
+pub mod testing;
 
-pub mod math;
-pub mod old;
-
-#[cfg(feature = "console_error_panic_hook")]
-use std::panic;
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen(start)]
-pub fn uasat_init() {
-    #[cfg(feature = "console_error_panic_hook")]
-    panic::set_hook(Box::new(console_error_panic_hook::hook));
-}
-
-pub fn main() {
-    math::binrel::test();
+#[wasm_bindgen]
+pub fn test(input: String) -> String {
+    let lexer = lexer::Lexer::new(input.as_str());
+    let mut output = String::new();
+    for token in lexer {
+        output.push_str(format!("{}\n", token).as_str());
+    }
+    "done".to_string()
 }

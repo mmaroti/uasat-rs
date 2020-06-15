@@ -165,7 +165,7 @@ fn check(
 
 /// Validates the solver by calculating some numbers from the
 /// Online Encyclopedia of Integer Sequences.
-pub fn validate(solver: &str) {
+pub fn validate_solver(solver: &str) {
     let start = Instant::now();
 
     check(
@@ -209,9 +209,14 @@ pub fn test() {
     let crown4 = alg.crown_poset(4);
     assert!(alg.is_partial_order(crown4.clone()).scalar());
 
-    validate("cadical");
-    validate("batsat");
-    validate("minisat");
-    validate("varisat");
-    validate("cryptominisat");
+    #[cfg(feature = "cadical")]
+    validate_solver("cadical");
+    #[cfg(feature = "batsat")]
+    validate_solver("batsat");
+    #[cfg(feature = "minisat")]
+    validate_solver("minisat");
+    #[cfg(feature = "varisat")]
+    validate_solver("varisat");
+    #[cfg(feature = "cryptominisat")]
+    validate_solver("cryptominisat");
 }

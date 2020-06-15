@@ -15,9 +15,9 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::boolean;
-use super::genvec;
-use super::genvec::Vector as _;
+use crate::boolean;
+use crate::genvec;
+use crate::genvec::Vector as _;
 
 pub use boolean::{Boolean, Solver, Trivial};
 

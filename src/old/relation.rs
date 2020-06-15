@@ -15,8 +15,8 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::boolean;
-use super::tensor;
+use crate::boolean;
+use crate::tensor;
 
 pub struct Universe<ALG>
 where

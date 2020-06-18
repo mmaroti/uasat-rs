@@ -21,10 +21,6 @@
 use batsat::intmap::AsIndex as _;
 #[cfg(feature = "batsat")]
 use batsat::SolverInterface as _;
-#[cfg(feature = "splr")]
-use splr::SolveIF as _;
-#[cfg(feature = "splr")]
-use std::convert::TryFrom as _;
 use std::fmt;
 #[cfg(feature = "varisat")]
 use varisat::ExtendFormula as _;
@@ -112,14 +108,6 @@ pub fn create_solver(name: &str) -> Box<dyn Solver> {
     {
         if name == "batsat" || name == "" {
             let sat: BatSat = Default::default();
-            return Box::new(sat);
-        }
-    }
-
-    #[cfg(feature = "splr")]
-    {
-        if name == "splr" || name == "" {
-            let sat: SplrSat = Default::default();
             return Box::new(sat);
         }
     }
@@ -485,88 +473,6 @@ impl Solver for BatSat {
     }
 }
 
-/// A pure Rustic SAT solver, based on Glucose 4.1.
-#[cfg(feature = "splr")]
-pub struct SplrSat {
-    variables: i32,
-    clauses: Vec<Vec<i32>>,
-    solution: bit_vec::BitVec,
-}
-
-#[cfg(feature = "splr")]
-impl Default for SplrSat {
-    fn default() -> Self {
-        SplrSat {
-            variables: 0,
-            clauses: Default::default(),
-            solution: Default::default(),
-        }
-    }
-}
-
-#[cfg(feature = "splr")]
-impl Solver for SplrSat {
-    fn add_variable(&mut self) -> Literal {
-        self.variables += 1;
-        Literal {
-            value: self.variables as u32,
-        }
-    }
-
-    fn negate(&self, lit: Literal) -> Literal {
-        let lit = lit.value as i32;
-        Literal { value: -lit as u32 }
-    }
-
-    fn add_clause(&mut self, lits: &[Literal]) {
-        self.clauses
-            .push(lits.iter().map(|a| a.value as i32).collect());
-    }
-
-    fn solve_with(&mut self, lits: &[Literal]) -> bool {
-        let old_len = self.clauses.len();
-        for lit in lits {
-            self.add_clause(&[*lit]);
-        }
-        let config: splr::Config = Default::default();
-        let mut solver = splr::Solver::try_from((config, self.clauses.as_ref())).unwrap();
-        let result = solver.solve().unwrap();
-        self.clauses.truncate(old_len);
-
-        self.solution.clear();
-        match result {
-            splr::Certificate::SAT(result) => {
-                self.solution.grow(self.num_variables() as usize, false);
-                for lit in result {
-                    if lit > 0 {
-                        self.solution.set((lit - 1) as usize, true);
-                    }
-                }
-                true
-            }
-            splr::Certificate::UNSAT => false,
-        }
-    }
-
-    fn get_value(&self, lit: Literal) -> bool {
-        let lit = lit.value as i32;
-        let var = (lit.abs() as u32) - 1;
-        self.solution.get(var as usize).unwrap() ^ (lit < 0)
-    }
-
-    fn get_name(&self) -> &'static str {
-        "SplrSat"
-    }
-
-    fn num_variables(&self) -> u32 {
-        self.variables as u32
-    }
-
-    fn num_clauses(&self) -> usize {
-        self.clauses.len()
-    }
-}
-
 /// MiniSAT reimplemented in pure rust.
 #[cfg(feature = "cadical")]
 #[derive(Default)]
@@ -668,13 +574,6 @@ mod tests {
     #[test]
     fn batsat() {
         let mut sat: BatSat = Default::default();
-        test(&mut sat);
-    }
-
-    #[cfg(feature = "splr")]
-    #[test]
-    fn splr() {
-        let mut sat: SplrSat = Default::default();
         test(&mut sat);
     }
 

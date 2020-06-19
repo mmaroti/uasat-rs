@@ -15,7 +15,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//! Module for doing research experimentation using the uasat crate.
+//! Module for holding old stuff that we might not need.
 
 pub mod binary;
 pub mod lexer;

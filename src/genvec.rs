@@ -149,11 +149,9 @@ where
 
 /// A wrapper around standard containers to present them as generic vectors.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
-pub struct VecImpl<DATA> {
-    data: DATA,
-}
+pub struct Wrapper<DATA>(DATA);
 
-impl<DATA> IntoIterator for VecImpl<DATA>
+impl<DATA> IntoIterator for Wrapper<DATA>
 where
     DATA: IntoIterator,
 {
@@ -162,11 +160,11 @@ where
     type IntoIter = DATA::IntoIter;
 
     fn into_iter(self: Self) -> Self::IntoIter {
-        self.data.into_iter()
+        self.0.into_iter()
     }
 }
 
-impl<DATA, ELEM> iter::FromIterator<ELEM> for VecImpl<DATA>
+impl<DATA, ELEM> iter::FromIterator<ELEM> for Wrapper<DATA>
 where
     DATA: iter::FromIterator<ELEM>,
 {
@@ -174,13 +172,11 @@ where
     where
         ITER: IntoIterator<Item = ELEM>,
     {
-        VecImpl {
-            data: iter::FromIterator::from_iter(iter),
-        }
+        Wrapper(iter::FromIterator::from_iter(iter))
     }
 }
 
-impl<DATA, ELEM> iter::Extend<ELEM> for VecImpl<DATA>
+impl<DATA, ELEM> iter::Extend<ELEM> for Wrapper<DATA>
 where
     DATA: iter::Extend<ELEM>,
 {
@@ -188,154 +184,148 @@ where
     where
         ITER: IntoIterator<Item = ELEM>,
     {
-        self.data.extend(iter);
+        self.0.extend(iter);
     }
 }
 
-impl<ELEM> Vector<ELEM> for VecImpl<Vec<ELEM>>
+impl<ELEM> Vector<ELEM> for Wrapper<Vec<ELEM>>
 where
     ELEM: Copy,
 {
     fn new() -> Self {
-        VecImpl { data: Vec::new() }
+        Wrapper(Vec::new())
     }
 
     fn with_capacity(capacity: usize) -> Self {
-        VecImpl {
-            data: Vec::with_capacity(capacity),
-        }
+        Wrapper(Vec::with_capacity(capacity))
     }
 
     fn from_elem(elem: ELEM) -> Self {
-        VecImpl { data: vec![elem] }
+        Wrapper(vec![elem])
     }
 
     fn clear(&mut self) {
-        self.data.clear();
+        self.0.clear();
     }
 
     fn truncate(&mut self, new_len: usize) {
-        assert!(new_len <= self.data.len());
-        self.data.truncate(new_len);
+        assert!(new_len <= self.0.len());
+        self.0.truncate(new_len);
     }
 
     fn resize(&mut self, new_len: usize, elem: ELEM) {
-        self.data.resize(new_len, elem);
+        self.0.resize(new_len, elem);
     }
 
     fn reserve(&mut self, additional: usize) {
-        self.data.reserve(additional);
+        self.0.reserve(additional);
     }
 
     fn push(&mut self, elem: ELEM) {
-        self.data.push(elem);
+        self.0.push(elem);
     }
 
     fn pop(&mut self) -> Option<ELEM> {
-        self.data.pop()
+        self.0.pop()
     }
 
     fn append(&mut self, other: &mut Self) {
-        self.data.append(&mut other.data);
+        self.0.append(&mut other.0);
     }
 
     fn get(&self, index: usize) -> ELEM {
-        self.data[index]
+        self.0[index]
     }
 
     unsafe fn get_unchecked(&self, index: usize) -> ELEM {
-        *self.data.get_unchecked(index)
+        *self.0.get_unchecked(index)
     }
 
     fn set(&mut self, index: usize, elem: ELEM) {
-        self.data[index] = elem;
+        self.0[index] = elem;
     }
 
     unsafe fn set_unchecked(&mut self, index: usize, elem: ELEM) {
-        *self.data.get_unchecked_mut(index) = elem;
+        *self.0.get_unchecked_mut(index) = elem;
     }
 
     fn len(&self) -> usize {
-        self.data.len()
+        self.0.len()
     }
 
     fn is_empty(&self) -> bool {
-        self.data.is_empty()
+        self.0.is_empty()
     }
 
     fn capacity(&self) -> usize {
-        self.data.capacity()
+        self.0.capacity()
     }
 }
 
-impl Vector<bool> for VecImpl<bit_vec::BitVec> {
+impl Vector<bool> for Wrapper<bit_vec::BitVec> {
     fn new() -> Self {
-        VecImpl {
-            data: bit_vec::BitVec::new(),
-        }
+        Wrapper(bit_vec::BitVec::new())
     }
 
     fn with_capacity(capacity: usize) -> Self {
-        VecImpl {
-            data: bit_vec::BitVec::with_capacity(capacity),
-        }
+        Wrapper(bit_vec::BitVec::with_capacity(capacity))
     }
 
     fn clear(&mut self) {
-        self.data.truncate(0);
+        self.0.truncate(0);
     }
 
     fn truncate(&mut self, new_len: usize) {
-        assert!(new_len <= self.data.len());
-        self.data.truncate(new_len);
+        assert!(new_len <= self.0.len());
+        self.0.truncate(new_len);
     }
 
     fn resize(&mut self, new_len: usize, elem: bool) {
         if new_len > self.len() {
-            self.data.grow(new_len - self.len(), elem);
+            self.0.grow(new_len - self.len(), elem);
         } else {
-            self.data.truncate(new_len);
+            self.0.truncate(new_len);
         }
     }
 
     fn reserve(&mut self, additional: usize) {
-        self.data.reserve(additional);
+        self.0.reserve(additional);
     }
 
     fn push(&mut self, elem: bool) {
-        self.data.push(elem);
+        self.0.push(elem);
     }
 
     fn pop(&mut self) -> Option<bool> {
-        self.data.pop()
+        self.0.pop()
     }
 
     fn append(&mut self, other: &mut Self) {
-        self.data.append(&mut other.data);
+        self.0.append(&mut other.0);
     }
 
     fn get(&self, index: usize) -> bool {
-        self.data.get(index).unwrap()
+        self.0.get(index).unwrap()
     }
 
     unsafe fn get_unchecked(&self, index: usize) -> bool {
         type B = u32;
         let w = index / B::bits();
         let b = index % B::bits();
-        let x = *self.data.storage().get_unchecked(w);
+        let x = *self.0.storage().get_unchecked(w);
         let y = B::one() << b;
         (x & y) != B::zero()
     }
 
     fn set(&mut self, index: usize, elem: bool) {
-        self.data.set(index, elem);
+        self.0.set(index, elem);
     }
 
     unsafe fn set_unchecked(&mut self, index: usize, elem: bool) {
         type B = u32;
         let w = index / B::bits();
         let b = index % B::bits();
-        let x = self.data.storage_mut().get_unchecked_mut(w);
+        let x = self.0.storage_mut().get_unchecked_mut(w);
         let y = B::one() << b;
         if elem {
             *x |= y;
@@ -345,15 +335,15 @@ impl Vector<bool> for VecImpl<bit_vec::BitVec> {
     }
 
     fn len(&self) -> usize {
-        self.data.len()
+        self.0.len()
     }
 
     fn is_empty(&self) -> bool {
-        self.data.is_empty()
+        self.0.is_empty()
     }
 
     fn capacity(&self) -> usize {
-        self.data.capacity()
+        self.0.capacity()
     }
 }
 
@@ -521,19 +511,19 @@ pub trait CopyIterable<'a, ELEM: 'a> {
     fn iter_copy(self: &'a Self) -> Self::Iter;
 }
 
-impl<'a, ELEM: 'a + Copy> CopyIterable<'a, ELEM> for VecImpl<Vec<ELEM>> {
+impl<'a, ELEM: 'a + Copy> CopyIterable<'a, ELEM> for Wrapper<Vec<ELEM>> {
     type Iter = std::iter::Copied<std::slice::Iter<'a, ELEM>>;
 
     fn iter_copy(self: &'a Self) -> Self::Iter {
-        self.data.iter().copied()
+        self.0.iter().copied()
     }
 }
 
-impl<'a> CopyIterable<'a, bool> for VecImpl<bit_vec::BitVec> {
+impl<'a> CopyIterable<'a, bool> for Wrapper<bit_vec::BitVec> {
     type Iter = bit_vec::Iter<'a>;
 
     fn iter_copy(self: &'a Self) -> Self::Iter {
-        self.data.iter()
+        self.0.iter()
     }
 }
 
@@ -552,15 +542,15 @@ pub trait Element: Copy {
 }
 
 impl Element for bool {
-    type Vector = VecImpl<bit_vec::BitVec>;
+    type Vector = Wrapper<bit_vec::BitVec>;
 }
 
 impl Element for usize {
-    type Vector = VecImpl<Vec<Self>>;
+    type Vector = Wrapper<Vec<Self>>;
 }
 
 impl Element for solver::Literal {
-    type Vector = VecImpl<Vec<Self>>;
+    type Vector = Wrapper<Vec<Self>>;
 }
 
 impl Element for () {
@@ -576,7 +566,7 @@ mod tests {
 
     #[test]
     fn resize() {
-        let mut v1: VecImpl<Vec<bool>> = Vector::new();
+        let mut v1: Wrapper<Vec<bool>> = Vector::new();
         let mut v2: VectorFor<bool> = Vector::new();
         let mut v3: VectorFor<()> = Vector::new();
 

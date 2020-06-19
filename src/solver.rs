@@ -473,7 +473,7 @@ impl Solver for BatSat {
     }
 }
 
-/// MiniSAT reimplemented in pure rust.
+/// A state of the art SAT solver.
 #[cfg(feature = "cadical")]
 #[derive(Default)]
 pub struct CaDiCaL {

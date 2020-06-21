@@ -92,29 +92,13 @@ impl Shape {
         size
     }
 
-    /// Creates a mapping suitable for a polymer operation where the initial
-    /// segment is provided and the rest is filled in starting at the rest
-    /// position.
-    pub fn mapping(&self, part: &[usize], rest: usize) -> Vec<usize> {
-        debug_assert!(part.len() <= self.len());
-        let mut mapping = Vec::with_capacity(self.len());
-        for dim in part {
-            debug_assert!(*dim < rest);
-            mapping.push(*dim);
-        }
-        for i in 0..(self.len() - part.len()) {
-            mapping.push(rest + i);
-        }
-        mapping
-    }
-
     /// Returns the linear index of an element given by coordinates.
     fn index(&self, coords: &[usize]) -> usize {
-        debug_assert_eq!(coords.len(), self.len());
+        assert_eq!(coords.len(), self.len());
         let mut index = 0;
         let mut size = 1;
         for (coord, dim) in coords.iter().zip(self.dims.iter()) {
-            debug_assert!(coord < dim);
+            assert!(coord < dim);
             index += *coord * size;
             size *= *dim;
         }
@@ -214,7 +198,7 @@ where
 {
     /// Creates a tensor of the given shape and with the given elements.
     fn new(shape: Shape, elems: genvec::VectorFor<ELEM>) -> Self {
-        debug_assert_eq!(shape.size(), elems.len());
+        assert_eq!(shape.size(), elems.len());
         Tensor { shape, elems }
     }
 
@@ -307,6 +291,10 @@ pub trait TensorAlg {
     /// coordinate in the new tensor.
     fn tensor_polymer(&self, elem: Self::Elem, shape: Shape, mapping: &[usize]) -> Self::Elem;
 
+    /// Returns a new tensor with the same underling data but with a different
+    /// shape. The new shape must have the same size as the original one.
+    fn tensor_reshape(&self, elem: Self::Elem, shape: Shape) -> Self::Elem;
+
     /// Returns a new tensor whose elements are all negated of the original.
     fn tensor_not(&mut self, elem: Self::Elem) -> Self::Elem;
 
@@ -363,13 +351,17 @@ where
         Tensor::new(elem.shape, elems)
     }
 
-    fn tensor_polymer(&self, tensor: Self::Elem, shape: Shape, mapping: &[usize]) -> Self::Elem {
-        tensor.polymer(shape, mapping)
+    fn tensor_polymer(&self, elem: Self::Elem, shape: Shape, mapping: &[usize]) -> Self::Elem {
+        elem.polymer(shape, mapping)
     }
 
-    fn tensor_not(&mut self, tensor: Self::Elem) -> Self::Elem {
-        let elems = tensor.elems.iter().map(|b| self.bool_not(b)).collect();
-        Tensor::new(tensor.shape, elems)
+    fn tensor_reshape(&self, elem: Self::Elem, shape: Shape) -> Self::Elem {
+        elem.reshape(shape)
+    }
+
+    fn tensor_not(&mut self, elem: Self::Elem) -> Self::Elem {
+        let elems = elem.elems.iter().map(|b| self.bool_not(b)).collect();
+        Tensor::new(elem.shape, elems)
     }
 
     fn tensor_or(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem {

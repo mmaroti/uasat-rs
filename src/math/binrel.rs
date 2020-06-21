@@ -15,10 +15,9 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use crate::tensor::{Boolean, Shape, Solver, Tensor, TensorAlg, TensorSat};
-use std::time::Instant;
+use crate::tensor::{Shape, Tensor, TensorAlg};
 
-trait BinaryRel: TensorAlg {
+pub trait BinaryRel: TensorAlg {
     /// Creates a tensor of shape `[size, size]` representing the
     /// binary less than or equal relation of the crown.
     fn crown_poset(&self, size: usize) -> Self::Elem {
@@ -42,17 +41,35 @@ trait BinaryRel: TensorAlg {
     }
 
     /// Creates the less than relation of shape `[size, size]`.
-    fn lessthan(&self, size: usize) -> Self::Elem {
+    fn less_than(&self, size: usize) -> Self::Elem {
         let rel = Tensor::create(Shape::new(vec![size, size]), |i| i[0] < i[1]);
         self.tensor_lift(rel)
     }
 
-    /// Checks if the given tensor of shape `[a, b]` is a mapping from a
-    /// b-element set to an a-element set, and returns the result in a tensor
+    /// Returns an almost empty binary relation except for the edge from
+    /// `pos[0]` to `pos[1]`.
+    fn singleton(&self, size: usize, pos: [usize; 2]) -> Self::Elem {
+        let rel = Tensor::create(Shape::new(vec![size, size]), |i| {
+            i[0] == pos[0] && i[1] == pos[1]
+        });
+        self.tensor_lift(rel)
+    }
+
+    /// Checks if the given tensor of shape `[a, b]` is a mapping from an
+    /// a-element set to a b-element set, and returns the result in a tensor
     /// of shape `[]`.
-    fn is_function<ALG: TensorAlg>(alg: &mut ALG, fun: ALG::Elem) -> ALG::Elem {
-        let fun = alg.tensor_one(fun);
-        alg.tensor_all(fun)
+    fn is_function(&mut self, fun: Self::Elem) -> Self::Elem {
+        let fun = self.transpose(fun);
+        let fun = self.tensor_one(fun);
+        self.tensor_all(fun)
+    }
+
+    /// Checks if the given tensor of shape `[a, b]` is a surjective
+    /// mapping from an a-element set to a b-element set, and returns
+    /// the result in a tensor of shape `[]`.
+    fn is_surjective(&mut self, fun: Self::Elem) -> Self::Elem {
+        let fun = self.tensor_any(fun);
+        self.tensor_all(fun)
     }
 
     /// Checks if the binary relation of shape `[a, a]` is reflexive
@@ -82,7 +99,7 @@ trait BinaryRel: TensorAlg {
 
     /// Checks if the first tensor of shape `[a, b]` is a subset of another one
     /// of the same shape, and returns the relation as a tensor of shape `[]`.
-    fn is_subsetof(&mut self, rel0: Self::Elem, rel1: Self::Elem) -> Self::Elem {
+    fn is_subset_of(&mut self, rel0: Self::Elem, rel1: Self::Elem) -> Self::Elem {
         let rel2 = self.tensor_imp(rel0, rel1);
         let rel2 = self.tensor_all(rel2);
         self.tensor_all(rel2)
@@ -92,13 +109,14 @@ trait BinaryRel: TensorAlg {
     /// and returns the result in a tensor of shape `[]`.
     fn is_transitive(&mut self, rel: Self::Elem) -> Self::Elem {
         let tmp = self.compose(rel.clone(), rel.clone());
-        self.is_subsetof(tmp, rel)
+        self.is_subset_of(tmp, rel)
     }
 
     /// Returns the transpose of the binary relation of shape `[a, b]`
     /// as a tensor of shape `[b, a]`.
     fn transpose(&mut self, rel: Self::Elem) -> Self::Elem {
-        let shape = self.shape(&rel).clone();
+        let (a, b, shape) = self.shape(&rel).split2();
+        let shape = shape.join(&[b, a]);
         self.tensor_polymer(rel, shape, &[1, 0])
     }
 
@@ -143,80 +161,38 @@ trait BinaryRel: TensorAlg {
         let tmp4 = self.tensor_and(tmp1, tmp2);
         self.tensor_and(tmp3, tmp4)
     }
+
+    /// Removes reflexive and transitive edges. Takes a binary relation of
+    /// shape `[a,a]` and returns another of the same shape.
+    fn covers(&mut self, rel: Self::Elem) -> Self::Elem {
+        let size = self.shape(&rel)[0];
+        let tmp = self.diagonal(size);
+        let tmp = self.tensor_not(tmp);
+        let rel = self.tensor_and(rel, tmp);
+        let tmp = self.compose(rel.clone(), rel.clone());
+        let tmp = self.tensor_not(tmp);
+        self.tensor_and(rel, tmp)
+    }
+
+    /// Takes a function of shape `[a, b]`, and a pair of binary relations of
+    /// shapes `[a, a]` and `[b, b]` and checks if the function is a compatible
+    /// map from the first relation to the second. The result is of shape `[]`.
+    fn is_compatible(&mut self, fun: Self::Elem, rel0: Self::Elem, rel1: Self::Elem) -> Self::Elem {
+        let tmp = self.compose(rel0, fun.clone());
+        let fun = self.transpose(fun);
+        let tmp = self.compose(fun, tmp);
+        let tmp = self.tensor_imp(tmp, rel1);
+        let tmp = self.tensor_all(tmp);
+        self.tensor_all(tmp)
+    }
+
+    /// Takes two binary relations of shape `[a, b]` and checks if they
+    /// are equal, and the result is returned as a tensor of shape `[]`.
+    fn is_equal(&mut self, rel0: Self::Elem, rel1: Self::Elem) -> Self::Elem {
+        let tmp = self.tensor_equ(rel0, rel1);
+        let tmp = self.tensor_all(tmp);
+        self.tensor_all(tmp)
+    }
 }
 
 impl<ALG> BinaryRel for ALG where ALG: TensorAlg {}
-
-fn check(
-    solver: &str,
-    desc: &str,
-    shape: Shape,
-    pred: fn(&mut Solver, elem: <Solver as TensorAlg>::Elem) -> <Solver as TensorAlg>::Elem,
-    count: usize,
-) {
-    let mut sol = Solver::new(solver);
-    let elem = sol.tensor_add_variable(shape.clone());
-    let cond = pred(&mut sol, elem.clone());
-    sol.tensor_add_clause(&[cond]);
-    let num = sol.tensor_find_num_models(&[elem]);
-    println!("Number of {} of shape {:?} is {}", desc, shape.dims(), num);
-    assert_eq!(num, count);
-}
-
-/// Validates the solver by calculating some numbers from the
-/// Online Encyclopedia of Integer Sequences.
-pub fn validate_solver(solver: &str) {
-    let start = Instant::now();
-
-    check(
-        solver,
-        "transitive relations",
-        Shape::new(vec![4, 4]),
-        <Solver as BinaryRel>::is_transitive,
-        3994,
-    );
-
-    check(
-        solver,
-        "equivalence relations",
-        Shape::new(vec![8, 8]),
-        <Solver as BinaryRel>::is_equivalence,
-        4140,
-    );
-
-    check(
-        solver,
-        "partial orders",
-        Shape::new(vec![5, 5]),
-        <Solver as BinaryRel>::is_partial_order,
-        4231,
-    );
-
-    check(
-        solver,
-        "functions",
-        Shape::new(vec![6, 5]),
-        <Solver as BinaryRel>::is_function,
-        7776,
-    );
-
-    let duration = Instant::now().duration_since(start).as_secs_f32();
-    println!("Solver {} finished in {} seconds\n", solver, duration);
-}
-
-pub fn test() {
-    let mut alg = Boolean();
-    let crown4 = alg.crown_poset(4);
-    assert!(alg.is_partial_order(crown4.clone()).scalar());
-
-    #[cfg(feature = "cadical")]
-    validate_solver("cadical");
-    #[cfg(feature = "batsat")]
-    validate_solver("batsat");
-    #[cfg(feature = "minisat")]
-    validate_solver("minisat");
-    #[cfg(feature = "varisat")]
-    validate_solver("varisat");
-    #[cfg(feature = "cryptominisat")]
-    validate_solver("cryptominisat");
-}

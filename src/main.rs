@@ -36,5 +36,6 @@ pub fn uasat_init() {
 }
 
 pub fn main() {
-    math::binrel::test();
+    // math::validate();
+    math::test();
 }

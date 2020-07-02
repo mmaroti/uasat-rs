@@ -21,7 +21,6 @@
 use batsat::intmap::AsIndex as _;
 #[cfg(feature = "batsat")]
 use batsat::SolverInterface as _;
-use std::fmt;
 #[cfg(feature = "varisat")]
 use varisat::ExtendFormula as _;
 
@@ -123,8 +122,8 @@ pub fn create_solver(name: &str) -> Box<dyn Solver> {
     panic!("Unknown SAT solver: {}", name);
 }
 
-impl fmt::Debug for dyn Solver {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Debug for dyn Solver {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
             f,
             "{} {{ variables: {}, clauses: {} }}",

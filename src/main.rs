@@ -25,16 +25,6 @@ pub mod tensor;
 pub mod math;
 pub mod old;
 
-#[cfg(feature = "console_error_panic_hook")]
-use std::panic;
-use wasm_bindgen::prelude::*;
-
-#[wasm_bindgen(start)]
-pub fn uasat_init() {
-    #[cfg(feature = "console_error_panic_hook")]
-    panic::set_hook(Box::new(console_error_panic_hook::hook));
-}
-
 pub fn main() {
     // math::validate();
     math::test();

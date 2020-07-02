@@ -23,15 +23,3 @@ pub mod parser;
 pub mod relation;
 pub mod structure;
 pub mod testing;
-
-use wasm_bindgen::prelude::*;
-
-#[wasm_bindgen]
-pub fn test(input: String) -> String {
-    let lexer = lexer::Lexer::new(input.as_str());
-    let mut output = String::new();
-    for token in lexer {
-        output.push_str(format!("{}\n", token).as_str());
-    }
-    "done".to_string()
-}

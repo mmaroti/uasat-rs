@@ -8,7 +8,7 @@ edition = "2018"
 repository = "https://github.com/mmaroti/uasat-rs"
 
 [features]
-default = ["minisat", "varisat", "cryptominisat", "batsat", "cadical"]
+default = ["cryptominisat", "batsat", "cadical"]
 wasm = ["console_error_panic_hook", "varisat", "batsat"]
 
 [dependencies]

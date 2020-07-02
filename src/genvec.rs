@@ -18,16 +18,16 @@
 //! A generic vector trait to work with regular and bit vectors.
 
 use super::solver;
-use bit_vec::BitBlock as _;
-use std::{fmt, iter};
+use bit_vec::{BitBlock as _, BitVec};
+use std::iter::{Extend, FromIterator, FusedIterator};
 
 /// Generic interface for regular and bit vectors.
 pub trait Vector<ELEM>
 where
     ELEM: Copy,
     Self: Default + Clone,
-    Self: IntoIterator<Item = ELEM> + iter::FromIterator<ELEM>,
-    Self: iter::Extend<ELEM>,
+    Self: IntoIterator<Item = ELEM> + FromIterator<ELEM>,
+    Self: Extend<ELEM>,
 {
     /// Constructs a new empty vector. The vector will not allocate until
     /// elements are pushed onto it.
@@ -148,8 +148,14 @@ where
 }
 
 /// A wrapper around standard containers to present them as generic vectors.
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub struct Wrapper<DATA>(DATA);
+
+impl<DATA: std::fmt::Debug> std::fmt::Debug for Wrapper<DATA> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        std::fmt::Debug::fmt(&self.0, f)
+    }
+}
 
 impl<DATA> IntoIterator for Wrapper<DATA>
 where
@@ -164,21 +170,21 @@ where
     }
 }
 
-impl<DATA, ELEM> iter::FromIterator<ELEM> for Wrapper<DATA>
+impl<DATA, ELEM> FromIterator<ELEM> for Wrapper<DATA>
 where
-    DATA: iter::FromIterator<ELEM>,
+    DATA: FromIterator<ELEM>,
 {
     fn from_iter<ITER>(iter: ITER) -> Self
     where
         ITER: IntoIterator<Item = ELEM>,
     {
-        Wrapper(iter::FromIterator::from_iter(iter))
+        Wrapper(FromIterator::from_iter(iter))
     }
 }
 
-impl<DATA, ELEM> iter::Extend<ELEM> for Wrapper<DATA>
+impl<DATA, ELEM> Extend<ELEM> for Wrapper<DATA>
 where
-    DATA: iter::Extend<ELEM>,
+    DATA: Extend<ELEM>,
 {
     fn extend<ITER>(&mut self, iter: ITER)
     where
@@ -262,13 +268,13 @@ where
     }
 }
 
-impl Vector<bool> for Wrapper<bit_vec::BitVec> {
+impl Vector<bool> for Wrapper<BitVec> {
     fn new() -> Self {
-        Wrapper(bit_vec::BitVec::new())
+        Wrapper(BitVec::new())
     }
 
     fn with_capacity(capacity: usize) -> Self {
-        Wrapper(bit_vec::BitVec::with_capacity(capacity))
+        Wrapper(BitVec::with_capacity(capacity))
     }
 
     fn clear(&mut self) {
@@ -391,7 +397,7 @@ impl Iterator for UnitIter {
     }
 }
 
-impl iter::FusedIterator for UnitIter {}
+impl FusedIterator for UnitIter {}
 
 /// A vector containing unit `()` elements only (just the length is stored).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -408,7 +414,7 @@ impl IntoIterator for UnitVec {
     }
 }
 
-impl iter::FromIterator<()> for UnitVec {
+impl FromIterator<()> for UnitVec {
     fn from_iter<ITER>(iter: ITER) -> Self
     where
         ITER: IntoIterator<Item = ()>,
@@ -442,7 +448,9 @@ impl Vector<()> for UnitVec {
             return Vec::new();
         }
         assert_ne!(len, 0);
-        iter::repeat(UnitVec { len }).take(self.len / len).collect()
+        std::iter::repeat(UnitVec { len })
+            .take(self.len / len)
+            .collect()
     }
 
     fn from_elem(_elem: ()) -> Self {
@@ -519,7 +527,7 @@ impl<'a, ELEM: 'a + Copy> CopyIterable<'a, ELEM> for Wrapper<Vec<ELEM>> {
     }
 }
 
-impl<'a> CopyIterable<'a, bool> for Wrapper<bit_vec::BitVec> {
+impl<'a> CopyIterable<'a, bool> for Wrapper<BitVec> {
     type Iter = bit_vec::Iter<'a>;
 
     fn iter_copy(self: &'a Self) -> Self::Iter {
@@ -538,11 +546,11 @@ impl<'a> CopyIterable<'a, ()> for UnitVec {
 /// A helper trait to find the right generic vector for a given element.
 pub trait Element: Copy {
     /// A type that can be used for storing a vector of elements.
-    type Vector: Vector<Self> + PartialEq + fmt::Debug + for<'a> CopyIterable<'a, Self>;
+    type Vector: Vector<Self> + PartialEq + std::fmt::Debug + for<'a> CopyIterable<'a, Self>;
 }
 
 impl Element for bool {
-    type Vector = Wrapper<bit_vec::BitVec>;
+    type Vector = Wrapper<BitVec>;
 }
 
 impl Element for usize {

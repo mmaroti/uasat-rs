@@ -18,9 +18,10 @@
 //! Module for doing research experimentation using the uasat crate.
 
 mod binrel;
+mod blocker;
 mod test;
 mod validate;
 
 pub use binrel::BinaryRel;
-pub use test::test;
+pub use blocker::test;
 pub use validate::validate;

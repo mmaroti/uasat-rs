@@ -22,7 +22,7 @@ use super::genvec;
 use super::genvec::Vector as _;
 use std::ops;
 
-pub use super::boolean::{Boolean, Solver, Trivial};
+pub use super::boolean::{Boolean, Solver, Trivial, BOOLEAN};
 
 /// The shape of a tensor.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -471,6 +471,16 @@ pub trait TensorSat: TensorAlg {
 
     /// Adds the given (disjunctive) clause to the solver.
     fn tensor_add_clause(&mut self, clause: &[Self::Elem]);
+
+    /// Adds the given 1-element clause to the solver.
+    fn tensor_add_clause1(&mut self, elem1: Self::Elem) {
+        self.tensor_add_clause(&[elem1]);
+    }
+
+    /// Adds the given 2-element clause to the solver.
+    fn tensor_add_clause2(&mut self, elem1: Self::Elem, elem2: Self::Elem) {
+        self.tensor_add_clause(&[elem1, elem2]);
+    }
 
     /// Runs the solver and returns a model if it exists. The shapes of the
     /// returned tensors match the ones that were passed in.

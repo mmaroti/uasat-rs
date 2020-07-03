@@ -241,6 +241,9 @@ impl BoolAlg for Boolean {
     }
 }
 
+/// Single boolean instance of the boolean algebra.
+pub const BOOLEAN: Boolean = Boolean();
+
 /// The free boolean algebra backed by a SAT solver.
 #[derive(Debug)]
 pub struct Solver {

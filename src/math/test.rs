@@ -17,6 +17,7 @@
 
 #![allow(dead_code, unused_imports)]
 
+use crate::math::binrel;
 use crate::math::BinaryRel;
 use crate::tensor::{Boolean, Shape, Solver, Tensor, TensorAlg, TensorSat};
 
@@ -40,41 +41,19 @@ pub fn test1() {
     let tmp = alg.is_surjective(fun.clone());
     alg.tensor_add_clause(&[tmp]);
 
-    let rel = alg.crown_poset(20);
+    let rel = binrel::crown_poset(20);
+    let rel = alg.tensor_lift(rel);
     let tmp = alg.is_compatible(fun.clone(), rel.clone(), rel.clone());
     alg.tensor_add_clause(&[tmp]);
 
     while let Some(sol) = alg.tensor_find_one_model1(fun.clone()) {
         println!("{:?}", sol);
         let tmp = alg.tensor_lift(sol);
-        let tmp = alg.is_equal(tmp, fun.clone());
+        let tmp = alg.is_equal_to(tmp, fun.clone());
         let tmp = alg.tensor_not(tmp);
         alg.tensor_add_clause(&[tmp]);
     }
 
     // let num = alg.tensor_find_num_models(&[fun]);
     // println!("{}", num);
-}
-
-pub fn test() {
-    let mut alg = Solver::new("cadical");
-
-    let blocker = alg.tensor_add_variable(Shape::new(vec![4, 4]));
-    let tmp = alg.is_antisymmetric(blocker.clone());
-    alg.tensor_add_clause(&[tmp]);
-
-    let crown4 = alg.crown_poset(4);
-    let mapping = mapping(&[0, 1, 2, 3], 4);
-    let mapping = alg.tensor_lift(mapping);
-
-    let tmp = alg.is_compatible(mapping, blocker.clone(), crown4);
-    let tmp = alg.tensor_not(tmp);
-    alg.tensor_add_clause(&[tmp]);
-
-    if let Some(sol) = alg.tensor_find_one_model1(blocker.clone()) {
-        println!("example {:?}", sol);
-    }
-
-    let num = alg.tensor_find_num_models(&[blocker.clone()]);
-    println!("solutions {}", num);
 }

@@ -15,46 +15,63 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#![allow(dead_code)]
+
 use crate::tensor::{Shape, Tensor, TensorAlg};
 
-pub trait BinaryRel: TensorAlg {
-    /// Creates a tensor of shape `[size, size]` representing the
-    /// binary less than or equal relation of the crown.
-    fn crown_poset(&self, size: usize) -> Self::Elem {
-        assert!(size >= 4 && size % 2 == 0);
-        let rel = Tensor::create(Shape::new(vec![size, size]), |i| {
-            if i[0] % 2 == 1 {
-                i[0] == i[1]
-            } else if i[0] == 0 {
-                i[1] <= 1 || i[1] == size - 1
-            } else {
-                i[1] >= i[0] - 1 && i[1] <= i[0] + 1
+/// Creates a tensor of shape `[size, size]` representing the
+/// binary less than or equal relation of the crown.
+pub fn crown_poset(size: usize) -> Tensor<bool> {
+    assert!(size >= 4 && size % 2 == 0);
+    Tensor::create(Shape::new(vec![size, size]), |i| {
+        if i[0] % 2 == 1 {
+            i[0] == i[1]
+        } else if i[0] == 0 {
+            i[1] <= 1 || i[1] == size - 1
+        } else {
+            i[1] >= i[0] - 1 && i[1] <= i[0] + 1
+        }
+    })
+}
+
+/// Creates the diagonal relation of shape `[size, size]`.
+pub fn diagonal(size: usize) -> Tensor<bool> {
+    Tensor::create(Shape::new(vec![size, size]), |i| i[0] == i[1])
+}
+
+/// Creates the less than relation of shape `[size, size]`.
+pub fn less_than(size: usize) -> Tensor<bool> {
+    Tensor::create(Shape::new(vec![size, size]), |i| i[0] < i[1])
+}
+
+/// Returns an almost empty binary relation except for the edge from
+/// `pos[0]` to `pos[1]`.
+pub fn singleton(size: usize, pos: [usize; 2]) -> Tensor<bool> {
+    Tensor::create(Shape::new(vec![size, size]), |i| {
+        i[0] == pos[0] && i[1] == pos[1]
+    })
+}
+
+/// Creates a partial map from the source to the target universe.
+pub fn partial_map(map: &[isize], target: usize) -> Tensor<bool> {
+    let shape = Shape::new(vec![map.len(), target]);
+    Tensor::create(shape, |i| map[i[0]] == i[1] as isize)
+}
+
+/// Returns the list of edges of the binary relation.
+pub fn edges(rel: &Tensor<bool>) -> Vec<(usize, usize)> {
+    let mut edges = Vec::new();
+    for i in 0..rel.shape()[0] {
+        for j in 0..rel.shape()[1] {
+            if rel.very_slow_get(&[i, j]) {
+                edges.push((i, j));
             }
-        });
-        self.tensor_lift(rel)
+        }
     }
+    edges
+}
 
-    /// Creates the diagonal relation of shape `[size, size]`.
-    fn diagonal(&self, size: usize) -> Self::Elem {
-        let rel = Tensor::create(Shape::new(vec![size, size]), |i| i[0] == i[1]);
-        self.tensor_lift(rel)
-    }
-
-    /// Creates the less than relation of shape `[size, size]`.
-    fn less_than(&self, size: usize) -> Self::Elem {
-        let rel = Tensor::create(Shape::new(vec![size, size]), |i| i[0] < i[1]);
-        self.tensor_lift(rel)
-    }
-
-    /// Returns an almost empty binary relation except for the edge from
-    /// `pos[0]` to `pos[1]`.
-    fn singleton(&self, size: usize, pos: [usize; 2]) -> Self::Elem {
-        let rel = Tensor::create(Shape::new(vec![size, size]), |i| {
-            i[0] == pos[0] && i[1] == pos[1]
-        });
-        self.tensor_lift(rel)
-    }
-
+pub trait BinaryRel: TensorAlg {
     /// Checks if the given tensor of shape `[a, b]` is a mapping from an
     /// a-element set to a b-element set, and returns the result in a tensor
     /// of shape `[]`.
@@ -98,11 +115,20 @@ pub trait BinaryRel: TensorAlg {
     }
 
     /// Checks if the first tensor of shape `[a, b]` is a subset of another one
-    /// of the same shape, and returns the relation as a tensor of shape `[]`.
+    /// of the same shape, and returns the result as a tensor of shape `[]`.
     fn is_subset_of(&mut self, rel0: Self::Elem, rel1: Self::Elem) -> Self::Elem {
         let rel2 = self.tensor_imp(rel0, rel1);
         let rel2 = self.tensor_all(rel2);
         self.tensor_all(rel2)
+    }
+
+    /// Checks if the first tensor of shape `[a, b]` is a proper subset of
+    /// the other one of the same shape, and returns the result as a tensor
+    /// of shape `[]`.
+    fn is_proper_subset_of(&mut self, rel0: Self::Elem, rel1: Self::Elem) -> Self::Elem {
+        let tmp1 = self.is_subset_of(rel0.clone(), rel1.clone());
+        let tmp2 = self.is_not_equal_to(rel0, rel1);
+        self.tensor_and(tmp1, tmp2)
     }
 
     /// Checks if the binary relation of shape `[a, a]` is transitive
@@ -133,7 +159,8 @@ pub trait BinaryRel: TensorAlg {
     /// and returns the result in a tensor of shape `[]`.
     fn is_antisymmetric(&mut self, rel: Self::Elem) -> Self::Elem {
         let size = self.shape(&rel)[0];
-        let tmp = self.diagonal(size);
+        let tmp = diagonal(size);
+        let tmp = self.tensor_lift(tmp);
         let rel = self.tensor_not(rel);
         let tmp = self.tensor_or(tmp, rel.clone());
         let rel = self.transpose(rel);
@@ -166,7 +193,8 @@ pub trait BinaryRel: TensorAlg {
     /// shape `[a,a]` and returns another of the same shape.
     fn covers(&mut self, rel: Self::Elem) -> Self::Elem {
         let size = self.shape(&rel)[0];
-        let tmp = self.diagonal(size);
+        let tmp = diagonal(size);
+        let tmp = self.tensor_lift(tmp);
         let tmp = self.tensor_not(tmp);
         let rel = self.tensor_and(rel, tmp);
         let tmp = self.compose(rel.clone(), rel.clone());
@@ -188,10 +216,17 @@ pub trait BinaryRel: TensorAlg {
 
     /// Takes two binary relations of shape `[a, b]` and checks if they
     /// are equal, and the result is returned as a tensor of shape `[]`.
-    fn is_equal(&mut self, rel0: Self::Elem, rel1: Self::Elem) -> Self::Elem {
+    fn is_equal_to(&mut self, rel0: Self::Elem, rel1: Self::Elem) -> Self::Elem {
         let tmp = self.tensor_equ(rel0, rel1);
         let tmp = self.tensor_all(tmp);
         self.tensor_all(tmp)
+    }
+
+    /// Takes two binary relations of shape `[a, b]` and checks if they
+    /// are different, and the result is returned as a tensor of shape `[]`.
+    fn is_not_equal_to(&mut self, rel0: Self::Elem, rel1: Self::Elem) -> Self::Elem {
+        let tmp = self.is_equal_to(rel0, rel1);
+        self.tensor_not(tmp)
     }
 }
 

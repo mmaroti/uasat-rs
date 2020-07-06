@@ -15,6 +15,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use crate::math::binrel;
 use crate::math::BinaryRel;
 use crate::tensor::{Boolean, Shape, Solver, TensorAlg, TensorSat};
 use std::time::Instant;
@@ -78,7 +79,7 @@ pub fn validate_solver(solver: &str) {
 
 pub fn validate() {
     let mut alg = Boolean();
-    let crown4 = alg.crown_poset(4);
+    let crown4 = binrel::crown_poset(4);
     assert!(alg.is_partial_order(crown4.clone()).scalar());
 
     #[cfg(feature = "cadical")]

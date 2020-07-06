@@ -3,7 +3,7 @@ name = "uasat"
 description = "A SAT solver based discrete mathematics and universal algebra calculator"
 license = "GPLv3"
 authors = ["Miklos Maroti <mmaroti@gmail.com>"]
-version = "0.1.4"
+version = "0.1.5"
 edition = "2018"
 repository = "https://github.com/mmaroti/uasat-rs"
 

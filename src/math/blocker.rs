@@ -39,7 +39,7 @@ impl Blocker {
         let mut alg = Solver::new(&self.solver);
 
         let partial_map = alg.tensor_lift(self.partial_map.clone());
-        let source_graph = alg.tensor_lift(source_graph.clone());
+        let source_graph = alg.tensor_lift(source_graph);
         let target_graph = alg.tensor_lift(self.target_graph.clone());
         let map = alg.tensor_add_variable(partial_map.shape().clone());
 
@@ -115,7 +115,10 @@ impl Blocker {
 
 pub fn test() {
     let target_graph = binrel::crown_poset(6);
-    let partial_map = binrel::partial_map(&[0, 0, 0, 1, 3, 4, -1, -1, -1, -1, -1, -1], target_graph.shape()[0]);
+    let partial_map = binrel::partial_map(
+        &[0, 0, 0, 1, 3, 4, -1, -1, -1, -1, -1, -1],
+        target_graph.shape()[0],
+    );
 
     let blocker = Blocker {
         trace: false,

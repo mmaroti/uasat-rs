@@ -59,7 +59,7 @@ impl Shape {
     /// Returns the head and tail of this shape. The shape must have at
     /// least one dimension.
     pub fn split1(&self) -> (usize, Self) {
-        assert!(self.dims.len() >= 1);
+        assert!(!self.dims.is_empty());
         (self.dims[0], Shape::new(self.dims[1..].to_vec()))
     }
 

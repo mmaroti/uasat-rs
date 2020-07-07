@@ -22,4 +22,3 @@ pub mod lexer;
 pub mod parser;
 pub mod relation;
 pub mod structure;
-pub mod testing;

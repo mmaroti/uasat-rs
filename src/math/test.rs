@@ -43,7 +43,7 @@ pub fn test1() {
 
     let rel = binrel::crown_poset(20);
     let rel = alg.tensor_lift(rel);
-    let tmp = alg.is_compatible(fun.clone(), rel.clone(), rel.clone());
+    let tmp = alg.is_compatible(fun.clone(), rel.clone(), rel);
     alg.tensor_add_clause(&[tmp]);
 
     while let Some(sol) = alg.tensor_find_one_model1(fun.clone()) {

@@ -72,6 +72,14 @@ pub fn validate_solver(solver: &str) {
         7776,
     );
 
+    check(
+        solver,
+        "partial functions",
+        Shape::new(vec![5, 5]),
+        <Solver as BinaryRel>::is_partial_function,
+        7776,
+    );
+
     let duration = Instant::now().duration_since(start).as_secs_f32();
     println!("Solver {} finished in {} seconds\n", solver, duration);
 }

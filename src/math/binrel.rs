@@ -81,6 +81,15 @@ pub trait BinaryRel: TensorAlg {
         self.tensor_all(fun)
     }
 
+    /// Checks if the given tensor of shape `[a, b]` is a partial mapping
+    /// from an a-element set to a b-element set, and returns the result
+    /// in a tensor of shape `[]`.
+    fn is_partial_function(&mut self, fun: Self::Elem) -> Self::Elem {
+        let fun = self.transpose(fun);
+        let fun = self.tensor_amo(fun);
+        self.tensor_all(fun)
+    }
+
     /// Checks if the given tensor of shape `[a, b]` is a surjective
     /// mapping from an a-element set to a b-element set, and returns
     /// the result in a tensor of shape `[]`.

@@ -333,6 +333,10 @@ pub trait TensorAlg {
     /// Returns a new tensor with the first dimension removed where the result
     /// is the exactly one set predicate.
     fn tensor_one(&mut self, elem: Self::Elem) -> Self::Elem;
+
+    /// Returns a new tensor with the first dimension removed where the result
+    /// is the at most one set predicate.
+    fn tensor_amo(&mut self, elem: Self::Elem) -> Self::Elem;
 }
 
 impl<ALG> TensorAlg for ALG
@@ -459,6 +463,17 @@ where
             .split(head)
             .iter()
             .map(|v| self.bool_fold_one(v.iter()))
+            .collect();
+        Tensor::new(shape, elems)
+    }
+
+    fn tensor_amo(&mut self, elem: Self::Elem) -> Self::Elem {
+        let (head, shape) = elem.shape.split1();
+        let elems = elem
+            .elems
+            .split(head)
+            .iter()
+            .map(|v| self.bool_fold_amo(v.iter()))
             .collect();
         Tensor::new(shape, elems)
     }

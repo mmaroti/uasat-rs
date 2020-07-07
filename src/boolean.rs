@@ -139,6 +139,21 @@ pub trait BoolAlg {
         self.bool_and(min1, min2)
     }
 
+    /// Computes the at most one predicate over the given elements.    
+    fn bool_fold_amo<ITER>(&mut self, elems: ITER) -> Self::Elem
+    where
+        ITER: Iterator<Item = Self::Elem>,
+    {
+        let mut min1 = self.bool_zero();
+        let mut min2 = self.bool_zero();
+        for elem in elems {
+            let tmp = self.bool_and(min1.clone(), elem.clone());
+            min2 = self.bool_or(min2, tmp);
+            min1 = self.bool_or(min1, elem);
+        }
+        self.bool_not(min2)
+    }
+
     /// Returns true if the two sequences are equal.
     fn bool_cmp_equ<ITER>(&mut self, pairs: ITER) -> Self::Elem
     where

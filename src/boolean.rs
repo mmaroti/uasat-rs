@@ -25,6 +25,8 @@ use std::iter;
 
 use super::genvec::Vector as _;
 
+pub use solver::Literal;
+
 /// A boolean algebra supporting boolean calculation.
 pub trait BoolAlg {
     /// The element type of this bool algebra.
@@ -263,8 +265,8 @@ pub const BOOLEAN: Boolean = Boolean();
 #[derive(Debug)]
 pub struct Solver {
     solver: Box<dyn solver::Solver>,
-    unit: solver::Literal,
-    zero: solver::Literal,
+    unit: Literal,
+    zero: Literal,
 }
 
 impl Solver {
@@ -283,7 +285,7 @@ impl Solver {
 }
 
 impl BoolAlg for Solver {
-    type Elem = solver::Literal;
+    type Elem = Literal;
 
     fn bool_lift(&self, elem: bool) -> Self::Elem {
         if elem {

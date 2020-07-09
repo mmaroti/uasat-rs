@@ -15,18 +15,88 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#![allow(dead_code)]
+
 use crate::math::binrel;
 use crate::math::BinaryRel;
+use crate::progress::{add_progress, del_progress, set_progress};
+use crate::solver::Literal;
 use crate::tensor::{Shape, Solver, Tensor, TensorAlg, TensorSat};
+
+struct Extension {
+    alg: Solver,
+    source_graph: Tensor<Literal>,
+    extension_map: Tensor<Literal>,
+}
+
+impl Extension {
+    pub fn new(solver_name: &str, partial_map: &Tensor<bool>, target_graph: &Tensor<bool>) -> Self {
+        let mut alg = Solver::new(solver_name);
+
+        let source_size = partial_map.shape()[0];
+        let partial_map = alg.tensor_lift(partial_map.clone());
+        let source_graph = alg.tensor_add_variable(Shape::new(vec![source_size, source_size]));
+        let target_graph = alg.tensor_lift(target_graph.clone());
+        let extension_map = alg.tensor_add_variable(partial_map.shape().clone());
+
+        let tmp = alg.is_function(extension_map.clone());
+        alg.tensor_add_clause1(tmp);
+
+        let tmp = alg.is_subset_of(partial_map, extension_map.clone());
+        alg.tensor_add_clause1(tmp);
+
+        let tmp = alg.is_compatible(extension_map.clone(), source_graph.clone(), target_graph);
+        alg.tensor_add_clause1(tmp);
+
+        Extension {
+            alg,
+            source_graph,
+            extension_map,
+        }
+    }
+
+    pub fn find(&mut self, source_graph: Tensor<bool>) -> Option<Tensor<bool>> {
+        let source_graph = self.alg.tensor_lift(source_graph);
+        let source_graph = self.alg.tensor_equ(source_graph, self.source_graph.clone());
+        let result = self
+            .alg
+            .tensor_find_one_model(&[source_graph], &[self.extension_map.clone()]);
+
+        if result.is_none() {
+            None
+        } else {
+            let mut result = result.unwrap();
+            assert_eq!(result.len(), 1);
+            result.pop()
+        }
+    }
+}
 
 pub struct Blocker {
     trace: bool,
-    solver: String,
+    solver_name: String,
     partial_map: Tensor<bool>,
     target_graph: Tensor<bool>,
+    extension: Extension,
 }
 
 impl Blocker {
+    pub fn new(solver_name: &str, partial_map: &[isize], target_graph: Tensor<bool>) -> Self {
+        let target_size = target_graph.shape()[0];
+        assert_eq!(target_size, target_graph.shape()[1]);
+
+        let partial_map = binrel::partial_map(partial_map, target_size);
+        let extension = Extension::new(solver_name, &partial_map, &target_graph);
+
+        Blocker {
+            trace: false,
+            solver_name: solver_name.into(),
+            partial_map,
+            target_graph,
+            extension,
+        }
+    }
+
     pub fn source_size(&self) -> usize {
         self.partial_map.shape()[0]
     }
@@ -35,8 +105,8 @@ impl Blocker {
         self.partial_map.shape()[1]
     }
 
-    pub fn find_extension(&self, source_graph: Tensor<bool>) -> Option<Tensor<bool>> {
-        let mut alg = Solver::new(&self.solver);
+    pub fn find_extension1(&self, source_graph: Tensor<bool>) -> Option<Tensor<bool>> {
+        let mut alg = Solver::new(&self.solver_name);
 
         let partial_map = alg.tensor_lift(self.partial_map.clone());
         let source_graph = alg.tensor_lift(source_graph);
@@ -55,8 +125,12 @@ impl Blocker {
         alg.tensor_find_one_model1(map)
     }
 
-    pub fn find_source_graph(&self) -> Option<Tensor<bool>> {
-        let mut alg = Solver::new(&self.solver);
+    pub fn find_extension2(&mut self, source_graph: Tensor<bool>) -> Option<Tensor<bool>> {
+        self.extension.find(source_graph)
+    }
+
+    pub fn find_source_graph(&mut self) -> Option<Tensor<bool>> {
+        let mut alg = Solver::new(&self.solver_name);
 
         let target_graph2 = alg.tensor_lift(self.target_graph.clone());
 
@@ -85,15 +159,18 @@ impl Blocker {
             }
         }
 
+        add_progress("excluded");
+
+        let mut excluded = 0;
         let mut minimal = None;
         loop {
             let result = alg.tensor_find_one_model1(source_graph.clone());
             if result.is_none() {
-                return minimal;
+                break;
             }
 
             let result = result.unwrap();
-            let extension = self.find_extension(result.clone());
+            let extension = self.find_extension2(result.clone());
             if extension.is_none() {
                 minimal = Some(result.clone());
                 let result = alg.tensor_lift(result);
@@ -105,27 +182,23 @@ impl Blocker {
             if self.trace {
                 println!("excluding {:?}", extension.as_ref().unwrap());
             }
+            excluded += 1;
+            set_progress("excluded", excluded);
             let extension = alg.tensor_lift(extension.unwrap());
             let tmp = alg.is_compatible(extension, source_graph.clone(), target_graph2.clone());
             let tmp = alg.tensor_not(tmp);
             alg.tensor_add_clause1(tmp);
         }
+
+        del_progress("excluded");
+        minimal
     }
 }
 
 pub fn test() {
     let target_graph = binrel::crown_poset(6);
-    let partial_map = binrel::partial_map(
-        &[0, 0, 0, 1, 3, 4, -1, -1, -1, -1, -1, -1],
-        target_graph.shape()[0],
-    );
-
-    let blocker = Blocker {
-        trace: false,
-        solver: "cadical".into(),
-        partial_map,
-        target_graph,
-    };
+    let partial_map = [0, 0, 0, 1, 3, 4, -1, -1, -1, -1, -1];
+    let mut blocker = Blocker::new("cadical", &partial_map, target_graph);
 
     let source_graph = blocker.find_source_graph();
     if source_graph.is_none() {

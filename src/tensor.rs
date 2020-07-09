@@ -22,7 +22,7 @@ use super::genvec;
 use super::genvec::Vector as _;
 use std::ops;
 
-pub use super::boolean::{Boolean, Solver, Trivial, BOOLEAN};
+pub use super::boolean::{Boolean, Literal, Solver, Trivial, BOOLEAN};
 
 /// The shape of a tensor.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -499,12 +499,16 @@ pub trait TensorSat: TensorAlg {
 
     /// Runs the solver and returns a model if it exists. The shapes of the
     /// returned tensors match the ones that were passed in.
-    fn tensor_find_one_model(&mut self, elems: &[Self::Elem]) -> Option<Vec<Tensor<bool>>>;
+    fn tensor_find_one_model(
+        &mut self,
+        assumptions: &[Self::Elem],
+        elems: &[Self::Elem],
+    ) -> Option<Vec<Tensor<bool>>>;
 
     /// Runs the solver and returns a model if it exists. The shapes of the
     /// returned tensors match the ones that were passed in.
     fn tensor_find_one_model1(&mut self, elem1: Self::Elem) -> Option<Tensor<bool>> {
-        if let Some(mut result) = self.tensor_find_one_model(&[elem1]) {
+        if let Some(mut result) = self.tensor_find_one_model(&[], &[elem1]) {
             assert_eq!(result.len(), 1);
             result.pop()
         } else {
@@ -519,7 +523,7 @@ pub trait TensorSat: TensorAlg {
         elem1: Self::Elem,
         elem2: Self::Elem,
     ) -> Option<(Tensor<bool>, Tensor<bool>)> {
-        if let Some(mut result) = self.tensor_find_one_model(&[elem1, elem2]) {
+        if let Some(mut result) = self.tensor_find_one_model(&[], &[elem1, elem2]) {
             assert_eq!(result.len(), 2);
             let elem2 = result.pop().unwrap();
             let elem1 = result.pop().unwrap();
@@ -568,9 +572,18 @@ where
         }
     }
 
-    fn tensor_find_one_model(&mut self, elems: &[Self::Elem]) -> Option<Vec<Tensor<bool>>> {
+    fn tensor_find_one_model(
+        &mut self,
+        assumptions: &[Self::Elem],
+        elems: &[Self::Elem],
+    ) -> Option<Vec<Tensor<bool>>> {
+        let ass2: Vec<ALG::Elem> = assumptions
+            .iter()
+            .map(|t| t.elems.iter())
+            .flatten()
+            .collect();
         let literals2 = elems.iter().map(|t| t.elems.iter()).flatten();
-        if let Some(values) = self.bool_find_one_model(&[], literals2) {
+        if let Some(values) = self.bool_find_one_model(&ass2, literals2) {
             let mut result: Vec<Tensor<bool>> = Vec::with_capacity(elems.len());
             let mut pos = 0;
             for t in elems {

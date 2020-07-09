@@ -17,8 +17,12 @@
 
 //! A SAT based discrete mathematics and universal algebra calculator.
 
+#[macro_use]
+extern crate lazy_static;
+
 pub mod boolean;
 pub mod genvec;
+pub mod progress;
 pub mod solver;
 pub mod tensor;
 

@@ -79,26 +79,10 @@ pub trait Solver {
 /// "varisat", "minisat" and "cryptominisat" are supported, but not on all
 /// platforms. Use the empty string to match the first available solver.
 pub fn create_solver(name: &str) -> Box<dyn Solver> {
-    #[cfg(feature = "minisat")]
+    #[cfg(feature = "cadical")]
     {
-        if name == "minisat" || name == "" {
-            let sat: MiniSat = Default::default();
-            return Box::new(sat);
-        }
-    }
-
-    #[cfg(feature = "varisat")]
-    {
-        if name == "varisat" || name == "" {
-            let sat: VariSat = Default::default();
-            return Box::new(sat);
-        }
-    }
-
-    #[cfg(feature = "cryptominisat")]
-    {
-        if name == "cryptominisat" || name == "" {
-            let sat: CryptoMiniSat = Default::default();
+        if name == "cadical" || name == "" {
+            let sat: CaDiCaL = Default::default();
             return Box::new(sat);
         }
     }
@@ -111,10 +95,26 @@ pub fn create_solver(name: &str) -> Box<dyn Solver> {
         }
     }
 
-    #[cfg(feature = "cadical")]
+    #[cfg(feature = "minisat")]
     {
-        if name == "cadical" || name == "" {
-            let sat: CaDiCaL = Default::default();
+        if name == "minisat" || name == "" {
+            let sat: MiniSat = Default::default();
+            return Box::new(sat);
+        }
+    }
+
+    #[cfg(feature = "cryptominisat")]
+    {
+        if name == "cryptominisat" || name == "" {
+            let sat: CryptoMiniSat = Default::default();
+            return Box::new(sat);
+        }
+    }
+
+    #[cfg(feature = "varisat")]
+    {
+        if name == "varisat" || name == "" {
+            let sat: VariSat = Default::default();
             return Box::new(sat);
         }
     }

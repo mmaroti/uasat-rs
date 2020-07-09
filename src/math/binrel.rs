@@ -55,6 +55,9 @@ pub fn singleton(size: usize, pos: [usize; 2]) -> Tensor<bool> {
 /// Creates a partial map from the source to the target universe.
 pub fn partial_map(map: &[isize], target: usize) -> Tensor<bool> {
     let shape = Shape::new(vec![map.len(), target]);
+    for &a in map {
+        assert!(-1 <= a && a <= target as isize);
+    }
     Tensor::create(shape, |i| map[i[0]] == i[1] as isize)
 }
 

@@ -62,13 +62,10 @@ impl Extension {
             .alg
             .tensor_find_one_model(&[source_graph], &[self.extension_map.clone()]);
 
-        if result.is_none() {
-            None
-        } else {
-            let mut result = result.unwrap();
-            assert_eq!(result.len(), 1);
-            result.pop()
-        }
+        result.map(|mut v| {
+            assert_eq!(v.len(), 1);
+            v.pop().unwrap()
+        })
     }
 }
 

@@ -21,6 +21,7 @@ mod binrel;
 mod blocker;
 mod test;
 mod validate;
+mod algebra;
 
 pub use binrel::BinaryRel;
 pub use blocker::test;

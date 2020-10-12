@@ -15,7 +15,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BooleanAlgebra, BoundedLattice, DirectedGraph, Domain, PartialOrder};
+use super::{BooleanAlgebra, BoundedLattice, Domain, Lattice};
 
 /// The two-element boolean algebra.
 pub struct BooleanLogic();
@@ -24,30 +24,22 @@ pub struct BooleanLogic();
 pub const BOOLEAN_LOGIC: BooleanLogic = BooleanLogic();
 
 impl Domain for BooleanLogic {
-    type Logic = BooleanLogic;
-
-    fn logic(&self) -> &Self::Logic {
-        self
-    }
-
     type Elem = bool;
 
-    fn contains(&self, _elem: &Self::Elem) -> <Self::Logic as Domain>::Elem {
-        true
-    }
-
-    fn equals(&self, elem1: &Self::Elem, elem2: &Self::Elem) -> <Self::Logic as Domain>::Elem {
-        elem1 == elem2
+    fn size(&self) -> Option<usize> {
+        Some(2)
     }
 }
 
-impl DirectedGraph for BooleanLogic {
-    fn related(&self, elem1: &Self::Elem, elem2: &Self::Elem) -> <Self::Logic as Domain>::Elem {
-        elem1 <= elem2
+impl Lattice for BooleanLogic {
+    fn meet(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+        *elem0 && *elem1
+    }
+
+    fn join(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+        *elem0 || *elem1
     }
 }
-
-impl PartialOrder for BooleanLogic {}
 
 impl BoundedLattice for BooleanLogic {
     fn unit(&self) -> Self::Elem {
@@ -56,14 +48,6 @@ impl BoundedLattice for BooleanLogic {
 
     fn zero(&self) -> Self::Elem {
         false
-    }
-
-    fn meet(&self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        *elem1 && *elem2
-    }
-
-    fn join(&self, elem1: &Self::Elem, elem2: &Self::Elem) -> Self::Elem {
-        *elem1 || *elem2
     }
 }
 

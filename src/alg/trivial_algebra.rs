@@ -15,10 +15,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{
-    BooleanAlgebra, BooleanLogic, BoundedLattice, DirectedGraph, Domain, Group, Monoid,
-    PartialOrder, Semigroup, BOOLEAN_LOGIC,
-};
+use super::{BooleanAlgebra, BoundedLattice, Domain, Group, Lattice, Monoid, Semigroup};
 
 /// The one-element trivial algebra.
 pub struct TrivialAlgebra();
@@ -27,30 +24,22 @@ pub struct TrivialAlgebra();
 pub const TRIVIAL_ALGEBRA: TrivialAlgebra = TrivialAlgebra();
 
 impl Domain for TrivialAlgebra {
-    type Logic = BooleanLogic;
-
-    fn logic(&self) -> &Self::Logic {
-        &BOOLEAN_LOGIC
-    }
-
     type Elem = ();
 
-    fn contains(&self, _elem: &Self::Elem) -> <Self::Logic as Domain>::Elem {
-        true
-    }
-
-    fn equals(&self, _elem1: &Self::Elem, _elem2: &Self::Elem) -> <Self::Logic as Domain>::Elem {
-        true
+    fn size(&self) -> Option<usize> {
+        Some(1)
     }
 }
 
-impl DirectedGraph for TrivialAlgebra {
-    fn related(&self, _elem1: &Self::Elem, _elem2: &Self::Elem) -> <Self::Logic as Domain>::Elem {
-        true
+impl Lattice for TrivialAlgebra {
+    fn meet(&self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {
+        ()
+    }
+
+    fn join(&self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {
+        ()
     }
 }
-
-impl PartialOrder for TrivialAlgebra {}
 
 impl BoundedLattice for TrivialAlgebra {
     fn unit(&self) -> Self::Elem {
@@ -58,14 +47,6 @@ impl BoundedLattice for TrivialAlgebra {
     }
 
     fn zero(&self) -> Self::Elem {
-        ()
-    }
-
-    fn meet(&self, _elem1: &Self::Elem, _elem2: &Self::Elem) -> Self::Elem {
-        ()
-    }
-
-    fn join(&self, _elem1: &Self::Elem, _elem2: &Self::Elem) -> Self::Elem {
         ()
     }
 }
@@ -77,7 +58,7 @@ impl BooleanAlgebra for TrivialAlgebra {
 }
 
 impl Semigroup for TrivialAlgebra {
-    fn product(&self, _elem1: &Self::Elem, _elem2: &Self::Elem) -> Self::Elem {
+    fn product(&self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {
         ()
     }
 }

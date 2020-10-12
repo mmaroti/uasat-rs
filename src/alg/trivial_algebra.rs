@@ -33,14 +33,6 @@ pub const TRIVIAL_ALGEBRA: TrivialAlgebra = TrivialAlgebra {
 
 impl Algebra for TrivialAlgebra {
     type Elem = ();
-
-    fn size(&self) -> Option<usize> {
-        Some(1)
-    }
-
-    fn element(&mut self, index: usize) -> Self::Elem {
-        assert!(index == 0);
-    }
 }
 
 impl Lattice for TrivialAlgebra {
@@ -50,25 +42,25 @@ impl Lattice for TrivialAlgebra {
 }
 
 impl BoundedLattice for TrivialAlgebra {
-    fn zero(&mut self) -> Self::Elem {}
+    fn bot(&mut self) -> Self::Elem {}
 
-    fn unit(&mut self) -> Self::Elem {}
+    fn top(&mut self) -> Self::Elem {}
 }
 
 impl BooleanAlgebra for TrivialAlgebra {
-    fn complement(&mut self, _elem: &Self::Elem) -> Self::Elem {}
+    fn neg(&mut self, _elem: &Self::Elem) -> Self::Elem {}
 }
 
 impl Semigroup for TrivialAlgebra {
-    fn product(&mut self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {}
+    fn mul(&mut self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {}
 }
 
 impl Monoid for TrivialAlgebra {
-    fn identity(&mut self) -> Self::Elem {}
+    fn unit(&mut self) -> Self::Elem {}
 }
 
 impl Group for TrivialAlgebra {
-    fn inverse(&mut self, _elem: &Self::Elem) -> Self::Elem {}
+    fn inv(&mut self, _elem: &Self::Elem) -> Self::Elem {}
 }
 
 impl Domain for TrivialAlgebra {

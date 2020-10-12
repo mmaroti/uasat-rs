@@ -26,15 +26,6 @@ pub const BOOLEAN_LOGIC: BooleanLogic = BooleanLogic();
 
 impl Algebra for BooleanLogic {
     type Elem = bool;
-
-    fn size(&self) -> Option<usize> {
-        Some(2)
-    }
-
-    fn element(&mut self, index: usize) -> Self::Elem {
-        assert!(index < 2);
-        index == 1
-    }
 }
 
 impl Lattice for BooleanLogic {
@@ -48,17 +39,17 @@ impl Lattice for BooleanLogic {
 }
 
 impl BoundedLattice for BooleanLogic {
-    fn zero(&mut self) -> Self::Elem {
+    fn bot(&mut self) -> Self::Elem {
         false
     }
 
-    fn unit(&mut self) -> Self::Elem {
+    fn top(&mut self) -> Self::Elem {
         true
     }
 }
 
 impl BooleanAlgebra for BooleanLogic {
-    fn complement(&mut self, elem: &Self::Elem) -> Self::Elem {
+    fn neg(&mut self, elem: &Self::Elem) -> Self::Elem {
         !*elem
     }
 }

@@ -30,22 +30,6 @@ impl<A0: Algebra, A1: Algebra> ProductAlgebra<A0, A1> {
 
 impl<A0: Algebra, A1: Algebra> Algebra for ProductAlgebra<A0, A1> {
     type Elem = (A0::Elem, A1::Elem);
-
-    fn size(&self) -> Option<usize> {
-        let a0 = self.0.size()?;
-        let a1 = self.1.size()?;
-        a0.checked_mul(a1)
-    }
-
-    fn element(&mut self, index: usize) -> Self::Elem {
-        let a0 = self.0.size().unwrap();
-        let a1 = self.1.size().unwrap();
-        assert!(a0 != 0);
-        let b0 = index % a0;
-        let b1 = index / a0;
-        assert!(b1 < a1);
-        (self.0.element(b0), self.1.element(b1))
-    }
 }
 
 impl<A0: Lattice, A1: Lattice> Lattice for ProductAlgebra<A0, A1> {
@@ -65,39 +49,39 @@ impl<A0: Lattice, A1: Lattice> Lattice for ProductAlgebra<A0, A1> {
 }
 
 impl<A0: BoundedLattice, A1: BoundedLattice> BoundedLattice for ProductAlgebra<A0, A1> {
-    fn zero(&mut self) -> Self::Elem {
-        (self.0.unit(), self.1.unit())
+    fn bot(&mut self) -> Self::Elem {
+        (self.0.bot(), self.1.bot())
     }
 
-    fn unit(&mut self) -> Self::Elem {
-        (self.0.unit(), self.1.unit())
+    fn top(&mut self) -> Self::Elem {
+        (self.0.top(), self.1.top())
     }
 }
 
 impl<A0: BooleanAlgebra, A1: BooleanAlgebra> BooleanAlgebra for ProductAlgebra<A0, A1> {
-    fn complement(&mut self, elem: &Self::Elem) -> Self::Elem {
-        (self.0.complement(&elem.0), self.1.complement(&elem.1))
+    fn neg(&mut self, elem: &Self::Elem) -> Self::Elem {
+        (self.0.neg(&elem.0), self.1.neg(&elem.1))
     }
 }
 
 impl<A0: Semigroup, A1: Semigroup> Semigroup for ProductAlgebra<A0, A1> {
-    fn product(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+    fn mul(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
         (
-            self.0.product(&elem0.0, &elem1.0),
-            self.1.product(&elem0.1, &elem1.1),
+            self.0.mul(&elem0.0, &elem1.0),
+            self.1.mul(&elem0.1, &elem1.1),
         )
     }
 }
 
 impl<A0: Monoid, A1: Monoid> Monoid for ProductAlgebra<A0, A1> {
-    fn identity(&mut self) -> Self::Elem {
-        (self.0.identity(), self.1.identity())
+    fn unit(&mut self) -> Self::Elem {
+        (self.0.unit(), self.1.unit())
     }
 }
 
 impl<A0: Group, A1: Group> Group for ProductAlgebra<A0, A1> {
-    fn inverse(&mut self, elem: &Self::Elem) -> Self::Elem {
-        (self.0.inverse(&elem.0), self.1.inverse(&elem.1))
+    fn inv(&mut self, elem: &Self::Elem) -> Self::Elem {
+        (self.0.inv(&elem.0), self.1.inv(&elem.1))
     }
 }
 

@@ -61,14 +61,6 @@ impl Eq for SolverLogic {}
 
 impl Algebra for SolverLogic {
     type Elem = Literal;
-
-    fn size(&self) -> Option<usize> {
-        None
-    }
-
-    fn element(&mut self, _index: usize) -> Self::Elem {
-        unreachable!();
-    }
 }
 
 impl Lattice for SolverLogic {
@@ -100,17 +92,17 @@ impl Lattice for SolverLogic {
 }
 
 impl BoundedLattice for SolverLogic {
-    fn zero(&mut self) -> Self::Elem {
+    fn bot(&mut self) -> Self::Elem {
         self.zero
     }
 
-    fn unit(&mut self) -> Self::Elem {
+    fn top(&mut self) -> Self::Elem {
         self.unit
     }
 }
 
 impl BooleanAlgebra for SolverLogic {
-    fn complement(&mut self, elem: &Self::Elem) -> Self::Elem {
+    fn neg(&mut self, elem: &Self::Elem) -> Self::Elem {
         self.solver.negate(*elem)
     }
 }

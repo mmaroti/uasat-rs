@@ -15,44 +15,66 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BooleanAlgebra, BoundedLattice, Domain, Lattice};
+use super::{Algebra, BooleanAlgebra, BoundedLattice, Domain, Lattice};
 
 /// The two-element boolean algebra.
+#[derive(PartialEq, Eq, Debug)]
 pub struct BooleanLogic();
 
 /// The two-element boolean algebra.
 pub const BOOLEAN_LOGIC: BooleanLogic = BooleanLogic();
 
-impl Domain for BooleanLogic {
+impl Algebra for BooleanLogic {
     type Elem = bool;
 
     fn size(&self) -> Option<usize> {
         Some(2)
     }
+
+    fn element(&mut self, index: usize) -> Self::Elem {
+        assert!(index < 2);
+        index == 1
+    }
 }
 
 impl Lattice for BooleanLogic {
-    fn meet(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+    fn meet(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
         *elem0 && *elem1
     }
 
-    fn join(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+    fn join(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
         *elem0 || *elem1
     }
 }
 
 impl BoundedLattice for BooleanLogic {
-    fn unit(&self) -> Self::Elem {
-        true
+    fn zero(&mut self) -> Self::Elem {
+        false
     }
 
-    fn zero(&self) -> Self::Elem {
-        false
+    fn unit(&mut self) -> Self::Elem {
+        true
     }
 }
 
 impl BooleanAlgebra for BooleanLogic {
-    fn complement(&self, elem: &Self::Elem) -> Self::Elem {
+    fn complement(&mut self, elem: &Self::Elem) -> Self::Elem {
         !*elem
+    }
+}
+
+impl Domain for BooleanLogic {
+    type Logic = Self;
+
+    fn logic(&mut self) -> &mut Self::Logic {
+        self
+    }
+
+    fn contains(&mut self, _elem: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
+        true
+    }
+
+    fn equals(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
+        elem0 == elem1
     }
 }

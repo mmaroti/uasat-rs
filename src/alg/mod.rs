@@ -20,9 +20,6 @@
 mod algebra;
 pub use algebra::*;
 
-mod binary_relations;
-pub use binary_relations::*;
-
 mod boolean_logic;
 pub use boolean_logic::*;
 
@@ -31,3 +28,6 @@ pub use trivial_algebra::*;
 
 mod product_algebra;
 pub use product_algebra::*;
+
+mod solver_logic;
+pub use solver_logic::*;

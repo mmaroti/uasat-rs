@@ -15,62 +15,91 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BooleanAlgebra, BoundedLattice, Domain, Group, Lattice, Monoid, Semigroup};
+use super::{
+    Algebra, BooleanAlgebra, BooleanLogic, BoundedLattice, Domain, Group, Lattice, Monoid,
+    Semigroup,
+};
 
 /// The one-element trivial algebra.
-pub struct TrivialAlgebra();
+#[derive(PartialEq, Eq, Debug)]
+pub struct TrivialAlgebra {
+    logic: BooleanLogic,
+}
 
 /// The one-element trivial algebra.
-pub const TRIVIAL_ALGEBRA: TrivialAlgebra = TrivialAlgebra();
+pub const TRIVIAL_ALGEBRA: TrivialAlgebra = TrivialAlgebra {
+    logic: BooleanLogic(),
+};
 
-impl Domain for TrivialAlgebra {
+impl Algebra for TrivialAlgebra {
     type Elem = ();
 
     fn size(&self) -> Option<usize> {
         Some(1)
     }
+
+    fn element(&mut self, index: usize) -> Self::Elem {
+        assert!(index == 0);
+        ()
+    }
 }
 
 impl Lattice for TrivialAlgebra {
-    fn meet(&self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {
+    fn meet(&mut self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {
         ()
     }
 
-    fn join(&self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {
+    fn join(&mut self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {
         ()
     }
 }
 
 impl BoundedLattice for TrivialAlgebra {
-    fn unit(&self) -> Self::Elem {
+    fn zero(&mut self) -> Self::Elem {
         ()
     }
 
-    fn zero(&self) -> Self::Elem {
+    fn unit(&mut self) -> Self::Elem {
         ()
     }
 }
 
 impl BooleanAlgebra for TrivialAlgebra {
-    fn complement(&self, _elem: &Self::Elem) -> Self::Elem {
+    fn complement(&mut self, _elem: &Self::Elem) -> Self::Elem {
         ()
     }
 }
 
 impl Semigroup for TrivialAlgebra {
-    fn product(&self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {
+    fn product(&mut self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {
         ()
     }
 }
 
 impl Monoid for TrivialAlgebra {
-    fn identity(&self) -> Self::Elem {
+    fn identity(&mut self) -> Self::Elem {
         ()
     }
 }
 
 impl Group for TrivialAlgebra {
-    fn inverse(&self, _elem: &Self::Elem) -> Self::Elem {
+    fn inverse(&mut self, _elem: &Self::Elem) -> Self::Elem {
         ()
+    }
+}
+
+impl Domain for TrivialAlgebra {
+    type Logic = BooleanLogic;
+
+    fn logic(&mut self) -> &mut Self::Logic {
+        &mut self.logic
+    }
+
+    fn contains(&mut self, _elem: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
+        true
+    }
+
+    fn equals(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
+        elem0 == elem1
     }
 }

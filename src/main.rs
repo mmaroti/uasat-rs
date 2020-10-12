@@ -27,7 +27,6 @@ pub mod solver;
 pub mod tensor;
 
 pub mod math;
-pub mod old;
 
 pub fn main() {
     // math::validate();

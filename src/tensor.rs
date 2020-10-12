@@ -534,7 +534,7 @@ pub trait TensorSat: TensorAlg {
     }
 
     /// Returns the number of models with respect to the given tensors.
-    fn tensor_find_num_models(self: Self, elems: &[Self::Elem]) -> usize;
+    fn tensor_find_num_models(self, elems: &[Self::Elem]) -> usize;
 }
 
 impl<ALG> TensorSat for ALG
@@ -600,7 +600,7 @@ where
         }
     }
 
-    fn tensor_find_num_models(self: Self, elems: &[Self::Elem]) -> usize {
+    fn tensor_find_num_models(self, elems: &[Self::Elem]) -> usize {
         let all_elems = elems.iter().map(|t| t.elems.iter()).flatten();
         self.bool_find_num_models_method1(all_elems)
     }

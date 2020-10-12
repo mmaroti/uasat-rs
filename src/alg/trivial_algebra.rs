@@ -40,52 +40,35 @@ impl Algebra for TrivialAlgebra {
 
     fn element(&mut self, index: usize) -> Self::Elem {
         assert!(index == 0);
-        ()
     }
 }
 
 impl Lattice for TrivialAlgebra {
-    fn meet(&mut self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {
-        ()
-    }
+    fn meet(&mut self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {}
 
-    fn join(&mut self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {
-        ()
-    }
+    fn join(&mut self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {}
 }
 
 impl BoundedLattice for TrivialAlgebra {
-    fn zero(&mut self) -> Self::Elem {
-        ()
-    }
+    fn zero(&mut self) -> Self::Elem {}
 
-    fn unit(&mut self) -> Self::Elem {
-        ()
-    }
+    fn unit(&mut self) -> Self::Elem {}
 }
 
 impl BooleanAlgebra for TrivialAlgebra {
-    fn complement(&mut self, _elem: &Self::Elem) -> Self::Elem {
-        ()
-    }
+    fn complement(&mut self, _elem: &Self::Elem) -> Self::Elem {}
 }
 
 impl Semigroup for TrivialAlgebra {
-    fn product(&mut self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {
-        ()
-    }
+    fn product(&mut self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {}
 }
 
 impl Monoid for TrivialAlgebra {
-    fn identity(&mut self) -> Self::Elem {
-        ()
-    }
+    fn identity(&mut self) -> Self::Elem {}
 }
 
 impl Group for TrivialAlgebra {
-    fn inverse(&mut self, _elem: &Self::Elem) -> Self::Elem {
-        ()
-    }
+    fn inverse(&mut self, _elem: &Self::Elem) -> Self::Elem {}
 }
 
 impl Domain for TrivialAlgebra {

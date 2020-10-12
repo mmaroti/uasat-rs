@@ -362,7 +362,7 @@ where
         ITER: Iterator<Item = Self::Elem>;
 
     /// Returns the number of models with respect to the given elements.
-    fn bool_find_num_models_method1<ITER>(mut self: Self, literals: ITER) -> usize
+    fn bool_find_num_models_method1<ITER>(mut self, literals: ITER) -> usize
     where
         ITER: Iterator<Item = Self::Elem>,
     {
@@ -384,7 +384,7 @@ where
     }
 
     /// Returns the number of models with respect to the given literals.
-    fn bool_find_num_models_method2<ITER>(mut self: Self, literals: ITER) -> usize
+    fn bool_find_num_models_method2<ITER>(mut self, literals: ITER) -> usize
     where
         ITER: Iterator<Item = Self::Elem>,
     {

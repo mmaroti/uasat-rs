@@ -49,7 +49,7 @@ where
 
     /// Splits this vector into equal sized vectors.
     /// TODO: implement more efficient specialized versions
-    fn split(self: Self, len: usize) -> Vec<Self> {
+    fn split(self, len: usize) -> Vec<Self> {
         if self.len() == 0 {
             return Vec::new();
         }
@@ -139,7 +139,7 @@ where
     fn capacity(&self) -> usize;
 
     /// Returns an iterator over copied elements of the vector.
-    fn iter<'a>(self: &'a Self) -> <Self as CopyIterable<'a, ELEM>>::Iter
+    fn iter<'a>(&'a self) -> <Self as CopyIterable<'a, ELEM>>::Iter
     where
         Self: CopyIterable<'a, ELEM>,
     {
@@ -165,7 +165,7 @@ where
 
     type IntoIter = DATA::IntoIter;
 
-    fn into_iter(self: Self) -> Self::IntoIter {
+    fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
     }
 }
@@ -374,11 +374,11 @@ impl Iterator for UnitIter {
         (self.pos, Some(self.pos))
     }
 
-    fn count(self: Self) -> usize {
+    fn count(self) -> usize {
         self.pos
     }
 
-    fn last(self: Self) -> Option<Self::Item> {
+    fn last(self) -> Option<Self::Item> {
         if self.pos > 0 {
             Some(())
         } else {
@@ -409,7 +409,7 @@ impl IntoIterator for UnitVec {
     type Item = ();
     type IntoIter = UnitIter;
 
-    fn into_iter(self: Self) -> Self::IntoIter {
+    fn into_iter(self) -> Self::IntoIter {
         UnitIter { pos: self.len }
     }
 }
@@ -443,7 +443,7 @@ impl Vector<()> for UnitVec {
         UnitVec { len: 0 }
     }
 
-    fn split(self: Self, len: usize) -> Vec<Self> {
+    fn split(self, len: usize) -> Vec<Self> {
         if self.len == 0 {
             return Vec::new();
         }
@@ -516,13 +516,13 @@ impl Vector<()> for UnitVec {
 pub trait CopyIterable<'a, ELEM: 'a> {
     type Iter: Iterator<Item = ELEM>;
 
-    fn iter_copy(self: &'a Self) -> Self::Iter;
+    fn iter_copy(&'a self) -> Self::Iter;
 }
 
 impl<'a, ELEM: 'a + Copy> CopyIterable<'a, ELEM> for Wrapper<Vec<ELEM>> {
     type Iter = std::iter::Copied<std::slice::Iter<'a, ELEM>>;
 
-    fn iter_copy(self: &'a Self) -> Self::Iter {
+    fn iter_copy(&'a self) -> Self::Iter {
         self.0.iter().copied()
     }
 }
@@ -530,7 +530,7 @@ impl<'a, ELEM: 'a + Copy> CopyIterable<'a, ELEM> for Wrapper<Vec<ELEM>> {
 impl<'a> CopyIterable<'a, bool> for Wrapper<BitVec> {
     type Iter = bit_vec::Iter<'a>;
 
-    fn iter_copy(self: &'a Self) -> Self::Iter {
+    fn iter_copy(&'a self) -> Self::Iter {
         self.0.iter()
     }
 }
@@ -538,7 +538,7 @@ impl<'a> CopyIterable<'a, bool> for Wrapper<BitVec> {
 impl<'a> CopyIterable<'a, ()> for UnitVec {
     type Iter = UnitIter;
 
-    fn iter_copy(self: &'a Self) -> Self::Iter {
+    fn iter_copy(&'a self) -> Self::Iter {
         self.into_iter()
     }
 }

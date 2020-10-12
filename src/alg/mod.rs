@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2019-2020, Miklos Maroti
+* Copyright (C) 2020, Miklos Maroti
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -15,21 +15,19 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//! A SAT based discrete mathematics and universal algebra calculator.
+//! Module for working with abstract algebras.
 
-#[macro_use]
-extern crate lazy_static;
+mod algebra;
+pub use algebra::*;
 
-pub mod boolean;
-pub mod genvec;
-pub mod progress;
-pub mod solver;
-pub mod tensor;
+mod binary_relations;
+pub use binary_relations::*;
 
-pub mod alg;
-pub mod math;
+mod boolean_logic;
+pub use boolean_logic::*;
 
-pub fn main() {
-    math::validate();
-    // math::test();
-}
+mod trivial_algebra;
+pub use trivial_algebra::*;
+
+mod product_algebra;
+pub use product_algebra::*;

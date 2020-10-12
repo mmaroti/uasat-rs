@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2019-2020, Miklos Maroti
+* Copyright (C) 2020, Miklos Maroti
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -15,21 +15,17 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//! A SAT based discrete mathematics and universal algebra calculator.
-
-#[macro_use]
-extern crate lazy_static;
-
-pub mod boolean;
-pub mod genvec;
-pub mod progress;
-pub mod solver;
-pub mod tensor;
-
-pub mod alg;
-pub mod math;
-
-pub fn main() {
-    math::validate();
-    // math::test();
+pub struct BinaryRelations {
+    size: usize,
 }
+
+impl BinaryRelations {
+    pub fn new(size: usize) -> Self {
+        Self { size }
+    }
+
+    pub fn size(&self) -> usize {
+        self.size
+    }
+}
+

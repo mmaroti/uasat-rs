@@ -87,6 +87,8 @@ pub fn validate_solver(solver: &str) {
 pub fn validate() {
     #[cfg(feature = "cadical")]
     validate_solver("cadical");
+    #[cfg(feature = "cadical")]
+    validate_solver("cadical-sat");
     #[cfg(feature = "batsat")]
     validate_solver("batsat");
     #[cfg(feature = "minisat")]

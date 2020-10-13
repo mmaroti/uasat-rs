@@ -84,6 +84,15 @@ pub fn create_solver(name: &str) -> Box<dyn Solver> {
         if name == "cadical" || name == "" {
             let sat: CaDiCaL = Default::default();
             return Box::new(sat);
+        } else if name == "cadical-sat" {
+            let sat: CaDiCaL = CaDiCaL::with_config("sat");
+            return Box::new(sat);
+        } else if name == "cadical-unsat" {
+            let sat: CaDiCaL = CaDiCaL::with_config("unsat");
+            return Box::new(sat);
+        } else if name == "cadical-plain" {
+            let sat: CaDiCaL = CaDiCaL::with_config("plain");
+            return Box::new(sat);
         }
     }
 
@@ -478,6 +487,16 @@ impl Solver for BatSat {
 pub struct CaDiCaL {
     solver: cadical::Solver,
     num_vars: u32,
+}
+
+impl CaDiCaL {
+    pub fn with_config(config: &str) -> Self {
+        let solver = cadical::Solver::with_config(config).unwrap();
+        CaDiCaL {
+            solver,
+            num_vars: 0,
+        }
+    }
 }
 
 #[cfg(feature = "cadical")]

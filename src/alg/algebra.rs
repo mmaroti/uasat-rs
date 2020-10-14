@@ -16,21 +16,27 @@
 */
 
 /// An arbitrary set of elements over a fixed type.
-pub trait Algebra {
+pub trait Domain {
     /// The type of objects representing the elements of this algebra. Not all objects are
     /// valid elements, and structurally different objects may represent the same element.
     type Elem: Clone;
 
-    /// Checks if the two algebras are the same objects in memory.
-    #[inline(always)]
-    fn is_same(&self, other: &Self) -> bool {
-        self as *const Self == other as *const Self
-    }
+    /// The logic used to perform propositional calculations.
+    type Logic: BooleanAlgebra;
+
+    /// Returns the underlying logic object of this domain.
+    fn logic(&self) -> &Self::Logic;
+
+    /// Checks if this object is a member of this domain.
+    fn contains(&self, elem: &Self::Elem) -> <Self::Logic as Domain>::Elem;
+
+    /// Checks if the two objects represent the same element of the domain.
+    fn equals(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem;
 }
 
 /// A lattice, which is an ordered set where every two elements have a largest lower bound
 /// and a smallest upper bound.
-pub trait Lattice: Algebra {
+pub trait Lattice: Domain {
     /// The meet (largest lower bound) of two elements in the lattice.
     fn meet(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem;
 
@@ -73,7 +79,7 @@ pub trait BooleanAlgebra: BoundedLattice {
 }
 
 /// A semigroup, which is domain with an associative binary operation.
-pub trait Semigroup: Algebra {
+pub trait Semigroup: Domain {
     /// The product of two elements in the semigroup
     fn mul(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem;
 }
@@ -92,7 +98,7 @@ pub trait Group: Monoid {
 
 /// A ring, which is a additive abelian group together with multiplicative semigroup that
 /// distributes over the addition.
-pub trait Ring: Algebra {
+pub trait Ring: Domain {
     /// The zero element (additive identity) of the ring.
     fn zero(&self) -> Self::Elem;
 
@@ -144,24 +150,9 @@ impl<A: BooleanAlgebra> UnitaryRing for A {
     }
 }
 
-/// A set of elements where equality and other relations can be calculated.
-pub trait Domain: Algebra {
-    /// The logic used to perform propositional calculations.
-    type Logic: BooleanAlgebra;
-
-    /// Returns the underlying logic object of this domain.
-    fn logic(&self) -> &Self::Logic;
-
-    /// Checks if this object is a member of this domain.
-    fn contains(&self, elem: &Self::Elem) -> <Self::Logic as Algebra>::Elem;
-
-    /// Checks if the two objects represent the same element of the domain.
-    fn equals(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Algebra>::Elem;
-}
-
 /// An arbitrary binary relation over a domain.
 pub trait DirectedGraph: Domain {
-    fn edge(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Algebra>::Elem;
+    fn edge(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem;
 }
 
 /// A directed graph whose relation is reflexive, anti-symmetric and transitive.

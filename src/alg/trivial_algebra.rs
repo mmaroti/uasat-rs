@@ -16,8 +16,8 @@
 */
 
 use super::{
-    Algebra, BooleanAlgebra, BoundedLattice, DirectedGraph, Domain, Group, Lattice, Monoid,
-    PartialOrder, Semigroup, TwoElementAlg, TWO_ELEMENT_ALG,
+    BooleanAlgebra, BoundedLattice, DirectedGraph, Domain, Group, Lattice, Monoid, PartialOrder,
+    Semigroup, TwoElementAlg, TWO_ELEMENT_ALG,
 };
 
 /// The one-element trivial algebra, which is boolean algebra, unitary ring and a partial order.
@@ -27,8 +27,22 @@ pub struct TrivialAlgebra();
 /// The unique one-element trivial algebra.
 pub const TRIVIAL_ALGEBRA: TrivialAlgebra = TrivialAlgebra();
 
-impl Algebra for TrivialAlgebra {
+impl Domain for TrivialAlgebra {
     type Elem = ();
+
+    type Logic = TwoElementAlg;
+
+    fn logic(&self) -> &Self::Logic {
+        &TWO_ELEMENT_ALG
+    }
+
+    fn contains(&self, _elem: &Self::Elem) -> <Self::Logic as Domain>::Elem {
+        true
+    }
+
+    fn equals(&self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem {
+        true
+    }
 }
 
 impl Lattice for TrivialAlgebra {
@@ -59,24 +73,8 @@ impl Group for TrivialAlgebra {
     fn inv(&self, _elem: &Self::Elem) -> Self::Elem {}
 }
 
-impl Domain for TrivialAlgebra {
-    type Logic = TwoElementAlg;
-
-    fn logic(&self) -> &Self::Logic {
-        &TWO_ELEMENT_ALG
-    }
-
-    fn contains(&self, _elem: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
-        true
-    }
-
-    fn equals(&self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
-        true
-    }
-}
-
 impl DirectedGraph for TrivialAlgebra {
-    fn edge(&self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
+    fn edge(&self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem {
         true
     }
 }

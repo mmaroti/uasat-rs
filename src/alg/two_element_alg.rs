@@ -15,19 +15,31 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{
-    Algebra, BooleanAlgebra, BoundedLattice, DirectedGraph, Domain, Field, Lattice, PartialOrder,
-};
+use super::{BooleanAlgebra, BoundedLattice, DirectedGraph, Domain, Field, Lattice, PartialOrder};
 
-/// The two-element boolean algebra, which is also a boolean ring and a chain.
+/// The two-element boolean algebra, which is also a field and an ordered chain.
 #[derive(Debug)]
 pub struct TwoElementAlg();
 
-/// The unique two-element boolean used for classical logic operations.
+/// The unique two-element boolean algebra used for classical logic.
 pub const TWO_ELEMENT_ALG: TwoElementAlg = TwoElementAlg();
 
-impl Algebra for TwoElementAlg {
+impl Domain for TwoElementAlg {
     type Elem = bool;
+
+    type Logic = TwoElementAlg;
+
+    fn logic(&self) -> &Self::Logic {
+        &TWO_ELEMENT_ALG
+    }
+
+    fn contains(&self, _elem: &Self::Elem) -> <Self::Logic as Domain>::Elem {
+        true
+    }
+
+    fn equals(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem {
+        elem0 == elem1
+    }
 }
 
 impl Lattice for TwoElementAlg {
@@ -62,24 +74,8 @@ impl Field for TwoElementAlg {
     }
 }
 
-impl Domain for TwoElementAlg {
-    type Logic = TwoElementAlg;
-
-    fn logic(&self) -> &Self::Logic {
-        &TWO_ELEMENT_ALG
-    }
-
-    fn contains(&self, _elem: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
-        true
-    }
-
-    fn equals(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
-        elem0 == elem1
-    }
-}
-
 impl DirectedGraph for TwoElementAlg {
-    fn edge(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
+    fn edge(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem {
         *elem0 <= *elem1
     }
 }

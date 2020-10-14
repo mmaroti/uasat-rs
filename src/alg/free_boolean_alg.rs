@@ -16,8 +16,8 @@
 */
 
 use super::{
-    Algebra, BooleanAlgebra, BoundedLattice, DirectedGraph, Domain, Lattice, PartialOrder,
-    TwoElementAlg, TWO_ELEMENT_ALG,
+    BooleanAlgebra, BoundedLattice, DirectedGraph, Domain, Lattice, PartialOrder, TwoElementAlg,
+    TWO_ELEMENT_ALG,
 };
 use crate::solver::{create_solver, Literal, Solver};
 use std::cell::Cell;
@@ -63,8 +63,25 @@ impl FreeBooleanAlg {
     }
 }
 
-impl Algebra for FreeBooleanAlg {
+impl Domain for FreeBooleanAlg {
     type Elem = Literal;
+
+    type Logic = TwoElementAlg;
+
+    fn logic(&self) -> &Self::Logic {
+        &TWO_ELEMENT_ALG
+    }
+
+    fn contains(&self, _elem: &Self::Elem) -> <Self::Logic as Domain>::Elem {
+        // TODO: Check the number of variables
+        true
+    }
+
+    fn equals(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem {
+        let temp0 = self.edge(elem0, elem1);
+        let temp1 = self.edge(elem1, elem0);
+        self.logic().meet(&temp0, &temp1)
+    }
 }
 
 impl Lattice for FreeBooleanAlg {
@@ -127,27 +144,8 @@ impl BooleanAlgebra for FreeBooleanAlg {
     }
 }
 
-impl Domain for FreeBooleanAlg {
-    type Logic = TwoElementAlg;
-
-    fn logic(&self) -> &Self::Logic {
-        &TWO_ELEMENT_ALG
-    }
-
-    fn contains(&self, _elem: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
-        // TODO: Check the number of variables
-        true
-    }
-
-    fn equals(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
-        let temp0 = self.edge(elem0, elem1);
-        let temp1 = self.edge(elem1, elem0);
-        self.logic().meet(&temp0, &temp1)
-    }
-}
-
 impl DirectedGraph for FreeBooleanAlg {
-    fn edge(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
+    fn edge(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem {
         self.mutate(|solver| {
             let not_elem1 = solver.negate(*elem1);
             !solver.solve_with(&[*elem0, not_elem1])

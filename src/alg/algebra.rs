@@ -20,138 +20,140 @@ pub trait Algebra {
     /// The type of objects representing the elements of this algebra. Not all objects are
     /// valid elements, and structurally different objects may represent the same element.
     type Elem: Clone;
+
+    /// Checks if the two algebras are the same objects in memory.
+    #[inline(always)]
+    fn is_same(&self, other: &Self) -> bool {
+        self as *const Self == other as *const Self
+    }
 }
 
 /// A lattice, which is an ordered set where every two elements have a largest lower bound
 /// and a smallest upper bound.
 pub trait Lattice: Algebra {
     /// The meet (largest lower bound) of two elements in the lattice.
-    fn meet(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem;
+    fn meet(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem;
 
     /// The join (least upper bound) of two elements in the lattice.
-    fn join(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem;
+    fn join(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem;
 }
 
 /// A bounded lattice, which is a lattice with a smallest and a largest element.
 pub trait BoundedLattice: Lattice {
     /// The smallest (bottom) element of the lattice.
-    fn bot(&mut self) -> Self::Elem;
+    fn bot(&self) -> Self::Elem;
 
     /// The largest (top) element of the lattice.
-    fn top(&mut self) -> Self::Elem;
+    fn top(&self) -> Self::Elem;
 }
 
 /// A boolean algebra, which is a complemented distributive bounded lattice.
 pub trait BooleanAlgebra: BoundedLattice {
     /// Returns the complement of the given element.
-    fn neg(&mut self, elem: &Self::Elem) -> Self::Elem;
+    fn neg(&self, elem: &Self::Elem) -> Self::Elem;
 
     /// The symmetric difference of two elements.
-    fn add(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
-        let neg0 = self.neg(elem0);
-        let neg1 = self.neg(elem1);
-        let elem3 = self.meet(elem0, &neg1);
-        let elem4 = self.meet(&neg0, elem1);
+    fn add(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+        let elem3 = self.meet(elem0, &self.neg(elem1));
+        let elem4 = self.meet(&self.neg(elem0), elem1);
         self.join(&elem3, &elem4)
     }
 
     /// The logical implication of the given elements(disjunction of the negation of the first
     /// with the second one).
-    fn imp(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
-        let neg0 = self.neg(elem0);
-        self.join(&neg0, elem1)
+    fn imp(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+        self.join(&self.neg(elem0), elem1)
     }
 
     /// The logical equivalence of the given elements (the symmetric difference of the negaton of
     /// the first element with the second one).
-    fn equ(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
-        let neg0 = self.neg(elem0);
-        self.add(&neg0, elem1)
+    fn equ(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+        self.add(&self.neg(elem0), elem1)
     }
 }
 
 /// A semigroup, which is domain with an associative binary operation.
 pub trait Semigroup: Algebra {
     /// The product of two elements in the semigroup
-    fn mul(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem;
+    fn mul(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem;
 }
 
 /// A monoid, which is a semigroup with an identity (unit) element.
 pub trait Monoid: Semigroup {
     /// The multiplicative identity (unit) element of the monoid.
-    fn unit(&mut self) -> Self::Elem;
+    fn unit(&self) -> Self::Elem;
 }
 
 /// A multiplicative group, which is a monoid where every element has an inverse.
 pub trait Group: Monoid {
     /// The inverse element of the given element in a group.
-    fn inv(&mut self, elem: &Self::Elem) -> Self::Elem;
+    fn inv(&self, elem: &Self::Elem) -> Self::Elem;
 }
 
 /// A ring, which is a additive abelian group together with multiplicative semigroup that
 /// distributes over the addition.
 pub trait Ring: Algebra {
     /// The zero element (additive identity) of the ring.
-    fn zero(&mut self) -> Self::Elem;
+    fn zero(&self) -> Self::Elem;
 
     /// The additive inverse of the given element in the ring.
-    fn neg(&mut self, elem: &Self::Elem) -> Self::Elem;
+    fn neg(&self, elem: &Self::Elem) -> Self::Elem;
 
     /// The additive abelian group operation of the ring.
-    fn add(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem;
+    fn add(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem;
 
     /// The multiplicative semigroup operation of the ring.
-    fn mul(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem;
+    fn mul(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem;
 }
 
 /// A unitary ring, which is a ring with a multiplicative unit element.
 pub trait UnitaryRing: Ring {
     /// The multiplicative unit element of the ring.
-    fn unit(&mut self) -> Self::Elem;
+    fn unit(&self) -> Self::Elem;
 }
 
 impl<A: BooleanAlgebra> Ring for A {
-    fn zero(&mut self) -> Self::Elem {
-        self.bot()
+    fn zero(&self) -> Self::Elem {
+        BoundedLattice::bot(self)
     }
 
-    fn neg(&mut self, elem: &Self::Elem) -> Self::Elem {
+    fn neg(&self, elem: &Self::Elem) -> Self::Elem {
         BooleanAlgebra::neg(self, elem)
     }
 
-    fn add(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
-        self.add(elem0, elem1)
+    fn add(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+        BooleanAlgebra::add(self, elem0, elem1)
     }
 
-    fn mul(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
-        self.meet(elem0, elem1)
+    fn mul(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+        Lattice::meet(self, elem0, elem1)
     }
 }
 
 impl<A: BooleanAlgebra> UnitaryRing for A {
-    fn unit(&mut self) -> Self::Elem {
-        self.top()
+    fn unit(&self) -> Self::Elem {
+        BoundedLattice::top(self)
     }
 }
 
 /// A set of elements where equality and other relations can be calculated.
 pub trait Domain: Algebra {
     /// The logic used to perform propositional calculations.
-    type Logic: BooleanAlgebra + Eq;
+    type Logic: BooleanAlgebra;
 
     /// Returns the underlying logic object of this domain.
-    fn logic(&mut self) -> &mut Self::Logic;
+    fn logic(&self) -> &Self::Logic;
 
     /// Checks if this object is a member of this domain.
-    fn contains(&mut self, elem: &Self::Elem) -> <Self::Logic as Algebra>::Elem;
+    fn contains(&self, elem: &Self::Elem) -> <Self::Logic as Algebra>::Elem;
 
     /// Checks if the two objects represent the same element of the domain.
-    fn equals(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Algebra>::Elem;
+    fn equals(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Algebra>::Elem;
 }
 
 /// An arbitrary binary relation over a domain.
 pub trait DirectedGraph: Domain {
-    fn edge(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Algebra>::Elem;
+    fn edge(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Algebra>::Elem;
 }
 
 /// A directed graph whose relation is reflexive, anti-symmetric and transitive.

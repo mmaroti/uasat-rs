@@ -33,14 +33,14 @@ impl<A0: Algebra, A1: Algebra> Algebra for ProductAlgebra<A0, A1> {
 }
 
 impl<A0: Lattice, A1: Lattice> Lattice for ProductAlgebra<A0, A1> {
-    fn meet(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+    fn meet(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
         (
             self.0.meet(&elem0.0, &elem1.0),
             self.1.meet(&elem0.1, &elem1.1),
         )
     }
 
-    fn join(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+    fn join(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
         (
             self.0.join(&elem0.0, &elem1.0),
             self.1.join(&elem0.1, &elem1.1),
@@ -49,23 +49,23 @@ impl<A0: Lattice, A1: Lattice> Lattice for ProductAlgebra<A0, A1> {
 }
 
 impl<A0: BoundedLattice, A1: BoundedLattice> BoundedLattice for ProductAlgebra<A0, A1> {
-    fn bot(&mut self) -> Self::Elem {
+    fn bot(&self) -> Self::Elem {
         (self.0.bot(), self.1.bot())
     }
 
-    fn top(&mut self) -> Self::Elem {
+    fn top(&self) -> Self::Elem {
         (self.0.top(), self.1.top())
     }
 }
 
 impl<A0: BooleanAlgebra, A1: BooleanAlgebra> BooleanAlgebra for ProductAlgebra<A0, A1> {
-    fn neg(&mut self, elem: &Self::Elem) -> Self::Elem {
+    fn neg(&self, elem: &Self::Elem) -> Self::Elem {
         (self.0.neg(&elem.0), self.1.neg(&elem.1))
     }
 }
 
 impl<A0: Semigroup, A1: Semigroup> Semigroup for ProductAlgebra<A0, A1> {
-    fn mul(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+    fn mul(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
         (
             self.0.mul(&elem0.0, &elem1.0),
             self.1.mul(&elem0.1, &elem1.1),
@@ -74,13 +74,13 @@ impl<A0: Semigroup, A1: Semigroup> Semigroup for ProductAlgebra<A0, A1> {
 }
 
 impl<A0: Monoid, A1: Monoid> Monoid for ProductAlgebra<A0, A1> {
-    fn unit(&mut self) -> Self::Elem {
+    fn unit(&self) -> Self::Elem {
         (self.0.unit(), self.1.unit())
     }
 }
 
 impl<A0: Group, A1: Group> Group for ProductAlgebra<A0, A1> {
-    fn inv(&mut self, elem: &Self::Elem) -> Self::Elem {
+    fn inv(&self, elem: &Self::Elem) -> Self::Elem {
         (self.0.inv(&elem.0), self.1.inv(&elem.1))
     }
 }
@@ -92,18 +92,18 @@ where
 {
     type Logic = A0::Logic;
 
-    fn logic(&mut self) -> &mut Self::Logic {
-        assert!(self.0.logic() == self.1.logic());
+    fn logic(&self) -> &Self::Logic {
+        assert!(self.0.logic().is_same(self.1.logic()));
         self.0.logic()
     }
 
-    fn contains(&mut self, elem: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
+    fn contains(&self, elem: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
         let a0 = self.0.contains(&elem.0);
         let a1 = self.1.contains(&elem.1);
         self.logic().meet(&a0, &a1)
     }
 
-    fn equals(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
+    fn equals(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
         let a0 = self.0.equals(&elem0.0, &elem1.0);
         let a1 = self.1.equals(&elem0.1, &elem1.1);
         self.logic().meet(&a0, &a1)

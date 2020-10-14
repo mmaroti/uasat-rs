@@ -18,7 +18,7 @@
 use super::{Algebra, BooleanAlgebra, BoundedLattice, Domain, Lattice};
 
 /// The two-element boolean algebra.
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 pub struct BooleanLogic();
 
 /// The two-element boolean algebra.
@@ -29,43 +29,43 @@ impl Algebra for BooleanLogic {
 }
 
 impl Lattice for BooleanLogic {
-    fn meet(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+    fn meet(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
         *elem0 && *elem1
     }
 
-    fn join(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+    fn join(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
         *elem0 || *elem1
     }
 }
 
 impl BoundedLattice for BooleanLogic {
-    fn bot(&mut self) -> Self::Elem {
+    fn bot(&self) -> Self::Elem {
         false
     }
 
-    fn top(&mut self) -> Self::Elem {
+    fn top(&self) -> Self::Elem {
         true
     }
 }
 
 impl BooleanAlgebra for BooleanLogic {
-    fn neg(&mut self, elem: &Self::Elem) -> Self::Elem {
+    fn neg(&self, elem: &Self::Elem) -> Self::Elem {
         !*elem
     }
 }
 
 impl Domain for BooleanLogic {
-    type Logic = Self;
+    type Logic = BooleanLogic;
 
-    fn logic(&mut self) -> &mut Self::Logic {
-        self
+    fn logic(&self) -> &Self::Logic {
+        &BOOLEAN_LOGIC
     }
 
-    fn contains(&mut self, _elem: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
+    fn contains(&self, _elem: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
         true
     }
 
-    fn equals(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
+    fn equals(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
         elem0 == elem1
     }
 }

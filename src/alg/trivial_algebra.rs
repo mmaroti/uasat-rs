@@ -17,64 +17,60 @@
 
 use super::{
     Algebra, BooleanAlgebra, BooleanLogic, BoundedLattice, Domain, Group, Lattice, Monoid,
-    Semigroup,
+    Semigroup, BOOLEAN_LOGIC,
 };
 
 /// The one-element trivial algebra.
-#[derive(PartialEq, Eq, Debug)]
-pub struct TrivialAlgebra {
-    logic: BooleanLogic,
-}
+#[derive(Debug)]
+pub struct TrivialAlgebra();
 
 /// The one-element trivial algebra.
-pub const TRIVIAL_ALGEBRA: TrivialAlgebra = TrivialAlgebra {
-    logic: BooleanLogic(),
-};
+pub const TRIVIAL_ALGEBRA: TrivialAlgebra = TrivialAlgebra();
 
 impl Algebra for TrivialAlgebra {
     type Elem = ();
 }
 
 impl Lattice for TrivialAlgebra {
-    fn meet(&mut self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {}
+    fn meet(&self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {}
 
-    fn join(&mut self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {}
+    fn join(&self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {}
 }
 
 impl BoundedLattice for TrivialAlgebra {
-    fn bot(&mut self) -> Self::Elem {}
+    fn bot(&self) -> Self::Elem {}
 
-    fn top(&mut self) -> Self::Elem {}
+    fn top(&self) -> Self::Elem {}
 }
 
 impl BooleanAlgebra for TrivialAlgebra {
-    fn neg(&mut self, _elem: &Self::Elem) -> Self::Elem {}
+    fn neg(&self, _elem: &Self::Elem) -> Self::Elem {}
 }
 
 impl Semigroup for TrivialAlgebra {
-    fn mul(&mut self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {}
+    fn mul(&self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {}
 }
 
 impl Monoid for TrivialAlgebra {
-    fn unit(&mut self) -> Self::Elem {}
+    fn unit(&self) -> Self::Elem {}
 }
 
 impl Group for TrivialAlgebra {
-    fn inv(&mut self, _elem: &Self::Elem) -> Self::Elem {}
+    fn inv(&self, _elem: &Self::Elem) -> Self::Elem {}
 }
 
 impl Domain for TrivialAlgebra {
     type Logic = BooleanLogic;
 
-    fn logic(&mut self) -> &mut Self::Logic {
-        &mut self.logic
+    fn logic(&self) -> &Self::Logic {
+        &BOOLEAN_LOGIC
     }
 
-    fn contains(&mut self, _elem: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
+    fn contains(&self, _elem: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
         true
     }
 
-    fn equals(&mut self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
+    fn equals(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
         elem0 == elem1
     }
 }

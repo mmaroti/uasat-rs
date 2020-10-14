@@ -112,6 +112,14 @@ pub trait UnitaryRing: Ring {
     fn unit(&self) -> Self::Elem;
 }
 
+/// A field, which is a commutative unitary ring where every non-zero element has a multiplicative
+/// inverse.
+pub trait Field: UnitaryRing {
+    /// Returns the multiplicative inverse of the given non-zero element. To make this operation
+    /// total, it returns zero for the zero element.
+    fn inv(&self, elem0: &Self::Elem) -> Self::Elem;
+}
+
 impl<A: BooleanAlgebra> Ring for A {
     fn zero(&self) -> Self::Elem {
         BoundedLattice::bot(self)

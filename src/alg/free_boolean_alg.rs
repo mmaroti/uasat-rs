@@ -15,18 +15,21 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{Algebra, BooleanAlgebra, BoundedLattice, Lattice};
+use super::{
+    Algebra, BooleanAlgebra, BoundedLattice, DirectedGraph, Domain, Lattice, PartialOrder,
+    TwoElementAlg, TWO_ELEMENT_ALG,
+};
 use crate::solver::{create_solver, Literal, Solver};
 use std::cell::Cell;
 
-/// A boolean algebra backed by a SAT solver.
-pub struct SolverLogic {
+/// The free boolean algebra backed by a SAT solver.
+pub struct FreeBooleanAlg {
     solver: Cell<Option<Box<dyn Solver>>>,
     unit: Literal,
     zero: Literal,
 }
 
-impl SolverLogic {
+impl FreeBooleanAlg {
     /// Creates a new free boolean algebra.
     pub fn new(solver_name: &str) -> Self {
         let mut solver = create_solver(solver_name);
@@ -34,7 +37,7 @@ impl SolverLogic {
         let zero = solver.negate(unit);
         solver.add_clause(&[unit]);
         let solver = Cell::new(Some(solver));
-        SolverLogic { solver, unit, zero }
+        FreeBooleanAlg { solver, unit, zero }
     }
 
     /// Takes the solver out of its cell, performs the given operation with the solver and then
@@ -53,13 +56,18 @@ impl SolverLogic {
     pub fn get_name(&self) -> &'static str {
         self.mutate(|solver| solver.get_name())
     }
+
+    /// Returns a new generator element.
+    pub fn add_generator(&self) -> Literal {
+        self.mutate(|solver| solver.add_variable())
+    }
 }
 
-impl Algebra for SolverLogic {
+impl Algebra for FreeBooleanAlg {
     type Elem = Literal;
 }
 
-impl Lattice for SolverLogic {
+impl Lattice for FreeBooleanAlg {
     fn meet(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
         self.mutate(|solver| {
             let not_elem0 = solver.negate(*elem0);
@@ -103,7 +111,7 @@ impl Lattice for SolverLogic {
     }
 }
 
-impl BoundedLattice for SolverLogic {
+impl BoundedLattice for FreeBooleanAlg {
     fn bot(&self) -> Self::Elem {
         self.zero
     }
@@ -113,22 +121,64 @@ impl BoundedLattice for SolverLogic {
     }
 }
 
-impl BooleanAlgebra for SolverLogic {
+impl BooleanAlgebra for FreeBooleanAlg {
     fn neg(&self, elem: &Self::Elem) -> Self::Elem {
         self.mutate(|solver| solver.negate(*elem))
     }
 }
+
+impl Domain for FreeBooleanAlg {
+    type Logic = TwoElementAlg;
+
+    fn logic(&self) -> &Self::Logic {
+        &TWO_ELEMENT_ALG
+    }
+
+    fn contains(&self, _elem: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
+        // TODO: Check the number of variables
+        true
+    }
+
+    fn equals(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
+        let temp0 = self.edge(elem0, elem1);
+        let temp1 = self.edge(elem1, elem0);
+        self.logic().meet(&temp0, &temp1)
+    }
+}
+
+impl DirectedGraph for FreeBooleanAlg {
+    fn edge(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
+        self.mutate(|solver| {
+            let not_elem1 = solver.negate(*elem1);
+            !solver.solve_with(&[*elem0, not_elem1])
+        })
+    }
+}
+
+impl PartialOrder for FreeBooleanAlg {}
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn algebra() {
-        let log = SolverLogic::new("");
-        let a = log.top();
-        let b = log.bot();
-        let _c = log.meet(&a, &b);
-        let _d = log.join(&a, &b);
+    fn domain() {
+        let alg = FreeBooleanAlg::new("");
+        let x = alg.add_generator();
+        assert!(alg.edge(&x, &alg.top()));
+        assert!(!alg.edge(&alg.top(), &x));
+        assert!(alg.edge(&alg.bot(), &x));
+        assert!(!alg.edge(&x, &alg.bot()));
+
+        let y = alg.add_generator();
+        let a = alg.join(&x, &y);
+        let b = alg.meet(&x, &a);
+        assert!(alg.equals(&b, &x));
+        assert!(!alg.equals(&b, &y));
+
+        let z = alg.add_generator();
+        let c = alg.meet(&z, &a);
+        let d = alg.join(&alg.meet(&z, &x), &alg.meet(&z, &y));
+        assert!(alg.equals(&c, &d));
     }
 }

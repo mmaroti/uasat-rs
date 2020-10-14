@@ -18,7 +18,7 @@
 use super::{Algebra, BooleanAlgebra, BoundedLattice, Domain, Group, Lattice, Monoid, Semigroup};
 
 /// The product of two algebras.
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 pub struct ProductAlgebra<A0: Algebra, A1: Algebra>(A0, A1);
 
 impl<A0: Algebra, A1: Algebra> ProductAlgebra<A0, A1> {

@@ -15,20 +15,22 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{Algebra, BooleanAlgebra, BoundedLattice, Domain, Lattice};
+use super::{
+    Algebra, BooleanAlgebra, BoundedLattice, DirectedGraph, Domain, Field, Lattice, PartialOrder,
+};
 
-/// The two-element boolean algebra.
+/// The two-element boolean algebra, which is also a boolean ring and a chain.
 #[derive(Debug)]
-pub struct BooleanLogic();
+pub struct TwoElementAlg();
 
-/// The two-element boolean algebra.
-pub const BOOLEAN_LOGIC: BooleanLogic = BooleanLogic();
+/// The unique two-element boolean used for classical logic operations.
+pub const TWO_ELEMENT_ALG: TwoElementAlg = TwoElementAlg();
 
-impl Algebra for BooleanLogic {
+impl Algebra for TwoElementAlg {
     type Elem = bool;
 }
 
-impl Lattice for BooleanLogic {
+impl Lattice for TwoElementAlg {
     fn meet(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
         *elem0 && *elem1
     }
@@ -38,7 +40,7 @@ impl Lattice for BooleanLogic {
     }
 }
 
-impl BoundedLattice for BooleanLogic {
+impl BoundedLattice for TwoElementAlg {
     fn bot(&self) -> Self::Elem {
         false
     }
@@ -48,17 +50,23 @@ impl BoundedLattice for BooleanLogic {
     }
 }
 
-impl BooleanAlgebra for BooleanLogic {
+impl BooleanAlgebra for TwoElementAlg {
     fn neg(&self, elem: &Self::Elem) -> Self::Elem {
         !*elem
     }
 }
 
-impl Domain for BooleanLogic {
-    type Logic = BooleanLogic;
+impl Field for TwoElementAlg {
+    fn inv(&self, elem: &Self::Elem) -> Self::Elem {
+        elem.clone()
+    }
+}
+
+impl Domain for TwoElementAlg {
+    type Logic = TwoElementAlg;
 
     fn logic(&self) -> &Self::Logic {
-        &BOOLEAN_LOGIC
+        &TWO_ELEMENT_ALG
     }
 
     fn contains(&self, _elem: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
@@ -69,3 +77,11 @@ impl Domain for BooleanLogic {
         elem0 == elem1
     }
 }
+
+impl DirectedGraph for TwoElementAlg {
+    fn edge(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Algebra>::Elem {
+        *elem0 <= *elem1
+    }
+}
+
+impl PartialOrder for TwoElementAlg {}

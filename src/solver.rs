@@ -79,6 +79,14 @@ pub trait Solver {
 /// "varisat", "minisat" and "cryptominisat" are supported, but not on all
 /// platforms. Use the empty string to match the first available solver.
 pub fn create_solver(name: &str) -> Box<dyn Solver> {
+    #[cfg(feature = "batsat")]
+    {
+        if name == "batsat" || name == "" {
+            let sat: BatSat = Default::default();
+            return Box::new(sat);
+        }
+    }
+
     #[cfg(feature = "cadical")]
     {
         if name == "cadical" || name == "" {
@@ -92,14 +100,6 @@ pub fn create_solver(name: &str) -> Box<dyn Solver> {
             return Box::new(sat);
         } else if name == "cadical-plain" {
             let sat: CaDiCaL = CaDiCaL::with_config("plain");
-            return Box::new(sat);
-        }
-    }
-
-    #[cfg(feature = "batsat")]
-    {
-        if name == "batsat" || name == "" {
-            let sat: BatSat = Default::default();
             return Box::new(sat);
         }
     }

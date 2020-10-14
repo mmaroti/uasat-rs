@@ -20,8 +20,8 @@
 mod algebra;
 pub use algebra::*;
 
-mod boolean_logic;
-pub use boolean_logic::*;
+mod two_element_alg;
+pub use two_element_alg::*;
 
 mod trivial_algebra;
 pub use trivial_algebra::*;
@@ -29,5 +29,5 @@ pub use trivial_algebra::*;
 mod product_algebra;
 pub use product_algebra::*;
 
-mod solver_logic;
-pub use solver_logic::*;
+mod free_boolean_alg;
+pub use free_boolean_alg::*;

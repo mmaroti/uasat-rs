@@ -17,17 +17,30 @@
 
 //! Module for working with abstract algebras.
 
-mod algebra;
-pub use algebra::*;
+#[doc(hidden)]
+mod traits;
+pub use traits::*;
 
+#[doc(hidden)]
 mod two_element_alg;
 pub use two_element_alg::*;
 
+#[doc(hidden)]
 mod trivial_algebra;
 pub use trivial_algebra::*;
 
+#[doc(hidden)]
 mod product_algebra;
 pub use product_algebra::*;
 
+#[doc(hidden)]
 mod free_boolean_alg;
 pub use free_boolean_alg::*;
+
+#[doc(hidden)]
+mod small_integers;
+pub use small_integers::*;
+
+#[doc(hidden)]
+mod binary_numbers;
+pub use binary_numbers::*;

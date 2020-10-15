@@ -15,7 +15,10 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BooleanAlgebra, BoundedLattice, Domain, Group, Lattice, Monoid, Semigroup};
+use super::{
+    BooleanAlgebra, BoundedLattice, DirectedGraph, Domain, Group, Lattice, Monoid, PartialOrder,
+    Semigroup,
+};
 
 /// The product of two algebras.
 #[derive(Debug)]
@@ -138,4 +141,23 @@ where
     fn inv(&self, elem: &Self::Elem) -> Self::Elem {
         (self.0.inv(&elem.0), self.1.inv(&elem.1))
     }
+}
+
+impl<A0, A1> DirectedGraph for ProductAlgebra<A0, A1>
+where
+    A0: DirectedGraph,
+    A1: DirectedGraph<Logic = A0::Logic>,
+{
+    fn edge(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem {
+        let a0 = self.0.edge(&elem0.0, &elem1.0);
+        let a1 = self.1.edge(&elem0.1, &elem1.1);
+        self.logic().meet(&a0, &a1)
+    }
+}
+
+impl<A0, A1> PartialOrder for ProductAlgebra<A0, A1>
+where
+    A0: PartialOrder,
+    A1: PartialOrder<Logic = A0::Logic>,
+{
 }

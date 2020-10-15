@@ -29,6 +29,12 @@ pub struct FreeBooleanAlg {
     zero: Literal,
 }
 
+impl Default for FreeBooleanAlg {
+    fn default() -> Self {
+        Self::new("")
+    }
+}
+
 impl FreeBooleanAlg {
     /// Creates a new free boolean algebra.
     pub fn new(solver_name: &str) -> Self {
@@ -37,7 +43,7 @@ impl FreeBooleanAlg {
         let zero = solver.negate(unit);
         solver.add_clause(&[unit]);
         let solver = Cell::new(Some(solver));
-        FreeBooleanAlg { solver, unit, zero }
+        Self { solver, unit, zero }
     }
 
     /// Takes the solver out of its cell, performs the given operation with the solver and then

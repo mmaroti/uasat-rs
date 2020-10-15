@@ -66,11 +66,23 @@ impl BooleanAlgebra for TwoElementAlg {
     fn neg(&self, elem: &Self::Elem) -> Self::Elem {
         !*elem
     }
+
+    fn add(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+        *elem0 != *elem1
+    }
+
+    fn imp(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+        *elem0 <= *elem1
+    }
+
+    fn equ(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+        *elem0 == *elem1
+    }
 }
 
 impl Field for TwoElementAlg {
     fn inv(&self, elem: &Self::Elem) -> Self::Elem {
-        elem.clone()
+        *elem
     }
 }
 

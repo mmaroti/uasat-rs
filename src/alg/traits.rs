@@ -108,6 +108,11 @@ pub trait Ring: Domain {
     /// The additive abelian group operation of the ring.
     fn add(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem;
 
+    /// Subtracts the second element from the first.
+    fn sub(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+        self.add(elem0, &self.neg(elem1))
+    }
+
     /// The multiplicative semigroup operation of the ring.
     fn mul(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem;
 }

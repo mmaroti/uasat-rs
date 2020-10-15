@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BooleanAlgebra, BoundedLattice, DirectedGraph, Domain, Lattice, PartialOrder, TwoElementAlg,
-    TWO_ELEMENT_ALG,
+    AdditiveGroup, BooleanAlgebra, BoundedPartialOrder, DirectedGraph, Domain, Lattice, Monoid,
+    PartialOrder, Ring, Semigroup, TwoElementAlg, UnitaryRing, TWO_ELEMENT_ALG,
 };
 use crate::solver::{create_solver, Literal, Solver};
 use std::cell::Cell;
@@ -90,6 +90,27 @@ impl Domain for FreeBooleanAlg {
     }
 }
 
+impl DirectedGraph for FreeBooleanAlg {
+    fn edge(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem {
+        self.mutate(|solver| {
+            let not_elem1 = solver.negate(*elem1);
+            !solver.solve_with(&[*elem0, not_elem1])
+        })
+    }
+}
+
+impl PartialOrder for FreeBooleanAlg {}
+
+impl BoundedPartialOrder for FreeBooleanAlg {
+    fn bot(&self) -> Self::Elem {
+        self.zero
+    }
+
+    fn top(&self) -> Self::Elem {
+        self.unit
+    }
+}
+
 impl Lattice for FreeBooleanAlg {
     fn meet(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
         self.mutate(|solver| {
@@ -134,32 +155,41 @@ impl Lattice for FreeBooleanAlg {
     }
 }
 
-impl BoundedLattice for FreeBooleanAlg {
-    fn bot(&self) -> Self::Elem {
-        self.zero
-    }
-
-    fn top(&self) -> Self::Elem {
-        self.unit
-    }
-}
-
 impl BooleanAlgebra for FreeBooleanAlg {
-    fn neg(&self, elem: &Self::Elem) -> Self::Elem {
+    fn not(&self, elem: &Self::Elem) -> Self::Elem {
         self.mutate(|solver| solver.negate(*elem))
     }
 }
 
-impl DirectedGraph for FreeBooleanAlg {
-    fn edge(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem {
-        self.mutate(|solver| {
-            let not_elem1 = solver.negate(*elem1);
-            !solver.solve_with(&[*elem0, not_elem1])
-        })
+impl AdditiveGroup for FreeBooleanAlg {
+    fn zero(&self) -> Self::Elem {
+        self.bot()
+    }
+
+    fn neg(&self, elem: &Self::Elem) -> Self::Elem {
+        *elem
+    }
+
+    fn add(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+        self.xor(elem0, elem1)
     }
 }
 
-impl PartialOrder for FreeBooleanAlg {}
+impl Semigroup for FreeBooleanAlg {
+    fn mul(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+        self.meet(elem0, elem1)
+    }
+}
+
+impl Monoid for FreeBooleanAlg {
+    fn unit(&self) -> Self::Elem {
+        self.top()
+    }
+}
+
+impl Ring for FreeBooleanAlg {}
+
+impl UnitaryRing for FreeBooleanAlg {}
 
 #[cfg(test)]
 mod tests {
@@ -169,10 +199,10 @@ mod tests {
     fn domain() {
         let alg = FreeBooleanAlg::new("");
         let x = alg.add_generator();
-        assert!(alg.edge(&x, &alg.top()));
-        assert!(!alg.edge(&alg.top(), &x));
-        assert!(alg.edge(&alg.bot(), &x));
-        assert!(!alg.edge(&x, &alg.bot()));
+        assert!(alg.edge(&x, &alg.unit()));
+        assert!(!alg.edge(&alg.unit(), &x));
+        assert!(alg.edge(&alg.zero(), &x));
+        assert!(!alg.edge(&x, &alg.zero()));
 
         let y = alg.add_generator();
         let a = alg.join(&x, &y);

@@ -44,3 +44,7 @@ pub use small_integers::*;
 #[doc(hidden)]
 mod binary_numbers;
 pub use binary_numbers::*;
+
+#[doc(hidden)]
+mod binary_vectors;
+pub use binary_vectors::*;

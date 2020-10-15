@@ -16,13 +16,13 @@
 */
 
 use super::{
-    BoundedLattice, DirectedGraph, Domain, Lattice, PartialOrder, Ring, TwoElementAlg, UnitaryRing,
-    TWO_ELEMENT_ALG,
+    AdditiveGroup, DirectedGraph, Domain, Lattice, Monoid, PartialOrder, Ring, Semigroup,
+    TwoElementAlg, UnitaryRing, TWO_ELEMENT_ALG,
 };
 
 /// The ring of integers whose elements are represented as `i32` values. The operations are
 /// partial, thus they will panic if the result does not fit into an `i32` value. The integers
-/// form a chain with the natural order.
+/// form a chain with the natural order, but they are not bounded.
 #[derive(Debug)]
 pub struct SmallIntegers();
 
@@ -57,16 +57,6 @@ impl Lattice for SmallIntegers {
     }
 }
 
-impl BoundedLattice for SmallIntegers {
-    fn bot(&self) -> Self::Elem {
-        i32::MIN
-    }
-
-    fn top(&self) -> Self::Elem {
-        i32::MAX
-    }
-}
-
 impl DirectedGraph for SmallIntegers {
     fn edge(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem {
         *elem0 <= *elem1
@@ -75,7 +65,19 @@ impl DirectedGraph for SmallIntegers {
 
 impl PartialOrder for SmallIntegers {}
 
-impl Ring for SmallIntegers {
+impl Semigroup for SmallIntegers {
+    fn mul(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+        elem0.checked_mul(*elem1).unwrap()
+    }
+}
+
+impl Monoid for SmallIntegers {
+    fn unit(&self) -> Self::Elem {
+        1
+    }
+}
+
+impl AdditiveGroup for SmallIntegers {
     fn zero(&self) -> Self::Elem {
         0
     }
@@ -91,14 +93,8 @@ impl Ring for SmallIntegers {
     fn sub(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
         elem0.checked_sub(*elem1).unwrap()
     }
-
-    fn mul(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
-        elem0.checked_mul(*elem1).unwrap()
-    }
 }
 
-impl UnitaryRing for SmallIntegers {
-    fn unit(&self) -> Self::Elem {
-        1
-    }
-}
+impl Ring for SmallIntegers {}
+
+impl UnitaryRing for SmallIntegers {}

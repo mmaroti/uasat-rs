@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BooleanAlgebra, BoundedLattice, DirectedGraph, Domain, Group, Lattice, Monoid, PartialOrder,
-    Semigroup, TwoElementAlg, TWO_ELEMENT_ALG,
+    BooleanAlgebra, BoundedPartialOrder, DirectedGraph, Domain, Group, Lattice, Monoid,
+    PartialOrder, Semigroup, TwoElementAlg, TWO_ELEMENT_ALG,
 };
 
 /// The one-element trivial algebra, which is boolean algebra, unitary ring and a partial order.
@@ -45,20 +45,28 @@ impl Domain for TrivialAlgebra {
     }
 }
 
+impl DirectedGraph for TrivialAlgebra {
+    fn edge(&self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem {
+        true
+    }
+}
+
+impl PartialOrder for TrivialAlgebra {}
+
+impl BoundedPartialOrder for TrivialAlgebra {
+    fn bot(&self) -> Self::Elem {}
+
+    fn top(&self) -> Self::Elem {}
+}
+
 impl Lattice for TrivialAlgebra {
     fn meet(&self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {}
 
     fn join(&self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> Self::Elem {}
 }
 
-impl BoundedLattice for TrivialAlgebra {
-    fn bot(&self) -> Self::Elem {}
-
-    fn top(&self) -> Self::Elem {}
-}
-
 impl BooleanAlgebra for TrivialAlgebra {
-    fn neg(&self, _elem: &Self::Elem) -> Self::Elem {}
+    fn not(&self, _elem: &Self::Elem) -> Self::Elem {}
 }
 
 impl Semigroup for TrivialAlgebra {
@@ -72,11 +80,3 @@ impl Monoid for TrivialAlgebra {
 impl Group for TrivialAlgebra {
     fn inv(&self, _elem: &Self::Elem) -> Self::Elem {}
 }
-
-impl DirectedGraph for TrivialAlgebra {
-    fn edge(&self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem {
-        true
-    }
-}
-
-impl PartialOrder for TrivialAlgebra {}

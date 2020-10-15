@@ -34,9 +34,33 @@ pub trait Domain {
     fn equals(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem;
 }
 
+/// An arbitrary binary relation over a domain.
+pub trait DirectedGraph: Domain {
+    /// Checks if there is an edge from the first element to the second.
+    fn edge(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem;
+
+    /// Checks if there is an edge forward but not backward.
+    fn forward(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem {
+        let temp = self.logic().not(&self.edge(elem1, elem0));
+        self.logic().meet(&self.edge(elem0, elem1), &temp)
+    }
+}
+
+/// A directed graph whose relation is reflexive, anti-symmetric and transitive.
+pub trait PartialOrder: DirectedGraph {}
+
+/// A bounded partial order with a smallest and largest element.
+pub trait BoundedPartialOrder: PartialOrder {
+    /// The smallest (bottom) element in the partial order.
+    fn bot(&self) -> Self::Elem;
+
+    /// The largest (top) element in the partial order.
+    fn top(&self) -> Self::Elem;
+}
+
 /// A lattice, which is an ordered set where every two elements have a largest lower bound
 /// and a smallest upper bound.
-pub trait Lattice: Domain {
+pub trait Lattice: PartialOrder {
     /// The meet (largest lower bound) of two elements in the lattice.
     fn meet(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem;
 
@@ -44,41 +68,49 @@ pub trait Lattice: Domain {
     fn join(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem;
 }
 
-/// A bounded lattice, which is a lattice with a smallest and a largest element.
-pub trait BoundedLattice: Lattice {
-    /// The smallest (bottom) element of the lattice.
-    fn bot(&self) -> Self::Elem;
-
-    /// The largest (top) element of the lattice.
-    fn top(&self) -> Self::Elem;
-}
-
 /// A boolean algebra, which is a complemented distributive bounded lattice.
-pub trait BooleanAlgebra: BoundedLattice {
+pub trait BooleanAlgebra: Lattice + BoundedPartialOrder {
     /// Returns the complement of the given element.
-    fn neg(&self, elem: &Self::Elem) -> Self::Elem;
+    fn not(&self, elem: &Self::Elem) -> Self::Elem;
 
     /// The symmetric difference of two elements.
-    fn add(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
-        let elem3 = self.meet(elem0, &self.neg(elem1));
-        let elem4 = self.meet(&self.neg(elem0), elem1);
+    fn xor(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+        let elem3 = self.meet(elem0, &self.not(elem1));
+        let elem4 = self.meet(&self.not(elem0), elem1);
         self.join(&elem3, &elem4)
     }
 
     /// The logical implication of the given elements(disjunction of the negation of the first
     /// with the second one).
     fn imp(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
-        self.join(&self.neg(elem0), elem1)
+        self.join(&self.not(elem0), elem1)
     }
 
     /// The logical equivalence of the given elements (the symmetric difference of the negaton of
     /// the first element with the second one).
     fn equ(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
-        self.add(&self.neg(elem0), elem1)
+        self.xor(&self.not(elem0), elem1)
     }
 }
 
-/// A semigroup, which is domain with an associative binary operation.
+/// An additive Abelian (commutative) group.
+pub trait AdditiveGroup: Domain {
+    /// The additive identity element.
+    fn zero(&self) -> Self::Elem;
+
+    /// The additive inverse of the given element.
+    fn neg(&self, elem: &Self::Elem) -> Self::Elem;
+
+    /// The additive commutative group operation.
+    fn add(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem;
+
+    /// Subtracts the second element from the first.
+    fn sub(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+        self.add(elem0, &self.neg(elem1))
+    }
+}
+
+/// A multiplicative semigroup, which is domain with an associative binary operation.
 pub trait Semigroup: Domain {
     /// The product of two elements in the semigroup
     fn mul(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem;
@@ -92,36 +124,16 @@ pub trait Monoid: Semigroup {
 
 /// A multiplicative group, which is a monoid where every element has an inverse.
 pub trait Group: Monoid {
-    /// The inverse element of the given element in a group.
+    /// The inverse element of the given element.
     fn inv(&self, elem: &Self::Elem) -> Self::Elem;
 }
 
-/// A ring, which is a additive abelian group together with multiplicative semigroup that
+/// A ring, which is a additive Abelian group together with multiplicative semigroup that
 /// distributes over the addition.
-pub trait Ring: Domain {
-    /// The zero element (additive identity) of the ring.
-    fn zero(&self) -> Self::Elem;
-
-    /// The additive inverse of the given element in the ring.
-    fn neg(&self, elem: &Self::Elem) -> Self::Elem;
-
-    /// The additive abelian group operation of the ring.
-    fn add(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem;
-
-    /// Subtracts the second element from the first.
-    fn sub(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
-        self.add(elem0, &self.neg(elem1))
-    }
-
-    /// The multiplicative semigroup operation of the ring.
-    fn mul(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem;
-}
+pub trait Ring: Semigroup + AdditiveGroup {}
 
 /// A unitary ring, which is a ring with a multiplicative unit element.
-pub trait UnitaryRing: Ring {
-    /// The multiplicative unit element of the ring.
-    fn unit(&self) -> Self::Elem;
-}
+pub trait UnitaryRing: Ring + Monoid {}
 
 /// A field, which is a commutative unitary ring where every non-zero element has a multiplicative
 /// inverse.
@@ -130,35 +142,3 @@ pub trait Field: UnitaryRing {
     /// total, it returns zero for the zero element.
     fn inv(&self, elem0: &Self::Elem) -> Self::Elem;
 }
-
-impl<A: BooleanAlgebra> Ring for A {
-    fn zero(&self) -> Self::Elem {
-        BoundedLattice::bot(self)
-    }
-
-    fn neg(&self, elem: &Self::Elem) -> Self::Elem {
-        BooleanAlgebra::neg(self, elem)
-    }
-
-    fn add(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
-        BooleanAlgebra::add(self, elem0, elem1)
-    }
-
-    fn mul(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
-        Lattice::meet(self, elem0, elem1)
-    }
-}
-
-impl<A: BooleanAlgebra> UnitaryRing for A {
-    fn unit(&self) -> Self::Elem {
-        BoundedLattice::top(self)
-    }
-}
-
-/// An arbitrary binary relation over a domain.
-pub trait DirectedGraph: Domain {
-    fn edge(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem;
-}
-
-/// A directed graph whose relation is reflexive, anti-symmetric and transitive.
-pub trait PartialOrder: DirectedGraph {}

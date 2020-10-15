@@ -15,7 +15,10 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BooleanAlgebra, BoundedLattice, DirectedGraph, Domain, Field, Lattice, PartialOrder};
+use super::{
+    AdditiveGroup, BooleanAlgebra, BoundedPartialOrder, DirectedGraph, Domain, Field, Lattice,
+    Monoid, PartialOrder, Ring, Semigroup, UnitaryRing,
+};
 
 /// The two-element boolean algebra, which is also a field and an ordered chain.
 #[derive(Debug)]
@@ -42,6 +45,24 @@ impl Domain for TwoElementAlg {
     }
 }
 
+impl DirectedGraph for TwoElementAlg {
+    fn edge(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem {
+        *elem0 <= *elem1
+    }
+}
+
+impl PartialOrder for TwoElementAlg {}
+
+impl BoundedPartialOrder for TwoElementAlg {
+    fn bot(&self) -> Self::Elem {
+        false
+    }
+
+    fn top(&self) -> Self::Elem {
+        true
+    }
+}
+
 impl Lattice for TwoElementAlg {
     fn meet(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
         *elem0 && *elem1
@@ -52,23 +73,13 @@ impl Lattice for TwoElementAlg {
     }
 }
 
-impl BoundedLattice for TwoElementAlg {
-    fn bot(&self) -> Self::Elem {
-        false
-    }
-
-    fn top(&self) -> Self::Elem {
-        true
-    }
-}
-
 impl BooleanAlgebra for TwoElementAlg {
-    fn neg(&self, elem: &Self::Elem) -> Self::Elem {
+    fn not(&self, elem: &Self::Elem) -> Self::Elem {
         !*elem
     }
 
-    fn add(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
-        *elem0 != *elem1
+    fn xor(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+        *elem0 ^ *elem1
     }
 
     fn imp(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
@@ -80,16 +91,38 @@ impl BooleanAlgebra for TwoElementAlg {
     }
 }
 
+impl AdditiveGroup for TwoElementAlg {
+    fn zero(&self) -> Self::Elem {
+        self.bot()
+    }
+
+    fn neg(&self, elem: &Self::Elem) -> Self::Elem {
+        *elem
+    }
+
+    fn add(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+        self.xor(elem0, elem1)
+    }
+}
+
+impl Semigroup for TwoElementAlg {
+    fn mul(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {
+        self.meet(elem0, elem1)
+    }
+}
+
+impl Monoid for TwoElementAlg {
+    fn unit(&self) -> Self::Elem {
+        self.top()
+    }
+}
+
+impl Ring for TwoElementAlg {}
+
+impl UnitaryRing for TwoElementAlg {}
+
 impl Field for TwoElementAlg {
     fn inv(&self, elem: &Self::Elem) -> Self::Elem {
         *elem
     }
 }
-
-impl DirectedGraph for TwoElementAlg {
-    fn edge(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem {
-        *elem0 <= *elem1
-    }
-}
-
-impl PartialOrder for TwoElementAlg {}

@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BooleanAlgebra, BoundedLattice, DirectedGraph, Domain, Group, Lattice, Monoid, PartialOrder,
-    Semigroup,
+    BooleanAlgebra, BoundedPartialOrder, DirectedGraph, Domain, Group, Lattice, Monoid,
+    PartialOrder, Semigroup,
 };
 
 /// The product of two algebras.
@@ -66,6 +66,39 @@ where
     }
 }
 
+impl<A0, A1> DirectedGraph for ProductAlgebra<A0, A1>
+where
+    A0: DirectedGraph,
+    A1: DirectedGraph<Logic = A0::Logic>,
+{
+    fn edge(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem {
+        let a0 = self.0.edge(&elem0.0, &elem1.0);
+        let a1 = self.1.edge(&elem0.1, &elem1.1);
+        self.logic().meet(&a0, &a1)
+    }
+}
+
+impl<A0, A1> PartialOrder for ProductAlgebra<A0, A1>
+where
+    A0: PartialOrder,
+    A1: PartialOrder<Logic = A0::Logic>,
+{
+}
+
+impl<A0, A1> BoundedPartialOrder for ProductAlgebra<A0, A1>
+where
+    A0: BoundedPartialOrder,
+    A1: BoundedPartialOrder<Logic = A0::Logic>,
+{
+    fn bot(&self) -> Self::Elem {
+        (self.0.bot(), self.1.bot())
+    }
+
+    fn top(&self) -> Self::Elem {
+        (self.0.top(), self.1.top())
+    }
+}
+
 impl<A0, A1> Lattice for ProductAlgebra<A0, A1>
 where
     A0: Lattice,
@@ -86,27 +119,13 @@ where
     }
 }
 
-impl<A0, A1> BoundedLattice for ProductAlgebra<A0, A1>
-where
-    A0: BoundedLattice,
-    A1: BoundedLattice<Logic = A0::Logic>,
-{
-    fn bot(&self) -> Self::Elem {
-        (self.0.bot(), self.1.bot())
-    }
-
-    fn top(&self) -> Self::Elem {
-        (self.0.top(), self.1.top())
-    }
-}
-
 impl<A0, A1> BooleanAlgebra for ProductAlgebra<A0, A1>
 where
     A0: BooleanAlgebra,
     A1: BooleanAlgebra<Logic = A0::Logic>,
 {
-    fn neg(&self, elem: &Self::Elem) -> Self::Elem {
-        (self.0.neg(&elem.0), self.1.neg(&elem.1))
+    fn not(&self, elem: &Self::Elem) -> Self::Elem {
+        (self.0.not(&elem.0), self.1.not(&elem.1))
     }
 }
 
@@ -141,23 +160,4 @@ where
     fn inv(&self, elem: &Self::Elem) -> Self::Elem {
         (self.0.inv(&elem.0), self.1.inv(&elem.1))
     }
-}
-
-impl<A0, A1> DirectedGraph for ProductAlgebra<A0, A1>
-where
-    A0: DirectedGraph,
-    A1: DirectedGraph<Logic = A0::Logic>,
-{
-    fn edge(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem {
-        let a0 = self.0.edge(&elem0.0, &elem1.0);
-        let a1 = self.1.edge(&elem0.1, &elem1.1);
-        self.logic().meet(&a0, &a1)
-    }
-}
-
-impl<A0, A1> PartialOrder for ProductAlgebra<A0, A1>
-where
-    A0: PartialOrder,
-    A1: PartialOrder<Logic = A0::Logic>,
-{
 }

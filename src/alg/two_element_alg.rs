@@ -16,8 +16,8 @@
 */
 
 use super::{
-    AdditiveGroup, BooleanAlgebra, BoundedPartialOrder, DirectedGraph, Domain, Field, Lattice,
-    Monoid, PartialOrder, Ring, Semigroup, UnitaryRing,
+    AdditiveGroup, BooleanAlgebra, BoundedPartialOrder, ClassicalDomain, DirectedGraph, Domain,
+    Field, Lattice, Monoid, PartialOrder, Ring, Semigroup, UnitaryRing,
 };
 
 /// The two-element boolean algebra, which is also a field and an ordered chain.
@@ -44,6 +44,8 @@ impl Domain for TwoElementAlg {
         elem0 == elem1
     }
 }
+
+impl ClassicalDomain for TwoElementAlg {}
 
 impl DirectedGraph for TwoElementAlg {
     fn edge(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem {

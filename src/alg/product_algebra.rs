@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BooleanAlgebra, BoundedPartialOrder, DirectedGraph, Domain, Group, Lattice, Monoid,
-    PartialOrder, Semigroup,
+    BooleanAlgebra, BoundedPartialOrder, ClassicalDomain, DirectedGraph, Domain, Group, Lattice,
+    Monoid, PartialOrder, Semigroup,
 };
 
 /// The product of two algebras.
@@ -64,6 +64,13 @@ where
         let a1 = self.1.equals(&elem0.1, &elem1.1);
         self.logic().meet(&a0, &a1)
     }
+}
+
+impl<A0, A1> ClassicalDomain for ProductAlgebra<A0, A1>
+where
+    A0: ClassicalDomain,
+    A1: ClassicalDomain,
+{
 }
 
 impl<A0, A1> DirectedGraph for ProductAlgebra<A0, A1>

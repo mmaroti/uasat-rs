@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BooleanAlgebra, BoundedPartialOrder, DirectedGraph, Domain, Group, Lattice, Monoid,
-    PartialOrder, Semigroup, TwoElementAlg, TWO_ELEMENT_ALG,
+    BooleanAlgebra, BoundedPartialOrder, ClassicalDomain, DirectedGraph, Domain, Group, Lattice,
+    Monoid, PartialOrder, Semigroup, TwoElementAlg, TWO_ELEMENT_ALG,
 };
 
 /// The one-element trivial algebra, which is boolean algebra, unitary ring and a partial order.
@@ -44,6 +44,8 @@ impl Domain for TrivialAlgebra {
         true
     }
 }
+
+impl ClassicalDomain for TrivialAlgebra {}
 
 impl DirectedGraph for TrivialAlgebra {
     fn edge(&self, _elem0: &Self::Elem, _elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem {

@@ -16,8 +16,8 @@
 */
 
 use super::{
-    AdditiveGroup, DirectedGraph, Domain, Lattice, Monoid, PartialOrder, Ring, Semigroup,
-    TwoElementAlg, UnitaryRing, TWO_ELEMENT_ALG,
+    AdditiveGroup, ClassicalDomain, DirectedGraph, Domain, Lattice, Monoid, PartialOrder, Ring,
+    Semigroup, TwoElementAlg, UnitaryRing, TWO_ELEMENT_ALG,
 };
 
 /// The ring of integers whose elements are represented as `i32` values. The operations are
@@ -46,6 +46,8 @@ impl Domain for SmallIntegers {
         elem0 == elem1
     }
 }
+
+impl ClassicalDomain for SmallIntegers {}
 
 impl Lattice for SmallIntegers {
     fn meet(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> Self::Elem {

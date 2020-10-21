@@ -15,6 +15,8 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use super::TwoElementAlg;
+
 /// An arbitrary set of elements over a fixed type.
 pub trait Domain {
     /// The type of objects representing the elements of this algebra. Not all objects are
@@ -33,6 +35,9 @@ pub trait Domain {
     /// Checks if the two objects represent the same element of the domain.
     fn equals(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem;
 }
+
+/// A domain with classic `bool` logical values.
+pub trait ClassicalDomain: Domain<Logic = TwoElementAlg> {}
 
 /// An arbitrary binary relation over a domain.
 pub trait DirectedGraph: Domain {

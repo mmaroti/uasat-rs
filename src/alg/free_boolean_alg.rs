@@ -16,8 +16,8 @@
 */
 
 use super::{
-    AdditiveGroup, BooleanAlgebra, BoundedPartialOrder, DirectedGraph, Domain, Lattice, Monoid,
-    PartialOrder, Ring, Semigroup, TwoElementAlg, UnitaryRing, TWO_ELEMENT_ALG,
+    AdditiveGroup, BooleanAlgebra, BoundedPartialOrder, ClassicalDomain, DirectedGraph, Domain,
+    Lattice, Monoid, PartialOrder, Ring, Semigroup, TwoElementAlg, UnitaryRing, TWO_ELEMENT_ALG,
 };
 use crate::solver::{create_solver, Literal, Solver};
 use std::cell::Cell;
@@ -59,7 +59,7 @@ impl FreeBooleanAlg {
     }
 
     /// Returns the name of the solver.
-    pub fn get_name(&self) -> &'static str {
+    pub fn get_solver_name(&self) -> &'static str {
         self.mutate(|solver| solver.get_name())
     }
 
@@ -89,6 +89,8 @@ impl Domain for FreeBooleanAlg {
         self.logic().meet(&temp0, &temp1)
     }
 }
+
+impl ClassicalDomain for FreeBooleanAlg {}
 
 impl DirectedGraph for FreeBooleanAlg {
     fn edge(&self, elem0: &Self::Elem, elem1: &Self::Elem) -> <Self::Logic as Domain>::Elem {

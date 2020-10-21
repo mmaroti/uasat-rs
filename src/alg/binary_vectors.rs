@@ -16,12 +16,13 @@
 */
 
 use super::{
-    AdditiveGroup, BooleanAlgebra, BoundedPartialOrder, DirectedGraph, Domain, Lattice, Monoid,
-    PartialOrder, Ring, Semigroup, UnitaryRing,
+    AdditiveGroup, BooleanAlgebra, BoundedPartialOrder, DirectedGraph, Domain, FreeBooleanAlg,
+    Lattice, Monoid, PartialOrder, Ring, Semigroup, UnitaryRing,
 };
 
 /// A finite power of a boolean algebra. The elements are represented as vectors of boolean
-/// values backed by the underlying logic. The order is the natural order acting coordinate-wise.
+/// values backed by the underlying logic. All operations are acting coordinate-wise, the
+/// order is the natural order on the power.
 #[derive(Debug)]
 pub struct BinaryVectors<'a, L>
 where
@@ -37,6 +38,15 @@ where
 {
     pub fn new(length: usize, logic: &'a L) -> Self {
         Self { length, logic }
+    }
+}
+
+impl<'a> BinaryVectors<'a, FreeBooleanAlg> {
+    /// Returns a new variable to the solver.
+    pub fn add_variable(&self) -> Vec<<FreeBooleanAlg as Domain>::Elem> {
+        (0..self.length)
+            .map(|_| self.logic.add_generator())
+            .collect()
     }
 }
 

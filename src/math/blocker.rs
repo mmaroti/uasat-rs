@@ -17,10 +17,10 @@
 
 #![allow(dead_code)]
 
+use crate::core::Literal;
 use crate::math::binrel;
 use crate::math::BinaryRel;
 use crate::progress::{add_progress, del_progress, set_progress};
-use crate::solver::Literal;
 use crate::tensor::{Shape, Solver, Tensor, TensorAlg, TensorSat};
 
 struct Extension {

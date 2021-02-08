@@ -15,12 +15,13 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use std::cell::Cell;
+
 use super::{
     AdditiveGroup, BooleanAlgebra, BoundedPartialOrder, ClassicalDomain, DirectedGraph, Domain,
     Lattice, Monoid, PartialOrder, Ring, Semigroup, TwoElementAlg, UnitaryRing, TWO_ELEMENT_ALG,
 };
-use crate::solver::{create_solver, Literal, Solver};
-use std::cell::Cell;
+use crate::core::{create_solver, Literal, Solver};
 
 /// The free boolean algebra backed by a SAT solver.
 pub struct FreeBooleanAlg {

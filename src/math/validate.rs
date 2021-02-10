@@ -15,9 +15,10 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use crate::math::BinaryRel;
-use crate::tensor::{Shape, Solver, TensorAlg, TensorSat};
 use std::time::Instant;
+
+use super::BinaryRel;
+use crate::core::{Shape, Solver, TensorAlg, TensorSat};
 
 fn check(
     solver: &str,

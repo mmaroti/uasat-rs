@@ -17,7 +17,7 @@
 
 #![allow(dead_code)]
 
-use crate::tensor::{Shape, Tensor, TensorAlg};
+use crate::core::{Shape, Tensor, TensorAlg};
 
 /// Creates a tensor of shape `[size, size]` representing the
 /// binary less than or equal relation of the crown.

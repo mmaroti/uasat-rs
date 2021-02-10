@@ -17,12 +17,9 @@
 
 //! Basic multidimensional array type and operations over boolean algebras.
 
-use super::boolean;
-use crate::core;
-use crate::core::GenVector as _;
 use std::ops;
 
-pub use super::boolean::{Boolean, Literal, Solver, Trivial, BOOLEAN};
+use super::{BoolAlg, BoolSat, GenElem, GenVec, GenVector as _};
 
 /// The shape of a tensor.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -186,18 +183,18 @@ impl Iterator for StrideIter {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Tensor<ELEM>
 where
-    ELEM: core::GenElem,
+    ELEM: GenElem,
 {
     shape: Shape,
-    elems: core::GenVec<ELEM>,
+    elems: GenVec<ELEM>,
 }
 
 impl<ELEM> Tensor<ELEM>
 where
-    ELEM: core::GenElem,
+    ELEM: GenElem,
 {
     /// Creates a tensor of the given shape and with the given elements.
-    fn new(shape: Shape, elems: core::GenVec<ELEM>) -> Self {
+    fn new(shape: Shape, elems: GenVec<ELEM>) -> Self {
         assert_eq!(shape.size(), elems.len());
         Tensor { shape, elems }
     }
@@ -263,7 +260,7 @@ where
             iter.add_stride(*val, strides[idx]);
         }
 
-        let elems: core::GenVec<ELEM> = iter.map(|i| self.elems.get(i)).collect();
+        let elems: GenVec<ELEM> = iter.map(|i| self.elems.get(i)).collect();
         Tensor::new(shape, elems)
     }
 
@@ -341,8 +338,8 @@ pub trait TensorAlg {
 
 impl<ALG> TensorAlg for ALG
 where
-    ALG: boolean::BoolAlg,
-    ALG::Elem: core::GenElem,
+    ALG: BoolAlg,
+    ALG::Elem: GenElem,
 {
     type Elem = Tensor<ALG::Elem>;
 
@@ -539,8 +536,8 @@ pub trait TensorSat: TensorAlg {
 
 impl<ALG> TensorSat for ALG
 where
-    ALG: boolean::BoolSat,
-    ALG::Elem: core::GenElem,
+    ALG: BoolSat,
+    ALG::Elem: GenElem,
 {
     fn tensor_add_variable(&mut self, shape: Shape) -> Self::Elem {
         let elems = (0..shape.size())
@@ -608,8 +605,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::iter;
+
+    use super::super::Boolean;
+    use super::*;
 
     #[test]
     fn polymer() {

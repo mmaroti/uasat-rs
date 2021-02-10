@@ -31,7 +31,7 @@ pub struct Literal {
 }
 
 /// Generic SAT solver interface
-pub trait Solver {
+pub trait SatSolver {
     /// Adds a fresh variable to the solver.
     fn add_variable(&mut self) -> Literal;
 
@@ -78,10 +78,10 @@ pub trait Solver {
 /// Tries to create a SAT solver with the given name. Currently "batsat",
 /// "varisat", "minisat" and "cryptominisat" are supported, but not on all
 /// platforms. Use the empty string to match the first available solver.
-pub fn create_solver(name: &str) -> Box<dyn Solver> {
+pub fn create_solver(name: &str) -> Box<dyn SatSolver> {
     #[cfg(feature = "batsat")]
     {
-        if name == "batsat" || name == "" {
+        if name == "batsat" || name.is_empty() {
             let sat: BatSat = Default::default();
             return Box::new(sat);
         }
@@ -89,7 +89,7 @@ pub fn create_solver(name: &str) -> Box<dyn Solver> {
 
     #[cfg(feature = "cadical")]
     {
-        if name == "cadical" || name == "" {
+        if name == "cadical" || name.is_empty() {
             let sat: CaDiCaL = Default::default();
             return Box::new(sat);
         } else if name == "cadical-sat" {
@@ -106,7 +106,7 @@ pub fn create_solver(name: &str) -> Box<dyn Solver> {
 
     #[cfg(feature = "minisat")]
     {
-        if name == "minisat" || name == "" {
+        if name == "minisat" || name.is_empty() {
             let sat: MiniSat = Default::default();
             return Box::new(sat);
         }
@@ -114,7 +114,7 @@ pub fn create_solver(name: &str) -> Box<dyn Solver> {
 
     #[cfg(feature = "cryptominisat")]
     {
-        if name == "cryptominisat" || name == "" {
+        if name == "cryptominisat" || name.is_empty() {
             let sat: CryptoMiniSat = Default::default();
             return Box::new(sat);
         }
@@ -122,7 +122,7 @@ pub fn create_solver(name: &str) -> Box<dyn Solver> {
 
     #[cfg(feature = "varisat")]
     {
-        if name == "varisat" || name == "" {
+        if name == "varisat" || name.is_empty() {
             let sat: VariSat = Default::default();
             return Box::new(sat);
         }
@@ -131,7 +131,7 @@ pub fn create_solver(name: &str) -> Box<dyn Solver> {
     panic!("Unknown SAT solver: {}", name);
 }
 
-impl std::fmt::Debug for dyn Solver {
+impl std::fmt::Debug for dyn SatSolver {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
             f,
@@ -176,7 +176,7 @@ impl MiniSat {
 }
 
 #[cfg(feature = "minisat")]
-impl Solver for MiniSat {
+impl SatSolver for MiniSat {
     fn add_variable(&mut self) -> Literal {
         MiniSat::encode(unsafe { minisat::sys::minisat_newLit(self.ptr) })
     }
@@ -232,7 +232,7 @@ impl Drop for MiniSat {
 pub struct VariSat<'a> {
     num_variables: u32,
     num_clauses: usize,
-    solver: varisat::Solver<'a>,
+    solver: varisat::SatSolver<'a>,
     solution: bit_vec::BitVec,
     temp: Vec<varisat::Lit>,
 }
@@ -243,7 +243,7 @@ impl<'a> Default for VariSat<'a> {
         VariSat {
             num_variables: 0,
             num_clauses: 0,
-            solver: varisat::Solver::new(),
+            solver: varisat::SatSolver::new(),
             solution: bit_vec::BitVec::new(),
             temp: Vec::new(),
         }
@@ -264,7 +264,7 @@ impl<'a> VariSat<'a> {
 }
 
 #[cfg(feature = "varisat")]
-impl<'a> Solver for VariSat<'a> {
+impl<'a> SatSolver for VariSat<'a> {
     fn add_variable(&mut self) -> Literal {
         let var = varisat::Var::from_index(self.num_variables as usize);
         self.num_variables += 1;
@@ -325,7 +325,7 @@ impl<'a> Solver for VariSat<'a> {
 /// An advanced SAT solver supporting XOR clauses.
 #[cfg(feature = "cryptominisat")]
 pub struct CryptoMiniSat {
-    solver: cryptominisat::Solver,
+    solver: cryptominisat::SatSolver,
     num_clauses: usize,
     temp: Vec<cryptominisat::Lit>,
 }
@@ -334,7 +334,7 @@ pub struct CryptoMiniSat {
 impl Default for CryptoMiniSat {
     fn default() -> Self {
         CryptoMiniSat {
-            solver: cryptominisat::Solver::new(),
+            solver: cryptominisat::SatSolver::new(),
             num_clauses: 0,
             temp: Vec::new(),
         }
@@ -355,7 +355,7 @@ impl CryptoMiniSat {
 }
 
 #[cfg(feature = "cryptominisat")]
-impl Solver for CryptoMiniSat {
+impl SatSolver for CryptoMiniSat {
     fn add_variable(&mut self) -> Literal {
         CryptoMiniSat::encode(self.solver.new_var())
     }
@@ -438,7 +438,7 @@ impl BatSat {
 }
 
 #[cfg(feature = "batsat")]
-impl Solver for BatSat {
+impl SatSolver for BatSat {
     fn add_variable(&mut self) -> Literal {
         let var = self.solver.new_var_default();
         BatSat::encode(batsat::Lit::new(var, true))
@@ -500,7 +500,7 @@ impl CaDiCaL {
 }
 
 #[cfg(feature = "cadical")]
-impl Solver for CaDiCaL {
+impl SatSolver for CaDiCaL {
     fn add_variable(&mut self) -> Literal {
         self.num_vars += 1;
         Literal {
@@ -546,7 +546,7 @@ impl Solver for CaDiCaL {
 mod tests {
     use super::*;
 
-    fn test(sat: &mut dyn Solver) {
+    fn test(sat: &mut dyn SatSolver) {
         let a = sat.add_variable();
         let b = sat.add_variable();
         sat.add_clause(&[a, b]);

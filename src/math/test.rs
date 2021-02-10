@@ -17,9 +17,9 @@
 
 #![allow(dead_code, unused_imports)]
 
-use crate::math::binrel;
-use crate::math::BinaryRel;
-use crate::tensor::{Boolean, Shape, Solver, Tensor, TensorAlg, TensorSat};
+use super::binrel;
+use super::BinaryRel;
+use crate::core::{Boolean, Shape, Solver, Tensor, TensorAlg, TensorSat};
 
 fn single(size: usize, i0: usize, i1: usize) -> Tensor<bool> {
     let shape = Shape::new(vec![size, size]);

@@ -21,4 +21,13 @@ mod genvec;
 pub use genvec::{GenElem, GenVec, GenVector};
 
 mod solver;
-pub use solver::{create_solver, Literal, Solver};
+pub use solver::{create_solver, Literal, SatSolver};
+
+mod tensor;
+pub use tensor::{Shape, Tensor, TensorAlg, TensorSat};
+
+mod boolean;
+pub use boolean::{BoolAlg, BoolSat, Boolean, Solver, BOOLEAN};
+
+mod progress;
+pub use progress::{add_progress, del_progress, set_progress};

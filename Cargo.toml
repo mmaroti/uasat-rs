@@ -24,3 +24,4 @@ clippy = "*"
 
 [profile.release]
 lto = true
+panic = "abort"

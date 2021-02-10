@@ -21,10 +21,7 @@
 
 use std::iter;
 
-use super::core::GenVector as _;
-use crate::core;
-
-pub use crate::core::Literal;
+use super::{create_solver, GenElem, GenVec, GenVector as _, Literal, SatSolver};
 
 /// A boolean algebra supporting boolean calculation.
 pub trait BoolAlg {
@@ -263,7 +260,7 @@ pub const BOOLEAN: Boolean = Boolean();
 /// The free boolean algebra backed by a SAT solver.
 #[derive(Debug)]
 pub struct Solver {
-    solver: Box<dyn core::Solver>,
+    solver: Box<dyn SatSolver>,
     unit: Literal,
     zero: Literal,
 }
@@ -271,7 +268,7 @@ pub struct Solver {
 impl Solver {
     /// Creates a new free boolean algebra.
     pub fn new(solver_name: &str) -> Self {
-        let mut solver = core::create_solver(solver_name);
+        let mut solver = create_solver(solver_name);
         let unit = solver.add_variable();
         let zero = solver.negate(unit);
         solver.add_clause(&[unit]);
@@ -342,7 +339,7 @@ impl BoolAlg for Solver {
 /// Constraint solving over a boolean algebra.
 pub trait BoolSat: BoolAlg + Sized
 where
-    Self::Elem: core::GenElem,
+    Self::Elem: GenElem,
 {
     /// Adds a new variable to the solver
     fn bool_add_variable(&mut self) -> Self::Elem;
@@ -356,7 +353,7 @@ where
         &mut self,
         assumptions: &[Self::Elem],
         literals: ITER,
-    ) -> Option<core::GenVec<bool>>
+    ) -> Option<GenVec<bool>>
     where
         ITER: Iterator<Item = Self::Elem>;
 
@@ -366,7 +363,7 @@ where
         ITER: Iterator<Item = Self::Elem>,
     {
         let mut count = 0;
-        let literals: core::GenVec<Self::Elem> = literals.collect();
+        let literals: GenVec<Self::Elem> = literals.collect();
         let mut clause: Vec<Self::Elem> = Vec::with_capacity(literals.len());
         while let Some(result) = self.bool_find_one_model(&[], literals.iter()) {
             count += 1;
@@ -387,13 +384,13 @@ where
     where
         ITER: Iterator<Item = Self::Elem>,
     {
-        let literals: core::GenVec<Self::Elem> = literals
+        let literals: GenVec<Self::Elem> = literals
             .chain([self.bool_unit(), self.bool_zero()].iter().copied())
             .collect();
         let len = literals.len();
 
         // bound variables
-        let variables: core::GenVec<Self::Elem> =
+        let variables: GenVec<Self::Elem> =
             (0..(2 * len)).map(|_| self.bool_add_variable()).collect();
 
         // lower bound
@@ -404,11 +401,11 @@ where
         let result = self.bool_cmp_ltn(literals.iter().zip(variables.iter().skip(len)));
         self.bool_add_clause(&[result]);
 
-        let mut lower_bound: core::GenVec<bool> = iter::repeat(true)
+        let mut lower_bound: GenVec<bool> = iter::repeat(true)
             .take(len - 2)
             .chain([false, false].iter().copied())
             .collect();
-        let mut upper_bounds: core::GenVec<bool> = iter::repeat(false)
+        let mut upper_bounds: GenVec<bool> = iter::repeat(false)
             .take(len - 2)
             .chain([false, true].iter().copied())
             .collect();
@@ -465,7 +462,7 @@ impl BoolSat for Solver {
         &mut self,
         assumptions: &[Self::Elem],
         literals: ITER,
-    ) -> Option<core::GenVec<bool>>
+    ) -> Option<GenVec<bool>>
     where
         ITER: Iterator<Item = Self::Elem>,
     {

@@ -20,10 +20,6 @@
 #[macro_use]
 extern crate lazy_static;
 
-pub mod boolean;
-pub mod progress;
-pub mod tensor;
-
 pub mod alg;
 pub mod core;
 pub mod math;

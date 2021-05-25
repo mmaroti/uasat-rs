@@ -232,7 +232,7 @@ impl Drop for MiniSat {
 pub struct VariSat<'a> {
     num_variables: u32,
     num_clauses: usize,
-    solver: varisat::SatSolver<'a>,
+    solver: varisat::Solver<'a>,
     solution: bit_vec::BitVec,
     temp: Vec<varisat::Lit>,
 }
@@ -243,7 +243,7 @@ impl<'a> Default for VariSat<'a> {
         VariSat {
             num_variables: 0,
             num_clauses: 0,
-            solver: varisat::SatSolver::new(),
+            solver: varisat::Solver::new(),
             solution: bit_vec::BitVec::new(),
             temp: Vec::new(),
         }

@@ -15,51 +15,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#![allow(dead_code)]
-
 use crate::core::{Shape, Tensor, TensorAlg};
-
-/// Creates a tensor of shape `[size, size]` representing the
-/// binary less than or equal relation of the crown.
-pub fn crown_poset(size: usize) -> Tensor<bool> {
-    assert!(size >= 4 && size % 2 == 0);
-    Tensor::create(Shape::new(vec![size, size]), |i| {
-        if i[0] % 2 == 1 {
-            i[0] == i[1]
-        } else if i[0] == 0 {
-            i[1] <= 1 || i[1] == size - 1
-        } else {
-            i[1] >= i[0] - 1 && i[1] <= i[0] + 1
-        }
-    })
-}
-
-/// Creates the diagonal relation of shape `[size, size]`.
-pub fn diagonal(size: usize) -> Tensor<bool> {
-    Tensor::create(Shape::new(vec![size, size]), |i| i[0] == i[1])
-}
-
-/// Creates the less than relation of shape `[size, size]`.
-pub fn less_than(size: usize) -> Tensor<bool> {
-    Tensor::create(Shape::new(vec![size, size]), |i| i[0] < i[1])
-}
-
-/// Returns an almost empty binary relation except for the edge from
-/// `pos[0]` to `pos[1]`.
-pub fn singleton(size: usize, pos: [usize; 2]) -> Tensor<bool> {
-    Tensor::create(Shape::new(vec![size, size]), |i| {
-        i[0] == pos[0] && i[1] == pos[1]
-    })
-}
-
-/// Creates a partial map from the source to the target universe.
-pub fn partial_map(map: &[isize], target: usize) -> Tensor<bool> {
-    let shape = Shape::new(vec![map.len(), target]);
-    for &a in map {
-        assert!(-1 <= a && a <= target as isize);
-    }
-    Tensor::create(shape, |i| map[i[0]] == i[1] as isize)
-}
 
 /// Returns the list of edges of the binary relation.
 pub fn edges(rel: &Tensor<bool>) -> Vec<(usize, usize)> {
@@ -75,6 +31,72 @@ pub fn edges(rel: &Tensor<bool>) -> Vec<(usize, usize)> {
 }
 
 pub trait BinaryRel: TensorAlg {
+    /// Creates the constant full relation of the given shape.
+    fn create_full_rel(&self, size0: usize, size1: usize) -> Self::Elem {
+        self.tensor_create(Shape::new(vec![size0, size1]), |_| true)
+    }
+
+    /// Creates the constant empty relation of the given shape.
+    fn create_empty_rel(&self, size0: usize, size1: usize) -> Self::Elem {
+        self.tensor_create(Shape::new(vec![size0, size1]), |_| false)
+    }
+
+    /// Creates the constant diagonal relation of shape `[size, size]`.
+    fn create_diagonal(&self, size: usize) -> Self::Elem {
+        self.tensor_create(Shape::new(vec![size, size]), |i| i[0] == i[1])
+    }
+
+    /// Creates the constant less than relation of shape `[size, size]`.
+    fn create_less_than(&self, size: usize) -> Self::Elem {
+        self.tensor_create(Shape::new(vec![size, size]), |i| i[0] < i[1])
+    }
+
+    /// Returns an almost empty binary relation except for the edge from
+    /// `pos[0]` to `pos[1]`.
+    fn create_singleton(&self, size: usize, pos: [usize; 2]) -> Self::Elem {
+        self.tensor_create(Shape::new(vec![size, size]), |i| {
+            i[0] == pos[0] && i[1] == pos[1]
+        })
+    }
+
+    /// Creates a constant partial map from the source to the target universe.
+    fn create_partial_map(&self, map: &[isize], target: usize) -> Self::Elem {
+        let shape = Shape::new(vec![map.len(), target]);
+        for &a in map {
+            assert!(-1 <= a && a <= target as isize);
+        }
+        self.tensor_create(shape, |i| map[i[0]] == i[1] as isize)
+    }
+
+    /// Creates a constant binary relation from a list of edges.
+    fn create_from_edges(
+        &self,
+        size0: usize,
+        size1: usize,
+        edges: &[(usize, usize)],
+    ) -> Self::Elem {
+        let mut vec = vec![false; size0 * size1];
+        for &(c0, c1) in edges.iter() {
+            vec[c0 * size1 + c1] = true;
+        }
+        self.tensor_create(Shape::new(vec![size0, size1]), |c| vec[c[0] * size1 + c[1]])
+    }
+
+    /// Creates a tensor of shape `[size, size]` representing the
+    /// binary less than or equal relation of the crown.
+    fn create_crown_poset(&self, size: usize) -> Self::Elem {
+        assert!(size >= 4 && size % 2 == 0);
+        self.tensor_create(Shape::new(vec![size, size]), |i| {
+            if i[0] % 2 == 1 {
+                i[0] == i[1]
+            } else if i[0] == 0 {
+                i[1] <= 1 || i[1] == size - 1
+            } else {
+                i[1] >= i[0] - 1 && i[1] <= i[0] + 1
+            }
+        })
+    }
+
     /// Checks if the given tensor of shape `[a, b]` is a mapping from an
     /// a-element set to a b-element set, and returns the result in a tensor
     /// of shape `[]`.
@@ -171,8 +193,7 @@ pub trait BinaryRel: TensorAlg {
     /// and returns the result in a tensor of shape `[]`.
     fn is_antisymmetric(&mut self, rel: Self::Elem) -> Self::Elem {
         let size = self.shape(&rel)[0];
-        let tmp = diagonal(size);
-        let tmp = self.tensor_lift(tmp);
+        let tmp = self.create_diagonal(size);
         let rel = self.tensor_not(rel);
         let tmp = self.tensor_or(tmp, rel.clone());
         let rel = self.transpose(rel);
@@ -205,8 +226,7 @@ pub trait BinaryRel: TensorAlg {
     /// shape `[a,a]` and returns another of the same shape.
     fn covers(&mut self, rel: Self::Elem) -> Self::Elem {
         let size = self.shape(&rel)[0];
-        let tmp = diagonal(size);
-        let tmp = self.tensor_lift(tmp);
+        let tmp = self.create_diagonal(size);
         let tmp = self.tensor_not(tmp);
         let rel = self.tensor_and(rel, tmp);
         let tmp = self.compose(rel.clone(), rel.clone());

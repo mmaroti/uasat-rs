@@ -41,8 +41,7 @@ pub fn test1() {
     let tmp = alg.is_surjective(fun.clone());
     alg.tensor_add_clause(&[tmp]);
 
-    let rel = binrel::crown_poset(20);
-    let rel = alg.tensor_lift(rel);
+    let rel = alg.create_crown_poset(20);
     let tmp = alg.is_compatible(fun.clone(), rel.clone(), rel);
     alg.tensor_add_clause(&[tmp]);
 

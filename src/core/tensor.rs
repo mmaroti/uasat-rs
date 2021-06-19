@@ -282,6 +282,12 @@ pub trait TensorAlg {
     /// Creates a new tensor from the given bool tensor.
     fn tensor_lift(&self, elem: Tensor<bool>) -> Self::Elem;
 
+    /// Creates a new constant tensor of the given shape where
+    /// the elements are calculated by an operation.
+    fn tensor_create<OP>(&self, shape: Shape, op: OP) -> Self::Elem
+    where
+        OP: FnMut(&[usize]) -> bool;
+
     /// Creates a new tensor of the given shape from the given old tensor with
     /// permuted, identified or new dummy coordinates. The mapping is a vector
     /// of length of the old tensor shape with entries identifying the
@@ -350,6 +356,13 @@ where
     fn tensor_lift(&self, elem: Tensor<bool>) -> Self::Elem {
         let elems = elem.elems.iter().map(|b| self.bool_lift(b)).collect();
         Tensor::new(elem.shape, elems)
+    }
+
+    fn tensor_create<OP>(&self, shape: Shape, mut op: OP) -> Self::Elem
+    where
+        OP: FnMut(&[usize]) -> bool,
+    {
+        Tensor::create(shape, |coords| self.bool_lift(op(coords)))
     }
 
     fn tensor_polymer(&self, elem: Self::Elem, shape: Shape, mapping: &[usize]) -> Self::Elem {

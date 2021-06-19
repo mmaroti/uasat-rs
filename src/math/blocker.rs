@@ -19,7 +19,8 @@
 
 use super::{binrel, BinaryRel};
 use crate::core::{
-    add_progress, del_progress, set_progress, Literal, Shape, Solver, Tensor, TensorAlg, TensorSat,
+    add_progress, del_progress, set_progress, Boolean, Literal, Shape, Solver, Tensor, TensorAlg,
+    TensorSat,
 };
 
 struct Extension {
@@ -81,7 +82,8 @@ impl Blocker {
         let target_size = target_graph.shape()[0];
         assert_eq!(target_size, target_graph.shape()[1]);
 
-        let partial_map = binrel::partial_map(partial_map, target_size);
+        let boolean = Boolean();
+        let partial_map = boolean.create_partial_map(partial_map, target_size);
         let extension = Extension::new(solver_name, &partial_map, &target_graph);
 
         Blocker {
@@ -192,7 +194,9 @@ impl Blocker {
 }
 
 pub fn test() {
-    let target_graph = binrel::crown_poset(6);
+    let boolean = Boolean();
+
+    let target_graph = boolean.create_crown_poset(6);
     let partial_map = [0, 0, 0, 1, 3, 4, -1, -1, -1, -1, -1];
     let mut blocker = Blocker::new("cadical", &partial_map, target_graph);
 

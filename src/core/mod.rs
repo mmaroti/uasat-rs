@@ -27,7 +27,7 @@ mod tensor;
 pub use tensor::{Shape, Tensor, TensorAlg, TensorSat};
 
 mod boolean;
-pub use boolean::{BoolAlg, BoolSat, Boolean, Solver, BOOLEAN};
+pub use boolean::{BoolAlg, BoolSat, Boolean, Solver};
 
 mod progress;
 pub use progress::{add_progress, del_progress, set_progress};

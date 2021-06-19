@@ -19,9 +19,11 @@
 
 mod binrel;
 mod blocker;
+mod obstruction;
 mod test;
 mod validate;
 
 pub use binrel::BinaryRel;
 pub use blocker::test;
 pub use validate::validate;
+pub use obstruction::test as obstruction_test;

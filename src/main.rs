@@ -25,6 +25,7 @@ pub mod core;
 pub mod math;
 
 pub fn main() {
-    math::validate();
+    // math::validate();
     // math::test();
+    math::obstruction_test();
 }

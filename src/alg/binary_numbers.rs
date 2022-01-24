@@ -18,7 +18,7 @@
 use super::{BooleanAlgebra, Domain};
 
 /// The ring of residue classes of integers modulo a two-power number. The elements are represented
-/// as vectors of boolean values backed by the underlying logic. The ring operations wrap around, 
+/// as vectors of boolean values backed by the underlying logic. The ring operations wrap around,
 /// the elements are ordered as a chain with unsigned values, thus `0` is the smallest element.
 #[derive(Debug)]
 pub struct BinaryNumbers<'a, L>
@@ -47,7 +47,7 @@ where
     type Logic = L;
 
     fn logic(&self) -> &Self::Logic {
-        &self.logic
+        self.logic
     }
 
     fn contains(&self, elem: &Self::Elem) -> <Self::Logic as Domain>::Elem {

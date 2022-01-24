@@ -59,7 +59,7 @@ where
     type Logic = L;
 
     fn logic(&self) -> &Self::Logic {
-        &self.logic
+        self.logic
     }
 
     fn contains(&self, elem: &Self::Elem) -> <Self::Logic as Domain>::Elem {

@@ -19,9 +19,6 @@ cryptominisat = { version = "5.6", optional = true }
 batsat = { version = "0.5", optional = true }
 cadical = { version = "0.1", optional = true }
 
-[dev-dependencies]
-clippy = "*"
-
 [profile.release]
 lto = true
 panic = "abort"

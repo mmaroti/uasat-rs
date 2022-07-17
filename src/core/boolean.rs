@@ -21,10 +21,10 @@
 
 use std::iter;
 
-use super::{create_solver, GenElem, GenVec, GenVector as _, Literal, SatSolver};
+use super::{create_solver, GenericElem, GenericFor, GenericVector as _, Literal, SatInterface};
 
 /// A boolean algebra supporting boolean calculation.
-pub trait BoolAlg {
+pub trait BooleanAlgebra {
     /// The element type of this bool algebra.
     type Elem: Clone;
 
@@ -206,7 +206,7 @@ pub trait BoolAlg {
 /// The trivial 1-element boolean algebra over the unit `()` element.
 pub struct Trivial();
 
-impl BoolAlg for Trivial {
+impl BooleanAlgebra for Trivial {
     type Elem = ();
 
     fn bool_lift(&self, _elem: bool) -> Self::Elem {}
@@ -220,9 +220,9 @@ impl BoolAlg for Trivial {
 
 /// The two element boolean algebra with native `bool` elements.
 #[derive(Default, Debug)]
-pub struct Boolean();
+pub struct Bools();
 
-impl BoolAlg for Boolean {
+impl BooleanAlgebra for Bools {
     type Elem = bool;
 
     fn bool_lift(&self, elem: bool) -> Self::Elem {
@@ -257,7 +257,7 @@ impl BoolAlg for Boolean {
 /// The free boolean algebra backed by a SAT solver.
 #[derive(Debug)]
 pub struct Solver {
-    solver: Box<dyn SatSolver>,
+    solver: Box<dyn SatInterface>,
     unit: Literal,
     zero: Literal,
 }
@@ -277,7 +277,7 @@ impl Solver {
     }
 }
 
-impl BoolAlg for Solver {
+impl BooleanAlgebra for Solver {
     type Elem = Literal;
 
     fn bool_lift(&self, elem: bool) -> Self::Elem {
@@ -334,9 +334,9 @@ impl BoolAlg for Solver {
 }
 
 /// Constraint solving over a boolean algebra.
-pub trait BoolSat: BoolAlg + Sized
+pub trait BooleanSolver: BooleanAlgebra + Sized
 where
-    Self::Elem: GenElem,
+    Self::Elem: GenericElem,
 {
     /// Adds a new variable to the solver
     fn bool_add_variable(&mut self) -> Self::Elem;
@@ -350,7 +350,7 @@ where
         &mut self,
         assumptions: &[Self::Elem],
         literals: ITER,
-    ) -> Option<GenVec<bool>>
+    ) -> Option<GenericFor<bool>>
     where
         ITER: Iterator<Item = Self::Elem>;
 
@@ -360,7 +360,7 @@ where
         ITER: Iterator<Item = Self::Elem>,
     {
         let mut count = 0;
-        let literals: GenVec<Self::Elem> = literals.collect();
+        let literals: GenericFor<Self::Elem> = literals.collect();
         let mut clause: Vec<Self::Elem> = Vec::with_capacity(literals.len());
         while let Some(result) = self.bool_find_one_model(&[], literals.iter()) {
             count += 1;
@@ -381,13 +381,13 @@ where
     where
         ITER: Iterator<Item = Self::Elem>,
     {
-        let literals: GenVec<Self::Elem> = literals
+        let literals: GenericFor<Self::Elem> = literals
             .chain([self.bool_unit(), self.bool_zero()].iter().copied())
             .collect();
         let len = literals.len();
 
         // bound variables
-        let variables: GenVec<Self::Elem> =
+        let variables: GenericFor<Self::Elem> =
             (0..(2 * len)).map(|_| self.bool_add_variable()).collect();
 
         // lower bound
@@ -398,11 +398,11 @@ where
         let result = self.bool_cmp_ltn(literals.iter().zip(variables.iter().skip(len)));
         self.bool_add_clause(&[result]);
 
-        let mut lower_bound: GenVec<bool> = iter::repeat(true)
+        let mut lower_bound: GenericFor<bool> = iter::repeat(true)
             .take(len - 2)
             .chain([false, false].iter().copied())
             .collect();
-        let mut upper_bounds: GenVec<bool> = iter::repeat(false)
+        let mut upper_bounds: GenericFor<bool> = iter::repeat(false)
             .take(len - 2)
             .chain([false, true].iter().copied())
             .collect();
@@ -446,7 +446,7 @@ where
     }
 }
 
-impl BoolSat for Solver {
+impl BooleanSolver for Solver {
     fn bool_add_variable(&mut self) -> Self::Elem {
         self.solver.add_variable()
     }
@@ -459,7 +459,7 @@ impl BoolSat for Solver {
         &mut self,
         assumptions: &[Self::Elem],
         literals: ITER,
-    ) -> Option<GenVec<bool>>
+    ) -> Option<GenericFor<bool>>
     where
         ITER: Iterator<Item = Self::Elem>,
     {
@@ -477,7 +477,7 @@ mod tests {
 
     #[test]
     fn bool_ops() {
-        let mut alg = Boolean();
+        let mut alg = Bools();
         let a = alg.bool_unit();
         let b = alg.bool_not(a);
         assert_eq!(alg.bool_xor(a, b), a);

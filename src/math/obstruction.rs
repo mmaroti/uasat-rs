@@ -19,7 +19,8 @@
 
 use super::binrel::BinaryRel;
 use crate::core::{
-    BoolAlg, BoolSat, Boolean, Literal, Shape, Solver, Tensor, TensorAlg, TensorSat,
+    BooleanAlgebra, BooleanSolver, Bools, Literal, Shape, Solver, Tensor, TensorAlgebra,
+    TensorSolver,
 };
 
 struct Obstruction {
@@ -85,7 +86,7 @@ impl Obstruction {
 }
 
 pub fn test() {
-    let mut boolean = Boolean();
+    let mut boolean = Bools();
 
     let mut obst = Obstruction::new("", 2, 6);
 

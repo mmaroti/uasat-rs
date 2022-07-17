@@ -21,11 +21,11 @@ use super::{
     AdditiveGroup, BooleanAlgebra, BoundedPartialOrder, ClassicalDomain, DirectedGraph, Domain,
     Lattice, Monoid, PartialOrder, Ring, Semigroup, TwoElementAlg, UnitaryRing, TWO_ELEMENT_ALG,
 };
-use crate::core::{create_solver, Literal, SatSolver};
+use crate::core::{create_solver, Literal, SatInterface};
 
 /// The free boolean algebra backed by a SAT solver.
 pub struct FreeBooleanAlg {
-    solver: Cell<Option<Box<dyn SatSolver>>>,
+    solver: Cell<Option<Box<dyn SatInterface>>>,
     unit: Literal,
     zero: Literal,
 }
@@ -51,7 +51,7 @@ impl FreeBooleanAlg {
     /// returns the solver back into its cell. This method will panic if it is called recursively.
     fn mutate<F, R>(&self, fun: F) -> R
     where
-        F: FnOnce(&mut Box<dyn SatSolver>) -> R,
+        F: FnOnce(&mut Box<dyn SatInterface>) -> R,
     {
         let mut solver = self.solver.replace(None).expect("recursion error");
         let value = fun(&mut solver);

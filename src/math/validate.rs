@@ -18,13 +18,13 @@
 use std::time::Instant;
 
 use super::BinaryRel;
-use crate::core::{Shape, Solver, TensorAlg, TensorSat};
+use crate::core::{Shape, Solver, TensorAlgebra, TensorSolver};
 
 fn check(
     solver: &str,
     desc: &str,
     shape: Shape,
-    pred: fn(&mut Solver, elem: <Solver as TensorAlg>::Elem) -> <Solver as TensorAlg>::Elem,
+    pred: fn(&mut Solver, elem: <Solver as TensorAlgebra>::Elem) -> <Solver as TensorAlgebra>::Elem,
     count: usize,
 ) {
     let mut sol = Solver::new(solver);

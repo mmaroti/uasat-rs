@@ -15,7 +15,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use crate::core::{Shape, Tensor, TensorAlg};
+use crate::core::{Shape, Tensor, TensorAlgebra};
 
 /// Returns the list of edges of the binary relation.
 pub fn edges(rel: &Tensor<bool>) -> Vec<(usize, usize)> {
@@ -30,7 +30,7 @@ pub fn edges(rel: &Tensor<bool>) -> Vec<(usize, usize)> {
     edges
 }
 
-pub trait BinaryRel: TensorAlg {
+pub trait BinaryRel: TensorAlgebra {
     /// Creates the constant full relation of the given shape.
     fn create_full_rel(&self, size0: usize, size1: usize) -> Self::Elem {
         self.tensor_create(Shape::new(vec![size0, size1]), |_| true)
@@ -262,4 +262,4 @@ pub trait BinaryRel: TensorAlg {
     }
 }
 
-impl<ALG> BinaryRel for ALG where ALG: TensorAlg {}
+impl<ALG> BinaryRel for ALG where ALG: TensorAlgebra {}

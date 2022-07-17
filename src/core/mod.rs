@@ -18,16 +18,17 @@
 //! Module for the core components that seems to have stabilized.
 
 mod genvec;
-pub use genvec::{GenElem, GenVec, GenVector};
+pub(crate) use genvec::GenericFor;
+pub use genvec::{GenericElem, GenericVector};
 
 mod solver;
-pub use solver::{create_solver, Literal, SatSolver};
+pub use solver::{create_solver, Literal, SatInterface};
 
 mod tensor;
-pub use tensor::{Shape, Tensor, TensorAlg, TensorSat};
+pub use tensor::{Shape, Tensor, TensorAlgebra, TensorSolver};
 
 mod boolean;
-pub use boolean::{BoolAlg, BoolSat, Boolean, Solver};
+pub use boolean::{BooleanAlgebra, BooleanSolver, Bools, Solver};
 
 mod progress;
 pub use progress::{add_progress, del_progress, set_progress};

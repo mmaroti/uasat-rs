@@ -31,7 +31,7 @@ pub struct Literal {
 }
 
 /// Generic SAT solver interface
-pub trait SatSolver {
+pub trait SatInterface {
     /// Adds a fresh variable to the solver.
     fn add_variable(&mut self) -> Literal;
 
@@ -78,7 +78,7 @@ pub trait SatSolver {
 /// Tries to create a SAT solver with the given name. Currently "batsat",
 /// "varisat", "minisat" and "cryptominisat" are supported, but not on all
 /// platforms. Use the empty string to match the first available solver.
-pub fn create_solver(name: &str) -> Box<dyn SatSolver> {
+pub fn create_solver(name: &str) -> Box<dyn SatInterface> {
     #[cfg(feature = "batsat")]
     {
         if name == "batsat" || name.is_empty() {
@@ -131,7 +131,7 @@ pub fn create_solver(name: &str) -> Box<dyn SatSolver> {
     panic!("Unknown SAT solver: {}", name);
 }
 
-impl std::fmt::Debug for dyn SatSolver {
+impl std::fmt::Debug for dyn SatInterface {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
             f,
@@ -176,7 +176,7 @@ impl MiniSat {
 }
 
 #[cfg(feature = "minisat")]
-impl SatSolver for MiniSat {
+impl SatInterface for MiniSat {
     fn add_variable(&mut self) -> Literal {
         MiniSat::encode(unsafe { minisat::sys::minisat_newLit(self.ptr) })
     }
@@ -264,7 +264,7 @@ impl<'a> VariSat<'a> {
 }
 
 #[cfg(feature = "varisat")]
-impl<'a> SatSolver for VariSat<'a> {
+impl<'a> SatInterface for VariSat<'a> {
     fn add_variable(&mut self) -> Literal {
         let var = varisat::Var::from_index(self.num_variables as usize);
         self.num_variables += 1;
@@ -355,7 +355,7 @@ impl CryptoMiniSat {
 }
 
 #[cfg(feature = "cryptominisat")]
-impl SatSolver for CryptoMiniSat {
+impl SatInterface for CryptoMiniSat {
     fn add_variable(&mut self) -> Literal {
         CryptoMiniSat::encode(self.solver.new_var())
     }
@@ -438,7 +438,7 @@ impl BatSat {
 }
 
 #[cfg(feature = "batsat")]
-impl SatSolver for BatSat {
+impl SatInterface for BatSat {
     fn add_variable(&mut self) -> Literal {
         let var = self.solver.new_var_default();
         BatSat::encode(batsat::Lit::new(var, true))
@@ -500,7 +500,7 @@ impl CaDiCaL {
 }
 
 #[cfg(feature = "cadical")]
-impl SatSolver for CaDiCaL {
+impl SatInterface for CaDiCaL {
     fn add_variable(&mut self) -> Literal {
         self.num_vars += 1;
         Literal {
@@ -546,7 +546,7 @@ impl SatSolver for CaDiCaL {
 mod tests {
     use super::*;
 
-    fn test(sat: &mut dyn SatSolver) {
+    fn test(sat: &mut dyn SatInterface) {
         let a = sat.add_variable();
         let b = sat.add_variable();
         sat.add_clause(&[a, b]);

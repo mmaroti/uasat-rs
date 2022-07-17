@@ -19,7 +19,7 @@
 
 use std::ops;
 
-use super::{BoolAlg, BoolSat, GenElem, GenVec, GenVector as _};
+use super::{BooleanAlgebra, BooleanSolver, GenericElem, GenericFor, GenericVector as _};
 
 /// The shape of a tensor.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -183,18 +183,18 @@ impl Iterator for StrideIter {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Tensor<ELEM>
 where
-    ELEM: GenElem,
+    ELEM: GenericElem,
 {
     shape: Shape,
-    elems: GenVec<ELEM>,
+    elems: GenericFor<ELEM>,
 }
 
 impl<ELEM> Tensor<ELEM>
 where
-    ELEM: GenElem,
+    ELEM: GenericElem,
 {
     /// Creates a tensor of the given shape and with the given elements.
-    fn new(shape: Shape, elems: GenVec<ELEM>) -> Self {
+    fn new(shape: Shape, elems: GenericFor<ELEM>) -> Self {
         assert_eq!(shape.size(), elems.len());
         Tensor { shape, elems }
     }
@@ -260,7 +260,7 @@ where
             iter.add_stride(*val, strides[idx]);
         }
 
-        let elems: GenVec<ELEM> = iter.map(|i| self.elems.get(i)).collect();
+        let elems: GenericFor<ELEM> = iter.map(|i| self.elems.get(i)).collect();
         Tensor::new(shape, elems)
     }
 
@@ -272,7 +272,7 @@ where
 }
 
 /// A tensor algebra for tensors.
-pub trait TensorAlg {
+pub trait TensorAlgebra {
     /// The type representing the tensor.
     type Elem: Clone;
 
@@ -342,10 +342,10 @@ pub trait TensorAlg {
     fn tensor_amo(&mut self, elem: Self::Elem) -> Self::Elem;
 }
 
-impl<ALG> TensorAlg for ALG
+impl<ALG> TensorAlgebra for ALG
 where
-    ALG: BoolAlg,
-    ALG::Elem: GenElem,
+    ALG: BooleanAlgebra,
+    ALG::Elem: GenericElem,
 {
     type Elem = Tensor<ALG::Elem>;
 
@@ -490,7 +490,7 @@ where
 }
 
 /// The trait for solving tensor algebra problems.
-pub trait TensorSat: TensorAlg {
+pub trait TensorSolver: TensorAlgebra {
     /// Creates a new tensor with fresh variables.
     fn tensor_add_variable(&mut self, shape: Shape) -> Self::Elem;
 
@@ -547,10 +547,10 @@ pub trait TensorSat: TensorAlg {
     fn tensor_find_num_models(self, elems: &[Self::Elem]) -> usize;
 }
 
-impl<ALG> TensorSat for ALG
+impl<ALG> TensorSolver for ALG
 where
-    ALG: BoolSat,
-    ALG::Elem: GenElem,
+    ALG: BooleanSolver,
+    ALG::Elem: GenericElem,
 {
     fn tensor_add_variable(&mut self, shape: Shape) -> Self::Elem {
         let elems = (0..shape.size())
@@ -587,12 +587,8 @@ where
         assumptions: &[Self::Elem],
         elems: &[Self::Elem],
     ) -> Option<Vec<Tensor<bool>>> {
-        let ass2: Vec<ALG::Elem> = assumptions
-            .iter()
-            .map(|t| t.elems.iter())
-            .flatten()
-            .collect();
-        let literals2 = elems.iter().map(|t| t.elems.iter()).flatten();
+        let ass2: Vec<ALG::Elem> = assumptions.iter().flat_map(|t| t.elems.iter()).collect();
+        let literals2 = elems.iter().flat_map(|t| t.elems.iter());
         if let Some(values) = self.bool_find_one_model(&ass2, literals2) {
             let mut result: Vec<Tensor<bool>> = Vec::with_capacity(elems.len());
             let mut pos = 0;
@@ -611,7 +607,7 @@ where
     }
 
     fn tensor_find_num_models(self, elems: &[Self::Elem]) -> usize {
-        let all_elems = elems.iter().map(|t| t.elems.iter()).flatten();
+        let all_elems = elems.iter().flat_map(|t| t.elems.iter());
         self.bool_find_num_models_method1(all_elems)
     }
 }
@@ -620,7 +616,7 @@ where
 mod tests {
     use std::iter;
 
-    use super::super::Boolean;
+    use super::super::Bools;
     use super::*;
 
     #[test]
@@ -645,7 +641,7 @@ mod tests {
 
     #[test]
     fn getset() {
-        let mut alg = Boolean();
+        let mut alg = Bools();
         let mut t1: Tensor<bool> = Tensor::new(
             Shape::new(vec![2, 3]),
             iter::repeat(false).take(6).collect(),
@@ -673,7 +669,7 @@ mod tests {
 
     #[test]
     fn fold() {
-        let mut alg = Boolean();
+        let mut alg = Bools();
         let mut t1: Tensor<bool> = Tensor::new(
             Shape::new(vec![2, 4]),
             iter::repeat(false).take(8).collect(),

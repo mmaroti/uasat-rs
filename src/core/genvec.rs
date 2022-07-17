@@ -23,7 +23,7 @@ use std::iter::{Extend, FromIterator, FusedIterator};
 use super::Literal;
 
 /// A unifying interface for regular and bit vectors.
-pub trait GenVector<ELEM>
+pub trait GenericVector<ELEM>
 where
     ELEM: Copy,
     Self: Default + Clone,
@@ -41,7 +41,7 @@ where
     /// Concatenates the given vectors into a new one.
     fn concat(parts: Vec<Self>) -> Self {
         let len = parts.iter().map(|a| a.len()).sum();
-        let mut result: Self = GenVector::with_capacity(len);
+        let mut result: Self = GenericVector::with_capacity(len);
         for elem in parts.into_iter() {
             result.extend(elem.into_iter());
         }
@@ -59,7 +59,7 @@ where
         let mut result: Vec<Self> = Vec::with_capacity(count);
         let mut iter = self.into_iter();
         for _ in 0..count {
-            let mut vec: Self = GenVector::with_capacity(len);
+            let mut vec: Self = GenericVector::with_capacity(len);
             for _ in 0..len {
                 vec.push(iter.next().unwrap());
             }
@@ -70,7 +70,7 @@ where
 
     /// Creates a vector with a single element.
     fn from_elem(elem: ELEM) -> Self {
-        let mut vec: Self = GenVector::with_capacity(1);
+        let mut vec: Self = GenericVector::with_capacity(1);
         vec.push(elem);
         vec
     }
@@ -195,7 +195,7 @@ where
     }
 }
 
-impl<ELEM> GenVector<ELEM> for Wrapper<Vec<ELEM>>
+impl<ELEM> GenericVector<ELEM> for Wrapper<Vec<ELEM>>
 where
     ELEM: Copy,
 {
@@ -269,7 +269,7 @@ where
     }
 }
 
-impl GenVector<bool> for Wrapper<BitVec> {
+impl GenericVector<bool> for Wrapper<BitVec> {
     fn new() -> Self {
         Wrapper(BitVec::new())
     }
@@ -435,7 +435,7 @@ impl Extend<()> for UnitVec {
     }
 }
 
-impl GenVector<()> for UnitVec {
+impl GenericVector<()> for UnitVec {
     fn new() -> Self {
         UnitVec { len: 0 }
     }
@@ -545,29 +545,29 @@ impl<'a> CopyIterable<'a, ()> for UnitVec {
 }
 
 /// A trait for elements that can be stored in a generic vector.
-pub trait GenElem: Copy {
+pub trait GenericElem: Copy {
     /// A type that can be used for storing a vector of elements.
-    type GenVector: GenVector<Self> + PartialEq + std::fmt::Debug + for<'a> CopyIterable<'a, Self>;
+    type Vector: GenericVector<Self> + PartialEq + std::fmt::Debug + for<'a> CopyIterable<'a, Self>;
 }
 
-impl GenElem for bool {
-    type GenVector = Wrapper<BitVec>;
+impl GenericElem for bool {
+    type Vector = Wrapper<BitVec>;
 }
 
-impl GenElem for usize {
-    type GenVector = Wrapper<Vec<Self>>;
+impl GenericElem for usize {
+    type Vector = Wrapper<Vec<Self>>;
 }
 
-impl GenElem for Literal {
-    type GenVector = Wrapper<Vec<Self>>;
+impl GenericElem for Literal {
+    type Vector = Wrapper<Vec<Self>>;
 }
 
-impl GenElem for () {
-    type GenVector = UnitVec;
+impl GenericElem for () {
+    type Vector = UnitVec;
 }
 
 /// Returns the generic vector type that can hold the given element.
-pub type GenVec<ELEM> = <ELEM as GenElem>::GenVector;
+pub(crate) type GenericFor<ELEM> = <ELEM as GenericElem>::Vector;
 
 #[cfg(test)]
 mod tests {
@@ -575,9 +575,9 @@ mod tests {
 
     #[test]
     fn resize() {
-        let mut v1: Wrapper<Vec<bool>> = GenVector::new();
-        let mut v2: GenVec<bool> = GenVector::new();
-        let mut v3: GenVec<()> = GenVector::new();
+        let mut v1: Wrapper<Vec<bool>> = GenericVector::new();
+        let mut v2: GenericFor<bool> = GenericVector::new();
+        let mut v3: GenericFor<()> = GenericVector::new();
 
         for i in 0..50 {
             let b = i % 2 == 0;
@@ -612,8 +612,8 @@ mod tests {
     fn iters() {
         let e1 = vec![true, false, true];
         let e2 = e1.clone();
-        let v1: GenVec<bool> = e1.into_iter().collect();
-        let mut v2: GenVec<bool> = GenVector::new();
+        let v1: GenericFor<bool> = e1.into_iter().collect();
+        let mut v2: GenericFor<bool> = GenericVector::new();
         for b in e2 {
             v2.push(b);
         }
@@ -625,8 +625,8 @@ mod tests {
         assert_eq!(iter.next(), None);
 
         let e1 = [true, false];
-        let v1: GenVec<bool> = e1.iter().copied().collect();
-        let mut v2: GenVec<bool> = GenVector::new();
+        let v1: GenericFor<bool> = e1.iter().copied().collect();
+        let mut v2: GenericFor<bool> = GenericVector::new();
         for b in &e1 {
             v2.push(*b);
         }

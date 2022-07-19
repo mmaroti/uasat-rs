@@ -26,6 +26,6 @@ pub mod math;
 
 pub fn main() {
     math::validate();
-    // math::test();
+    // math::extremeconn_test();
     // math::obstruction_test();
 }

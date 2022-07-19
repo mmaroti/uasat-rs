@@ -17,8 +17,10 @@
 
 //! Module for the core components that seems to have stabilized.
 
+// mod bitvec;
+
 mod genvec;
-pub(crate) use genvec::GenericFor;
+pub(crate) use genvec::GenericVec;
 pub use genvec::{GenericElem, GenericVector};
 
 mod solver;

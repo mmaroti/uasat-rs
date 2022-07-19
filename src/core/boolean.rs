@@ -21,7 +21,7 @@
 
 use std::iter;
 
-use super::{create_solver, GenericElem, GenericFor, GenericVector as _, Literal, SatInterface};
+use super::{create_solver, GenericElem, GenericVec, GenericVector as _, Literal, SatInterface};
 
 /// A boolean algebra supporting boolean calculation.
 pub trait BooleanAlgebra {
@@ -350,7 +350,7 @@ where
         &mut self,
         assumptions: &[Self::Elem],
         literals: ITER,
-    ) -> Option<GenericFor<bool>>
+    ) -> Option<GenericVec<bool>>
     where
         ITER: Iterator<Item = Self::Elem>;
 
@@ -360,14 +360,14 @@ where
         ITER: Iterator<Item = Self::Elem>,
     {
         let mut count = 0;
-        let literals: GenericFor<Self::Elem> = literals.collect();
-        let mut clause: Vec<Self::Elem> = Vec::with_capacity(literals.len());
-        while let Some(result) = self.bool_find_one_model(&[], literals.iter()) {
+        let literals: GenericVec<Self::Elem> = literals.collect();
+        let mut clause: Vec<Self::Elem> = Vec::with_capacity(literals.gen_len());
+        while let Some(result) = self.bool_find_one_model(&[], literals.gen_iter()) {
             count += 1;
             clause.clear();
             clause.extend(
                 literals
-                    .iter()
+                    .gen_iter()
                     .zip(result.into_iter())
                     .map(|(l, b)| self.bool_xor(self.bool_lift(b), l)),
             );
@@ -381,63 +381,63 @@ where
     where
         ITER: Iterator<Item = Self::Elem>,
     {
-        let literals: GenericFor<Self::Elem> = literals
+        let literals: GenericVec<Self::Elem> = literals
             .chain([self.bool_unit(), self.bool_zero()].iter().copied())
             .collect();
-        let len = literals.len();
+        let len = literals.gen_len();
 
         // bound variables
-        let variables: GenericFor<Self::Elem> =
+        let variables: GenericVec<Self::Elem> =
             (0..(2 * len)).map(|_| self.bool_add_variable()).collect();
 
         // lower bound
-        let result = self.bool_cmp_ltn(variables.iter().take(len).zip(literals.iter()));
+        let result = self.bool_cmp_ltn(variables.gen_iter().take(len).zip(literals.gen_iter()));
         self.bool_add_clause(&[result]);
 
         // upper bound
-        let result = self.bool_cmp_ltn(literals.iter().zip(variables.iter().skip(len)));
+        let result = self.bool_cmp_ltn(literals.gen_iter().zip(variables.gen_iter().skip(len)));
         self.bool_add_clause(&[result]);
 
-        let mut lower_bound: GenericFor<bool> = iter::repeat(true)
+        let mut lower_bound: GenericVec<bool> = iter::repeat(true)
             .take(len - 2)
             .chain([false, false].iter().copied())
             .collect();
-        let mut upper_bounds: GenericFor<bool> = iter::repeat(false)
+        let mut upper_bounds: GenericVec<bool> = iter::repeat(false)
             .take(len - 2)
             .chain([false, true].iter().copied())
             .collect();
 
         let mut count = 0;
         let mut assumptions: Vec<Self::Elem> = Vec::with_capacity(2 * len);
-        while !upper_bounds.is_empty() {
-            let end = upper_bounds.len();
+        while !upper_bounds.gen_is_empty() {
+            let end = upper_bounds.gen_len();
             let last = end - len;
             assumptions.clear();
             assumptions.extend(
                 variables
-                    .iter()
+                    .gen_iter()
                     .take(len)
-                    .zip(lower_bound.iter())
+                    .zip(lower_bound.gen_iter())
                     .map(|(v, b)| self.bool_equ(self.bool_lift(b), v)),
             );
             assumptions.extend(
                 variables
-                    .iter()
+                    .gen_iter()
                     .skip(len)
-                    .zip(upper_bounds.iter().skip(last))
+                    .zip(upper_bounds.gen_iter().skip(last))
                     .map(|(v, b)| self.bool_equ(self.bool_lift(b), v)),
             );
 
-            match self.bool_find_one_model(&assumptions, literals.iter()) {
+            match self.bool_find_one_model(&assumptions, literals.gen_iter()) {
                 None => {
-                    lower_bound.clear();
-                    lower_bound.extend(upper_bounds.iter().skip(last));
-                    upper_bounds.truncate(last);
+                    lower_bound.gen_clear();
+                    lower_bound.extend(upper_bounds.gen_iter().skip(last));
+                    upper_bounds.gen_truncate(last);
                 }
                 Some(result) => {
                     count += 1;
-                    assert_eq!(result.len(), len);
-                    upper_bounds.extend(result.iter());
+                    assert_eq!(result.gen_len(), len);
+                    upper_bounds.extend(result.gen_iter());
                 }
             }
         }
@@ -459,7 +459,7 @@ impl BooleanSolver for Solver {
         &mut self,
         assumptions: &[Self::Elem],
         literals: ITER,
-    ) -> Option<GenericFor<bool>>
+    ) -> Option<GenericVec<bool>>
     where
         ITER: Iterator<Item = Self::Elem>,
     {
@@ -494,8 +494,8 @@ mod tests {
         let s = alg.bool_find_one_model(&[], [a, b].iter().copied());
         assert!(s.is_some());
         let s = s.unwrap();
-        assert_eq!(s.len(), 2);
-        assert_eq!(s.get(0), true);
-        assert_eq!(s.get(1), true);
+        assert_eq!(s.gen_len(), 2);
+        assert_eq!(s.gen_get(0), true);
+        assert_eq!(s.gen_get(1), true);
     }
 }

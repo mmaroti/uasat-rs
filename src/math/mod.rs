@@ -19,11 +19,13 @@
 
 mod binrel;
 mod blocker;
+mod extremeconn;
 mod obstruction;
 mod test;
 mod validate;
 
 pub use binrel::BinaryRel;
-pub use blocker::test;
-pub use validate::validate;
+pub use blocker::test as blocker_test;
+pub use extremeconn::test as extremeconn_test;
 pub use obstruction::test as obstruction_test;
+pub use validate::validate;

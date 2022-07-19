@@ -27,21 +27,22 @@ pub trait GenericVector<ELEM>
 where
     ELEM: Copy,
     Self: Default + Clone,
-    Self: IntoIterator<Item = ELEM> + FromIterator<ELEM>,
+    Self: IntoIterator<Item = ELEM>,
+    Self: FromIterator<ELEM>,
     Self: Extend<ELEM>,
 {
     /// Constructs a new empty vector. The vector will not allocate until
     /// elements are pushed onto it.
-    fn new() -> Self;
+    fn gen_new() -> Self;
 
     /// Constructs a new empty vector with the specified capacity. The vector
     /// will be able to hold exactly capacity elements without reallocating.
-    fn with_capacity(capacity: usize) -> Self;
+    fn gen_with_capacity(capacity: usize) -> Self;
 
     /// Concatenates the given vectors into a new one.
-    fn concat(parts: Vec<Self>) -> Self {
-        let len = parts.iter().map(|a| a.len()).sum();
-        let mut result: Self = GenericVector::with_capacity(len);
+    fn gen_concat(parts: Vec<Self>) -> Self {
+        let len = parts.iter().map(|a| a.gen_len()).sum();
+        let mut result: Self = GenericVector::gen_with_capacity(len);
         for elem in parts.into_iter() {
             result.extend(elem.into_iter());
         }
@@ -50,18 +51,18 @@ where
 
     /// Splits this vector into equal sized vectors.
     /// TODO: implement more efficient specialized versions
-    fn split(self, len: usize) -> Vec<Self> {
-        if self.len() == 0 {
+    fn gen_split(self, len: usize) -> Vec<Self> {
+        if self.gen_len() == 0 {
             return Vec::new();
         }
         assert_ne!(len, 0);
-        let count = self.len() / len;
+        let count = self.gen_len() / len;
         let mut result: Vec<Self> = Vec::with_capacity(count);
         let mut iter = self.into_iter();
         for _ in 0..count {
-            let mut vec: Self = GenericVector::with_capacity(len);
+            let mut vec: Self = GenericVector::gen_with_capacity(len);
             for _ in 0..len {
-                vec.push(iter.next().unwrap());
+                vec.gen_push(iter.next().unwrap());
             }
             result.push(vec);
         }
@@ -69,78 +70,78 @@ where
     }
 
     /// Creates a vector with a single element.
-    fn from_elem(elem: ELEM) -> Self {
-        let mut vec: Self = GenericVector::with_capacity(1);
-        vec.push(elem);
+    fn gen_from_elem(elem: ELEM) -> Self {
+        let mut vec: Self = GenericVector::gen_with_capacity(1);
+        vec.gen_push(elem);
         vec
     }
 
     /// Clears the vector, removing all values.
-    fn clear(&mut self);
+    fn gen_clear(&mut self);
 
     /// Shortens the vector, keeping the first `new_len` many elements and
     /// dropping the rest. This method panics if the current `len` is smaller
     /// than `new_len`.
-    fn truncate(&mut self, new_len: usize);
+    fn gen_truncate(&mut self, new_len: usize);
 
     /// Resizes the vector in-place so that `len` is equal to `new_len`.
     /// If `new_len` is greater than `len`, the the vector is extended by the
     /// difference, with each additional slot filled with `elem`.
     /// If `new_len` is less than `len`, then the vector is simply truncated.
-    fn resize(&mut self, new_len: usize, elem: ELEM);
+    fn gen_resize(&mut self, new_len: usize, elem: ELEM);
 
-    /// Reserves capacity for at least additional more bits to be inserted in
-    /// the given vector. The collection may reserve more space to avoid
+    /// Reserves capacity for at least additional more elements to be inserted
+    /// in the given vector. The collection may reserve more space to avoid
     /// frequent reallocations.
-    fn reserve(&mut self, additional: usize);
+    fn gen_reserve(&mut self, additional: usize);
 
     /// Appends an element to the back of the vector.
-    fn push(&mut self, elem: ELEM);
+    fn gen_push(&mut self, elem: ELEM);
 
     /// Removes the last element from a vector and returns it, or `None` if
     /// it is empty.
-    fn pop(&mut self) -> Option<ELEM>;
+    fn gen_pop(&mut self) -> Option<ELEM>;
 
     /// Extends this vector by moving all elements from the other vector,
     /// leaving the other vector empty.
-    fn append(&mut self, other: &mut Self);
+    fn gen_append(&mut self, other: &mut Self);
 
     /// Returns the element at the given index. Panics if the index is
     /// out of bounds.
-    fn get(&self, index: usize) -> ELEM;
+    fn gen_get(&self, index: usize) -> ELEM;
 
     /// Returns the element at the given index without bound checks.
     /// # Safety
     /// Do not use this in general code, use `ranges` if possible.
-    unsafe fn get_unchecked(&self, index: usize) -> ELEM {
-        self.get(index)
+    unsafe fn gen_get_unchecked(&self, index: usize) -> ELEM {
+        self.gen_get(index)
     }
 
     /// Sets the element at the given index to the new value. Panics if the
     /// index is out of bounds.
-    fn set(&mut self, index: usize, elem: ELEM);
+    fn gen_set(&mut self, index: usize, elem: ELEM);
 
     /// Sets the element at the given index to the new value without bound
     /// checks.
     /// # Safety
     /// Do not use this in general code.
-    unsafe fn set_unchecked(&mut self, index: usize, elem: ELEM) {
-        self.set(index, elem);
+    unsafe fn gen_set_unchecked(&mut self, index: usize, elem: ELEM) {
+        self.gen_set(index, elem);
     }
 
     /// Returns the number of elements in the vector.
-    fn len(&self) -> usize;
+    fn gen_len(&self) -> usize;
 
     /// Returns `true` if the length is zero.
-    fn is_empty(&self) -> bool {
-        self.len() == 0
+    fn gen_is_empty(&self) -> bool {
+        self.gen_len() == 0
     }
 
     /// Returns the number of elements the vector can hold without reallocating.
-    fn capacity(&self) -> usize;
+    fn gen_capacity(&self) -> usize;
 
     /// Returns an iterator over copied elements of the vector.
-    fn iter<'a>(&'a self) -> <Self as CopyIterable<'a, ELEM>>::Iter
+    fn gen_iter<'a>(&'a self) -> <Self as CopyIterable<'a, ELEM>>::Iter
     where
         Self: CopyIterable<'a, ELEM>,
     {
@@ -148,191 +149,143 @@ where
     }
 }
 
-/// A wrapper around standard containers to present them as generic vectors.
-#[derive(Clone, Copy, PartialEq, Eq, Default)]
-pub struct Wrapper<DATA>(DATA);
-
-impl<DATA: std::fmt::Debug> std::fmt::Debug for Wrapper<DATA> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        std::fmt::Debug::fmt(&self.0, f)
-    }
-}
-
-impl<DATA> IntoIterator for Wrapper<DATA>
-where
-    DATA: IntoIterator,
-{
-    type Item = DATA::Item;
-
-    type IntoIter = DATA::IntoIter;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
-    }
-}
-
-impl<DATA, ELEM> FromIterator<ELEM> for Wrapper<DATA>
-where
-    DATA: FromIterator<ELEM>,
-{
-    fn from_iter<ITER>(iter: ITER) -> Self
-    where
-        ITER: IntoIterator<Item = ELEM>,
-    {
-        Wrapper(FromIterator::from_iter(iter))
-    }
-}
-
-impl<DATA, ELEM> Extend<ELEM> for Wrapper<DATA>
-where
-    DATA: Extend<ELEM>,
-{
-    fn extend<ITER>(&mut self, iter: ITER)
-    where
-        ITER: IntoIterator<Item = ELEM>,
-    {
-        self.0.extend(iter);
-    }
-}
-
-impl<ELEM> GenericVector<ELEM> for Wrapper<Vec<ELEM>>
+impl<ELEM> GenericVector<ELEM> for Vec<ELEM>
 where
     ELEM: Copy,
 {
-    fn new() -> Self {
-        Wrapper(Vec::new())
+    fn gen_new() -> Self {
+        Vec::new()
     }
 
-    fn with_capacity(capacity: usize) -> Self {
-        Wrapper(Vec::with_capacity(capacity))
+    fn gen_with_capacity(capacity: usize) -> Self {
+        Vec::with_capacity(capacity)
     }
 
-    fn from_elem(elem: ELEM) -> Self {
-        Wrapper(vec![elem])
+    fn gen_from_elem(elem: ELEM) -> Self {
+        vec![elem]
     }
 
-    fn clear(&mut self) {
-        self.0.clear();
+    fn gen_clear(&mut self) {
+        Vec::clear(self);
     }
 
-    fn truncate(&mut self, new_len: usize) {
-        assert!(new_len <= self.0.len());
-        self.0.truncate(new_len);
+    fn gen_truncate(&mut self, new_len: usize) {
+        assert!(new_len <= Vec::len(self));
+        Vec::truncate(self, new_len);
     }
 
-    fn resize(&mut self, new_len: usize, elem: ELEM) {
-        self.0.resize(new_len, elem);
+    fn gen_resize(&mut self, new_len: usize, elem: ELEM) {
+        Vec::resize(self, new_len, elem);
     }
 
-    fn reserve(&mut self, additional: usize) {
-        self.0.reserve(additional);
+    fn gen_reserve(&mut self, additional: usize) {
+        Vec::reserve(self, additional);
     }
 
-    fn push(&mut self, elem: ELEM) {
-        self.0.push(elem);
+    fn gen_push(&mut self, elem: ELEM) {
+        Vec::push(self, elem);
     }
 
-    fn pop(&mut self) -> Option<ELEM> {
-        self.0.pop()
+    fn gen_pop(&mut self) -> Option<ELEM> {
+        Vec::pop(self)
     }
 
-    fn append(&mut self, other: &mut Self) {
-        self.0.append(&mut other.0);
+    fn gen_append(&mut self, other: &mut Self) {
+        Vec::append(self, other);
     }
 
-    fn get(&self, index: usize) -> ELEM {
-        self.0[index]
+    fn gen_get(&self, index: usize) -> ELEM {
+        self[index]
     }
 
-    unsafe fn get_unchecked(&self, index: usize) -> ELEM {
-        *self.0.get_unchecked(index)
+    unsafe fn gen_get_unchecked(&self, index: usize) -> ELEM {
+        *<[ELEM]>::get_unchecked(self, index)
     }
 
-    fn set(&mut self, index: usize, elem: ELEM) {
-        self.0[index] = elem;
+    fn gen_set(&mut self, index: usize, elem: ELEM) {
+        self[index] = elem;
     }
 
-    unsafe fn set_unchecked(&mut self, index: usize, elem: ELEM) {
-        *self.0.get_unchecked_mut(index) = elem;
+    unsafe fn gen_set_unchecked(&mut self, index: usize, elem: ELEM) {
+        *<[ELEM]>::get_unchecked_mut(self, index) = elem;
     }
 
-    fn len(&self) -> usize {
-        self.0.len()
+    fn gen_len(&self) -> usize {
+        Vec::len(self)
     }
 
-    fn is_empty(&self) -> bool {
-        self.0.is_empty()
+    fn gen_is_empty(&self) -> bool {
+        Vec::is_empty(self)
     }
 
-    fn capacity(&self) -> usize {
-        self.0.capacity()
+    fn gen_capacity(&self) -> usize {
+        Vec::capacity(self)
     }
 }
-
-impl GenericVector<bool> for Wrapper<BitVec> {
-    fn new() -> Self {
-        Wrapper(BitVec::new())
+impl GenericVector<bool> for BitVec {
+    fn gen_new() -> Self {
+        BitVec::new()
     }
 
-    fn with_capacity(capacity: usize) -> Self {
-        Wrapper(BitVec::with_capacity(capacity))
+    fn gen_with_capacity(capacity: usize) -> Self {
+        BitVec::with_capacity(capacity)
     }
 
-    fn clear(&mut self) {
-        self.0.truncate(0);
+    fn gen_clear(&mut self) {
+        BitVec::truncate(self, 0);
     }
 
-    fn truncate(&mut self, new_len: usize) {
-        assert!(new_len <= self.0.len());
-        self.0.truncate(new_len);
+    fn gen_truncate(&mut self, new_len: usize) {
+        assert!(new_len <= BitVec::len(self));
+        BitVec::truncate(self, new_len);
     }
 
-    fn resize(&mut self, new_len: usize, elem: bool) {
-        if new_len > self.len() {
-            self.0.grow(new_len - self.len(), elem);
+    fn gen_resize(&mut self, new_len: usize, elem: bool) {
+        if new_len > BitVec::len(self) {
+            BitVec::grow(self, new_len - self.gen_len(), elem);
         } else {
-            self.0.truncate(new_len);
+            BitVec::truncate(self, new_len);
         }
     }
 
-    fn reserve(&mut self, additional: usize) {
-        self.0.reserve(additional);
+    fn gen_reserve(&mut self, additional: usize) {
+        BitVec::reserve(self, additional);
     }
 
-    fn push(&mut self, elem: bool) {
-        self.0.push(elem);
+    fn gen_push(&mut self, elem: bool) {
+        BitVec::push(self, elem);
     }
 
-    fn pop(&mut self) -> Option<bool> {
-        self.0.pop()
+    fn gen_pop(&mut self) -> Option<bool> {
+        BitVec::pop(self)
     }
 
-    fn append(&mut self, other: &mut Self) {
-        self.0.append(&mut other.0);
+    fn gen_append(&mut self, other: &mut Self) {
+        BitVec::append(self, other);
     }
 
-    fn get(&self, index: usize) -> bool {
-        self.0.get(index).unwrap()
+    fn gen_get(&self, index: usize) -> bool {
+        BitVec::get(self, index).unwrap()
     }
 
-    unsafe fn get_unchecked(&self, index: usize) -> bool {
+    unsafe fn gen_get_unchecked(&self, index: usize) -> bool {
         type B = u32;
         let w = index / B::bits();
         let b = index % B::bits();
-        let x = *self.0.storage().get_unchecked(w);
+        let x = *BitVec::storage(self).get_unchecked(w);
         let y = B::one() << b;
         (x & y) != B::zero()
     }
 
-    fn set(&mut self, index: usize, elem: bool) {
-        self.0.set(index, elem);
+    fn gen_set(&mut self, index: usize, elem: bool) {
+        BitVec::set(self, index, elem);
     }
 
-    unsafe fn set_unchecked(&mut self, index: usize, elem: bool) {
+    unsafe fn gen_set_unchecked(&mut self, index: usize, elem: bool) {
         type B = u32;
         let w = index / B::bits();
         let b = index % B::bits();
-        let x = self.0.storage_mut().get_unchecked_mut(w);
+        let x = BitVec::storage_mut(self).get_unchecked_mut(w);
         let y = B::one() << b;
         if elem {
             *x |= y;
@@ -341,16 +294,16 @@ impl GenericVector<bool> for Wrapper<BitVec> {
         }
     }
 
-    fn len(&self) -> usize {
-        self.0.len()
+    fn gen_len(&self) -> usize {
+        BitVec::len(self)
     }
 
-    fn is_empty(&self) -> bool {
-        self.0.is_empty()
+    fn gen_is_empty(&self) -> bool {
+        BitVec::is_empty(self)
     }
 
-    fn capacity(&self) -> usize {
-        self.0.capacity()
+    fn gen_capacity(&self) -> usize {
+        BitVec::capacity(self)
     }
 }
 
@@ -436,15 +389,15 @@ impl Extend<()> for UnitVec {
 }
 
 impl GenericVector<()> for UnitVec {
-    fn new() -> Self {
+    fn gen_new() -> Self {
         UnitVec { len: 0 }
     }
 
-    fn with_capacity(_capacity: usize) -> Self {
+    fn gen_with_capacity(_capacity: usize) -> Self {
         UnitVec { len: 0 }
     }
 
-    fn split(self, len: usize) -> Vec<Self> {
+    fn gen_split(self, len: usize) -> Vec<Self> {
         if self.len == 0 {
             return Vec::new();
         }
@@ -454,30 +407,30 @@ impl GenericVector<()> for UnitVec {
             .collect()
     }
 
-    fn from_elem(_elem: ()) -> Self {
+    fn gen_from_elem(_elem: ()) -> Self {
         UnitVec { len: 1 }
     }
 
-    fn clear(&mut self) {
+    fn gen_clear(&mut self) {
         self.len = 0;
     }
 
-    fn truncate(&mut self, new_len: usize) {
+    fn gen_truncate(&mut self, new_len: usize) {
         assert!(new_len <= self.len);
         self.len = new_len;
     }
 
-    fn resize(&mut self, new_len: usize, _elem: ()) {
+    fn gen_resize(&mut self, new_len: usize, _elem: ()) {
         self.len = new_len;
     }
 
-    fn reserve(&mut self, _additional: usize) {}
+    fn gen_reserve(&mut self, _additional: usize) {}
 
-    fn push(&mut self, _elem: ()) {
+    fn gen_push(&mut self, _elem: ()) {
         self.len += 1;
     }
 
-    fn pop(&mut self) -> Option<()> {
+    fn gen_pop(&mut self) -> Option<()> {
         if self.len > 0 {
             self.len -= 1;
             Some(())
@@ -486,28 +439,28 @@ impl GenericVector<()> for UnitVec {
         }
     }
 
-    fn append(&mut self, other: &mut Self) {
+    fn gen_append(&mut self, other: &mut Self) {
         self.len += other.len;
         other.len = 0;
     }
 
-    fn get(&self, index: usize) {
-        debug_assert!(index < self.len);
+    fn gen_get(&self, index: usize) {
+        assert!(index < self.len);
     }
 
-    unsafe fn get_unchecked(&self, _index: usize) {}
+    unsafe fn gen_get_unchecked(&self, _index: usize) {}
 
-    fn set(&mut self, index: usize, _elem: ()) {
-        debug_assert!(index < self.len);
+    fn gen_set(&mut self, index: usize, _elem: ()) {
+        assert!(index < self.len);
     }
 
-    unsafe fn set_unchecked(&mut self, _index: usize, _elem: ()) {}
+    unsafe fn gen_set_unchecked(&mut self, _index: usize, _elem: ()) {}
 
-    fn len(&self) -> usize {
+    fn gen_len(&self) -> usize {
         self.len
     }
 
-    fn capacity(&self) -> usize {
+    fn gen_capacity(&self) -> usize {
         usize::max_value()
     }
 }
@@ -520,19 +473,19 @@ pub trait CopyIterable<'a, ELEM: 'a> {
     fn iter_copy(&'a self) -> Self::Iter;
 }
 
-impl<'a, ELEM: 'a + Copy> CopyIterable<'a, ELEM> for Wrapper<Vec<ELEM>> {
+impl<'a, ELEM: 'a + Copy> CopyIterable<'a, ELEM> for Vec<ELEM> {
     type Iter = std::iter::Copied<std::slice::Iter<'a, ELEM>>;
 
     fn iter_copy(&'a self) -> Self::Iter {
-        self.0.iter().copied()
+        self.iter().copied()
     }
 }
 
-impl<'a> CopyIterable<'a, bool> for Wrapper<BitVec> {
+impl<'a> CopyIterable<'a, bool> for BitVec {
     type Iter = bit_vec::Iter<'a>;
 
     fn iter_copy(&'a self) -> Self::Iter {
-        self.0.iter()
+        self.iter()
     }
 }
 
@@ -551,15 +504,15 @@ pub trait GenericElem: Copy {
 }
 
 impl GenericElem for bool {
-    type Vector = Wrapper<BitVec>;
+    type Vector = BitVec;
 }
 
 impl GenericElem for usize {
-    type Vector = Wrapper<Vec<Self>>;
+    type Vector = Vec<Self>;
 }
 
 impl GenericElem for Literal {
-    type Vector = Wrapper<Vec<Self>>;
+    type Vector = Vec<Self>;
 }
 
 impl GenericElem for () {
@@ -567,7 +520,7 @@ impl GenericElem for () {
 }
 
 /// Returns the generic vector type that can hold the given element.
-pub(crate) type GenericFor<ELEM> = <ELEM as GenericElem>::Vector;
+pub(crate) type GenericVec<ELEM> = <ELEM as GenericElem>::Vector;
 
 #[cfg(test)]
 mod tests {
@@ -575,23 +528,23 @@ mod tests {
 
     #[test]
     fn resize() {
-        let mut v1: Wrapper<Vec<bool>> = GenericVector::new();
-        let mut v2: GenericFor<bool> = GenericVector::new();
-        let mut v3: GenericFor<()> = GenericVector::new();
+        let mut v1: Vec<bool> = GenericVector::gen_new();
+        let mut v2: GenericVec<bool> = GenericVector::gen_new();
+        let mut v3: GenericVec<()> = GenericVector::gen_new();
 
         for i in 0..50 {
             let b = i % 2 == 0;
 
             for _ in 0..90 {
                 v1.push(b);
-                v3.push(());
-                assert_eq!(v1.len(), v3.len());
+                v3.gen_push(());
+                assert_eq!(v1.len(), v3.gen_len());
             }
-            v2.resize(v2.len() + 90, b);
+            v2.gen_resize(v2.gen_len() + 90, b);
 
-            assert_eq!(v1.len(), v2.len());
+            assert_eq!(v1.len(), v2.gen_len());
             for j in 0..v1.len() {
-                assert_eq!(v1.get(j), v2.get(j));
+                assert_eq!(v1.gen_get(j), v2.gen_get(j));
             }
         }
 
@@ -599,11 +552,11 @@ mod tests {
             for _ in 0..77 {
                 v1.pop();
             }
-            v2.resize(v2.len() - 77, false);
+            v2.gen_resize(v2.gen_len() - 77, false);
 
-            assert_eq!(v1.len(), v2.len());
+            assert_eq!(v1.len(), v2.gen_len());
             for j in 0..v1.len() {
-                assert_eq!(v1.get(j), v2.get(j));
+                assert_eq!(v1.gen_get(j), v2.gen_get(j));
             }
         }
     }
@@ -612,41 +565,42 @@ mod tests {
     fn iters() {
         let e1 = vec![true, false, true];
         let e2 = e1.clone();
-        let v1: GenericFor<bool> = e1.into_iter().collect();
-        let mut v2: GenericFor<bool> = GenericVector::new();
+        let v1: GenericVec<bool> = e1.into_iter().collect();
+        let mut v2: GenericVec<bool> = GenericVector::gen_new();
         for b in e2 {
-            v2.push(b);
+            v2.gen_push(b);
         }
         assert_eq!(v1, v2);
 
-        let mut iter = v1.iter().skip(1);
+        let mut iter = v1.gen_iter().skip(1);
         assert_eq!(iter.next(), Some(false));
         assert_eq!(iter.next(), Some(true));
         assert_eq!(iter.next(), None);
 
         let e1 = [true, false];
-        let v1: GenericFor<bool> = e1.iter().copied().collect();
-        let mut v2: GenericFor<bool> = GenericVector::new();
+        let v1: GenericVec<bool> = e1.iter().copied().collect();
+        let mut v2: GenericVec<bool> = GenericVector::gen_new();
         for b in &e1 {
-            v2.push(*b);
+            v2.gen_push(*b);
         }
         assert_eq!(v1, v2);
 
-        v2.clear();
+        v2.gen_clear();
+        assert_eq!(v2.gen_len(), 0);
         for j in 0..100 {
-            v2.push(j % 5 == 0 || j % 3 == 0);
+            v2.gen_push(j % 5 == 0 || j % 3 == 0);
         }
-        assert_eq!(v2.len(), 100);
+        assert_eq!(v2.gen_len(), 100);
         for j in 0..100 {
-            let b1 = unsafe { v2.get_unchecked(j) };
-            let b2 = v2.get(j);
+            let b1 = unsafe { v2.gen_get_unchecked(j) };
+            let b2 = v2.gen_get(j);
             let b3 = j % 5 == 0 || j % 3 == 0;
             assert_eq!(b1, b3);
             assert_eq!(b2, b3);
 
             let b4 = j % 7 == 0;
-            unsafe { v2.set_unchecked(j, b4) };
-            assert_eq!(v2.get(j), b4);
+            unsafe { v2.gen_set_unchecked(j, b4) };
+            assert_eq!(v2.gen_get(j), b4);
         }
     }
 }

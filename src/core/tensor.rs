@@ -19,7 +19,7 @@
 
 use std::ops;
 
-use super::{BooleanAlgebra, BooleanSolver, GenericElem, GenericFor, GenericVector as _};
+use super::{BooleanAlgebra, BooleanSolver, GenericElem, GenericVec, GenericVector as _};
 
 /// The shape of a tensor.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -186,7 +186,7 @@ where
     ELEM: GenericElem,
 {
     shape: Shape,
-    elems: GenericFor<ELEM>,
+    elems: GenericVec<ELEM>,
 }
 
 impl<ELEM> Tensor<ELEM>
@@ -194,8 +194,8 @@ where
     ELEM: GenericElem,
 {
     /// Creates a tensor of the given shape and with the given elements.
-    fn new(shape: Shape, elems: GenericFor<ELEM>) -> Self {
-        assert_eq!(shape.size(), elems.len());
+    pub fn new(shape: Shape, elems: GenericVec<ELEM>) -> Self {
+        assert_eq!(shape.size(), elems.gen_len());
         Tensor { shape, elems }
     }
 
@@ -231,19 +231,19 @@ where
 
     /// Returns the element at the given index.
     pub fn very_slow_get(&self, coords: &[usize]) -> ELEM {
-        self.elems.get(self.shape.index(coords))
+        self.elems.gen_get(self.shape.index(coords))
     }
 
     /// Sets the element at the given index.
     pub fn very_slow_set(&mut self, coords: &[usize], elem: ELEM) {
-        self.elems.set(self.shape.index(coords), elem);
+        self.elems.gen_set(self.shape.index(coords), elem);
     }
 
     /// Returns the scalar value contained within a tensor of shape [].
     pub fn scalar(&self) -> ELEM {
         assert!(self.shape.is_empty());
-        assert!(self.elems.len() == 1);
-        self.elems.get(0)
+        assert!(self.elems.gen_len() == 1);
+        self.elems.gen_get(0)
     }
 
     /// Creates a new tensor of the given shape from the given old tensor with
@@ -260,7 +260,7 @@ where
             iter.add_stride(*val, strides[idx]);
         }
 
-        let elems: GenericFor<ELEM> = iter.map(|i| self.elems.get(i)).collect();
+        let elems: GenericVec<ELEM> = iter.map(|i| self.elems.gen_get(i)).collect();
         Tensor::new(shape, elems)
     }
 
@@ -354,7 +354,7 @@ where
     }
 
     fn tensor_lift(&self, elem: Tensor<bool>) -> Self::Elem {
-        let elems = elem.elems.iter().map(|b| self.bool_lift(b)).collect();
+        let elems = elem.elems.gen_iter().map(|b| self.bool_lift(b)).collect();
         Tensor::new(elem.shape, elems)
     }
 
@@ -374,7 +374,7 @@ where
     }
 
     fn tensor_not(&mut self, elem: Self::Elem) -> Self::Elem {
-        let elems = elem.elems.iter().map(|b| self.bool_not(b)).collect();
+        let elems = elem.elems.gen_iter().map(|b| self.bool_not(b)).collect();
         Tensor::new(elem.shape, elems)
     }
 
@@ -382,8 +382,8 @@ where
         assert_eq!(elem1.shape, elem2.shape);
         let elems = elem1
             .elems
-            .iter()
-            .zip(elem2.elems.iter())
+            .gen_iter()
+            .zip(elem2.elems.gen_iter())
             .map(|(a, b)| self.bool_or(a, b))
             .collect();
         Tensor::new(elem1.shape, elems)
@@ -393,8 +393,8 @@ where
         assert_eq!(elem1.shape, elem2.shape);
         let elems = elem1
             .elems
-            .iter()
-            .zip(elem2.elems.iter())
+            .gen_iter()
+            .zip(elem2.elems.gen_iter())
             .map(|(a, b)| self.bool_and(a, b))
             .collect();
         Tensor::new(elem1.shape, elems)
@@ -404,8 +404,8 @@ where
         assert_eq!(elem1.shape, elem2.shape);
         let elems = elem1
             .elems
-            .iter()
-            .zip(elem2.elems.iter())
+            .gen_iter()
+            .zip(elem2.elems.gen_iter())
             .map(|(a, b)| self.bool_xor(a, b))
             .collect();
         Tensor::new(elem1.shape, elems)
@@ -415,8 +415,8 @@ where
         assert_eq!(elem1.shape, elem2.shape);
         let elems = elem1
             .elems
-            .iter()
-            .zip(elem2.elems.iter())
+            .gen_iter()
+            .zip(elem2.elems.gen_iter())
             .map(|(a, b)| self.bool_equ(a, b))
             .collect();
         Tensor::new(elem1.shape, elems)
@@ -426,8 +426,8 @@ where
         assert_eq!(elem1.shape, elem2.shape);
         let elems = elem1
             .elems
-            .iter()
-            .zip(elem2.elems.iter())
+            .gen_iter()
+            .zip(elem2.elems.gen_iter())
             .map(|(a, b)| self.bool_imp(a, b))
             .collect();
         Tensor::new(elem1.shape, elems)
@@ -437,9 +437,9 @@ where
         let (head, shape) = elem.shape.split1();
         let elems = elem
             .elems
-            .split(head)
+            .gen_split(head)
             .iter()
-            .map(|v| self.bool_fold_all(v.iter()))
+            .map(|v| self.bool_fold_all(v.gen_iter()))
             .collect();
         Tensor::new(shape, elems)
     }
@@ -448,9 +448,9 @@ where
         let (head, shape) = elem.shape.split1();
         let elems = elem
             .elems
-            .split(head)
+            .gen_split(head)
             .iter()
-            .map(|v| self.bool_fold_any(v.iter()))
+            .map(|v| self.bool_fold_any(v.gen_iter()))
             .collect();
         Tensor::new(shape, elems)
     }
@@ -459,9 +459,9 @@ where
         let (head, shape) = elem.shape.split1();
         let elems = elem
             .elems
-            .split(head)
+            .gen_split(head)
             .iter()
-            .map(|v| self.bool_fold_sum(v.iter()))
+            .map(|v| self.bool_fold_sum(v.gen_iter()))
             .collect();
         Tensor::new(shape, elems)
     }
@@ -470,9 +470,9 @@ where
         let (head, shape) = elem.shape.split1();
         let elems = elem
             .elems
-            .split(head)
+            .gen_split(head)
             .iter()
-            .map(|v| self.bool_fold_one(v.iter()))
+            .map(|v| self.bool_fold_one(v.gen_iter()))
             .collect();
         Tensor::new(shape, elems)
     }
@@ -481,9 +481,9 @@ where
         let (head, shape) = elem.shape.split1();
         let elems = elem
             .elems
-            .split(head)
+            .gen_split(head)
             .iter()
-            .map(|v| self.bool_fold_amo(v.iter()))
+            .map(|v| self.bool_fold_amo(v.gen_iter()))
             .collect();
         Tensor::new(shape, elems)
     }
@@ -577,7 +577,7 @@ where
         let mut clause2: Vec<ALG::Elem> = Vec::with_capacity(clause.len());
         for i in 0..shape.size() {
             clause2.clear();
-            clause2.extend(clause.iter().map(|t| t.elems.get(i)));
+            clause2.extend(clause.iter().map(|t| t.elems.gen_get(i)));
             self.bool_add_clause(&clause2);
         }
     }
@@ -587,8 +587,11 @@ where
         assumptions: &[Self::Elem],
         elems: &[Self::Elem],
     ) -> Option<Vec<Tensor<bool>>> {
-        let ass2: Vec<ALG::Elem> = assumptions.iter().flat_map(|t| t.elems.iter()).collect();
-        let literals2 = elems.iter().flat_map(|t| t.elems.iter());
+        let ass2: Vec<ALG::Elem> = assumptions
+            .iter()
+            .flat_map(|t| t.elems.gen_iter())
+            .collect();
+        let literals2 = elems.iter().flat_map(|t| t.elems.gen_iter());
         if let Some(values) = self.bool_find_one_model(&ass2, literals2) {
             let mut result: Vec<Tensor<bool>> = Vec::with_capacity(elems.len());
             let mut pos = 0;
@@ -596,7 +599,7 @@ where
                 let size = t.shape().size();
                 result.push(Tensor::new(
                     t.shape().clone(),
-                    values.iter().skip(pos).take(size).collect(),
+                    values.gen_iter().skip(pos).take(size).collect(),
                 ));
                 pos += size;
             }
@@ -607,7 +610,7 @@ where
     }
 
     fn tensor_find_num_models(self, elems: &[Self::Elem]) -> usize {
-        let all_elems = elems.iter().flat_map(|t| t.elems.iter());
+        let all_elems = elems.iter().flat_map(|t| t.elems.gen_iter());
         self.bool_find_num_models_method1(all_elems)
     }
 }

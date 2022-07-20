@@ -17,7 +17,9 @@
 
 //! A simple bit vector implementation.
 
-use std::iter::{Extend, FromIterator, FusedIterator};
+#![allow(unused)]
+
+use std::iter::{ExactSizeIterator, Extend, FromIterator, FusedIterator};
 
 #[derive(Default, Clone)]
 pub struct BitVec {
@@ -25,125 +27,212 @@ pub struct BitVec {
     data: Vec<u32>,
 }
 
-impl Extend<bool> for BitVec {}
-
-impl IntoIterator for BitVec {
-    type Item = bool;
-}
-
-impl FromIterator<bool> for BitVec {}
-
 impl BitVec {
-    fn gen_new() -> Self {
+    pub fn new() -> Self {
         BitVec {
             len: 0,
             data: Vec::new(),
         }
     }
 
-    fn gen_with_capacity(capacity: usize) -> Self {
+    pub fn with_capacity(capacity: usize) -> Self {
         BitVec {
             len: 0,
             data: Vec::with_capacity((capacity + 31) / 32),
         }
     }
 
-    fn gen_from_elem(elem: bool) -> Self {
+    pub fn from_elem(elem: bool) -> Self {
         BitVec {
             len: 1,
             data: vec![if elem { 1 } else { 0 }],
         }
     }
 
-    fn gen_clear(&mut self) {
+    pub fn clear(&mut self) {
         self.len = 0;
         self.data.clear();
     }
 
-    fn gen_truncate(&mut self, new_len: usize) {
+    pub fn truncate(&mut self, new_len: usize) {
         assert!(new_len <= self.len);
         self.len = new_len;
         self.data.truncate((new_len + 31) / 32);
     }
 
-    fn gen_resize(&mut self, new_len: usize, elem: bool) {
-        Vec::resize(self, new_len, elem);
+    pub fn resize(&mut self, new_len: usize, elem: bool) {
+        while self.len < new_len && self.len % 32 != 0 {
+            self.push(elem);
+        }
+        self.len = new_len;
+        self.data
+            .resize((new_len + 31) / 32, if elem { 0xffffffff } else { 0x0 });
     }
 
-    fn gen_reserve(&mut self, additional: usize) {
+    pub fn reserve(&mut self, additional: usize) {
         let new_len = (self.len + additional + 31) / 32;
         self.data.reserve(new_len - self.data.len());
     }
 
-    fn gen_push(&mut self, elem: bool) {
-        let b = self.len % 32;
-        if b == 0 {
-            self.data.push(if elem { 1 } else { 0 });
-        } else {
-            let &mut a = unsafe { self.data.get_unchecked_mut(self.len / 32) };
-            let b = 1 << b;
-            if elem {
-                a |= b;
-            } else {
-                a &= !b;
-            }
+    pub fn push(&mut self, elem: bool) {
+        if self.len % 32 == 0 {
+            self.data.push(0);
         }
         self.len += 1;
+        unsafe { self.set_unchecked(self.len - 1, elem) };
     }
 
-    fn gen_pop(&mut self) -> Option<bool> {
-        Vec::pop(self)
+    pub fn pop(&mut self) -> Option<bool> {
+        if self.len == 0 {
+            None
+        } else {
+            let a = unsafe { self.get_unchecked(self.len - 1) };
+            self.len -= 1;
+            Some(a)
+        }
     }
 
-    fn gen_append(&mut self, other: &mut Self) {
-        Vec::append(self, other);
+    pub fn append(&mut self, other: &mut Self) {
+        self.reserve(other.len());
+        for elem in other.copy_iter() {
+            self.push(elem);
+        }
+        other.clear();
     }
 
-    fn gen_get(&self, index: usize) -> bool {
+    pub fn get(&self, index: usize) -> bool {
         assert!(index < self.len);
         let a = self.data[index / 32];
         let b = 1 << (index % 32);
         (a & b) != 0
     }
 
-    unsafe fn gen_get_unchecked(&self, index: usize) -> bool {
+    pub unsafe fn get_unchecked(&self, index: usize) -> bool {
         debug_assert!(index < self.len);
         let a = self.data.get_unchecked(index / 32);
         let b = 1 << (index % 32);
         (a & b) != 0
     }
 
-    fn gen_set(&mut self, index: usize, elem: bool) {
+    pub fn set(&mut self, index: usize, elem: bool) {
         assert!(index < self.len);
-        let &mut a = &mut self.data[index / 32];
+        let a = &mut self.data[index / 32];
         let b = 1 << (index % 32);
         if elem {
-            a |= b;
+            *a |= b;
         } else {
-            a &= !b;
+            *a &= !b;
         }
     }
 
-    unsafe fn gen_set_unchecked(&mut self, index: usize, elem: bool) {
+    pub unsafe fn set_unchecked(&mut self, index: usize, elem: bool) {
         debug_assert!(index < self.len);
-        let &mut a = self.data.get_unchecked_mut(index / 32);
+        let a = self.data.get_unchecked_mut(index / 32);
         let b = 1 << (index % 32);
         if elem {
-            a |= b;
+            *a |= b;
         } else {
-            a &= !b;
+            *a &= !b;
         }
     }
 
-    fn gen_len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.len
     }
 
-    fn gen_is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.len == 0
     }
 
-    fn gen_capacity(&self) -> usize {
+    pub fn capacity(&self) -> usize {
         self.data.capacity() * 32
+    }
+
+    pub fn copy_iter(&self) -> CopyIter<'_> {
+        CopyIter { pos: 0, vec: self }
+    }
+}
+
+impl Extend<bool> for BitVec {
+    fn extend<ITER: IntoIterator<Item = bool>>(&mut self, iter: ITER) {
+        let iter = iter.into_iter();
+        let (min, _) = iter.size_hint();
+        self.reserve(min);
+        for elem in iter {
+            self.push(elem)
+        }
+    }
+}
+
+impl FromIterator<bool> for BitVec {
+    fn from_iter<ITER: IntoIterator<Item = bool>>(iter: ITER) -> Self {
+        let mut ret: Self = Default::default();
+        ret.extend(iter);
+        ret
+    }
+}
+
+pub struct CopyIter<'a> {
+    pos: usize,
+    vec: &'a BitVec,
+}
+
+impl<'a> Iterator for CopyIter<'a> {
+    type Item = bool;
+
+    fn next(&mut self) -> Option<bool> {
+        if self.pos < self.vec.len() {
+            let elem = self.vec.get(self.pos);
+            self.pos += 1;
+            Some(elem)
+        } else {
+            None
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let num = self.vec.len() - self.pos;
+        (num, Some(num))
+    }
+}
+
+impl<'a> FusedIterator for CopyIter<'a> {}
+
+impl<'a> ExactSizeIterator for CopyIter<'a> {}
+
+pub struct IntoIter {
+    pos: usize,
+    vec: BitVec,
+}
+
+impl Iterator for IntoIter {
+    type Item = bool;
+
+    fn next(&mut self) -> Option<bool> {
+        if self.pos < self.vec.len() {
+            let elem = self.vec.get(self.pos);
+            self.pos += 1;
+            Some(elem)
+        } else {
+            None
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let num = self.vec.len() - self.pos;
+        (num, Some(num))
+    }
+}
+
+impl FusedIterator for IntoIter {}
+
+impl ExactSizeIterator for IntoIter {}
+
+impl IntoIterator for BitVec {
+    type Item = bool;
+    type IntoIter = IntoIter;
+
+    fn into_iter(self) -> IntoIter {
+        IntoIter { pos: 0, vec: self }
     }
 }

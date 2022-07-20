@@ -467,7 +467,7 @@ impl GenericVector<()> for UnitVec {
 
 /// A helper trait to find the right iterator that returns elements and not
 /// references.
-pub trait CopyIterable<'a, ELEM: 'a> {
+pub trait CopyIterable<'a, ELEM> {
     type Iter: Iterator<Item = ELEM>;
 
     fn iter_copy(&'a self) -> Self::Iter;

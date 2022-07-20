@@ -17,7 +17,7 @@
 
 //! Module for the core components that seems to have stabilized.
 
-// mod bitvec;
+mod bitvec;
 
 mod genvec;
 pub(crate) use genvec::GenericVec;

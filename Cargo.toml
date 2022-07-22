@@ -8,7 +8,7 @@ edition = "2018"
 repository = "https://github.com/mmaroti/uasat-rs"
 
 [features]
-default = ["cadical", "batsat", "minisat"]
+default = ["cadical", "batsat", "minisat", "cryptominisat", "varisat"]
 
 [dependencies]
 bit-vec = "0.6"

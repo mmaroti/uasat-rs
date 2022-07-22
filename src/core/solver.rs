@@ -325,7 +325,7 @@ impl<'a> SatInterface for VariSat<'a> {
 /// An advanced SAT solver supporting XOR clauses.
 #[cfg(feature = "cryptominisat")]
 pub struct CryptoMiniSat {
-    solver: cryptominisat::SatSolver,
+    solver: cryptominisat::Solver,
     num_clauses: usize,
     temp: Vec<cryptominisat::Lit>,
 }
@@ -334,7 +334,7 @@ pub struct CryptoMiniSat {
 impl Default for CryptoMiniSat {
     fn default() -> Self {
         CryptoMiniSat {
-            solver: cryptominisat::SatSolver::new(),
+            solver: cryptominisat::Solver::new(),
             num_clauses: 0,
             temp: Vec::new(),
         }

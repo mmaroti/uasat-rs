@@ -77,7 +77,7 @@ pub fn test() {
     let node_fun = solver.tensor_one(node_vars.clone());
     solver.tensor_add_clause(&[node_fun]);
 
-    let extr_size = 4;
+    let extr_size = 3;
     let extr_vars = solver.tensor_add_variable(Shape::new(vec![target_size, 6, extr_size]));
     let extr_fun = solver.tensor_one(extr_vars.clone());
     solver.tensor_add_clause(&[extr_fun]);
@@ -167,6 +167,15 @@ pub fn test() {
         edge_relation = solver.tensor_any(edge_relation);
     }
 
+    let mut map0 = Vec::new();
+    map0.extend(node_size..2 * node_size);
+    map0.extend(0..node_size);
+
+    let edge_double = solver.tensor_and(
+        edge_relation.clone(),
+        edge_relation.polymer(Shape::new(vec![target_size; node_size * 2]), &map0),
+    );
+
     let mut map1 = Vec::new();
     map1.extend(node_size..2 * node_size);
     map1.extend(0..node_size);
@@ -175,10 +184,9 @@ pub fn test() {
     map2.extend(0..node_size);
     map2.extend(2 * node_size..3 * node_size);
 
-    let edge_trans = edge_relation.polymer(Shape::new(vec![target_size; node_size * 3]), &map1);
     let mut edge_trans = solver.tensor_and(
-        edge_trans,
-        edge_relation.polymer(Shape::new(vec![target_size; node_size * 3]), &map2),
+        edge_double.polymer(Shape::new(vec![target_size; node_size * 3]), &map1),
+        edge_double.polymer(Shape::new(vec![target_size; node_size * 3]), &map2),
     );
 
     for _ in 0..node_size {

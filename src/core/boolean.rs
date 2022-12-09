@@ -26,7 +26,7 @@ use super::{create_solver, GenericElem, GenericVec, GenericVector as _, Literal,
 /// A boolean algebra supporting boolean calculation.
 pub trait BooleanAlgebra {
     /// The element type of this bool algebra.
-    type Elem: Clone;
+    type Elem: GenericElem;
 
     /// Returns the logical true (top) element of the algebra.
     fn bool_unit(&self) -> Self::Elem {
@@ -78,8 +78,8 @@ pub trait BooleanAlgebra {
 
     /// Returns the majority of the given values.
     fn bool_maj(&mut self, elem1: Self::Elem, elem2: Self::Elem, elem3: Self::Elem) -> Self::Elem {
-        let tmp1 = self.bool_and(elem1.clone(), elem2.clone());
-        let tmp2 = self.bool_and(elem1, elem3.clone());
+        let tmp1 = self.bool_and(elem1, elem2);
+        let tmp2 = self.bool_and(elem1, elem3);
         let tmp3 = self.bool_and(elem2, elem3);
         let tmp4 = self.bool_or(tmp1, tmp2);
         self.bool_or(tmp3, tmp4)
@@ -129,7 +129,7 @@ pub trait BooleanAlgebra {
         let mut min1 = self.bool_zero();
         let mut min2 = self.bool_zero();
         for elem in elems {
-            let tmp = self.bool_and(min1.clone(), elem.clone());
+            let tmp = self.bool_and(min1, elem);
             min2 = self.bool_or(min2, tmp);
             min1 = self.bool_or(min1, elem);
         }
@@ -145,7 +145,7 @@ pub trait BooleanAlgebra {
         let mut min1 = self.bool_zero();
         let mut min2 = self.bool_zero();
         for elem in elems {
-            let tmp = self.bool_and(min1.clone(), elem.clone());
+            let tmp = self.bool_and(min1, elem);
             min2 = self.bool_or(min2, tmp);
             min1 = self.bool_or(min1, elem);
         }
@@ -334,10 +334,7 @@ impl BooleanAlgebra for Solver {
 }
 
 /// Constraint solving over a boolean algebra.
-pub trait BooleanSolver: BooleanAlgebra + Sized
-where
-    Self::Elem: GenericElem,
-{
+pub trait BooleanSolver: BooleanAlgebra + Sized {
     /// Adds a new variable to the solver
     fn bool_add_variable(&mut self) -> Self::Elem;
 

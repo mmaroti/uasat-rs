@@ -193,7 +193,7 @@ pub fn test() {
         edge_trans = solver.tensor_any(edge_trans);
     }
 
-    let mut test = edge_trans.clone();
+    let mut test = edge_trans;
     for j in 0..(2 * node_size) {
         let v = Tensor::create(Shape::new(vec![target_size]), |xs| {
             if j < node_size {

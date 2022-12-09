@@ -45,7 +45,7 @@ impl BitVec {
     pub fn from_elem(elem: bool) -> Self {
         BitVec {
             len: 1,
-            data: vec![if elem { 1 } else { 0 }],
+            data: vec![u32::from(elem)],
         }
     }
 

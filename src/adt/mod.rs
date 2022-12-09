@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2019-2020, Miklos Maroti
+* Copyright (C) 2022, Miklos Maroti
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -15,18 +15,15 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//! A SAT based discrete mathematics and universal algebra calculator.
+//! Module for working with abstract data types.
 
-#[macro_use]
-extern crate lazy_static;
+use crate::core::{BooleanAlgebra, BooleanSolver};
 
-pub mod adt;
-pub mod alg;
-pub mod core;
-pub mod math;
+mod product;
+pub use product::*;
 
-pub fn main() {
-    // math::validate();
-    math::extremeconn_test();
-    // math::obstruction_test();
-}
+mod small_set;
+pub use small_set::*;
+
+mod traits;
+pub use traits::*;

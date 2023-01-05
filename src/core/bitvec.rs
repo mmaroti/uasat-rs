@@ -21,7 +21,8 @@
 
 use std::iter::{ExactSizeIterator, Extend, FromIterator, FusedIterator};
 
-#[derive(Default, Clone)]
+/// A simple bit vector implementation.
+#[derive(Default, Debug, Clone)]
 pub struct BitVec {
     len: usize,
     data: Vec<u32>,
@@ -107,6 +108,8 @@ impl BitVec {
         (a & b) != 0
     }
 
+    /// # Safety
+    /// Index must be less than length.
     pub unsafe fn get_unchecked(&self, index: usize) -> bool {
         debug_assert!(index < self.len);
         let a = self.data.get_unchecked(index / 32);
@@ -125,6 +128,8 @@ impl BitVec {
         }
     }
 
+    /// # Safety
+    /// Index must be less than length.
     pub unsafe fn set_unchecked(&mut self, index: usize, elem: bool) {
         debug_assert!(index < self.len);
         let a = self.data.get_unchecked_mut(index / 32);
@@ -150,6 +155,28 @@ impl BitVec {
 
     pub fn copy_iter(&self) -> CopyIter<'_> {
         CopyIter { pos: 0, vec: self }
+    }
+}
+
+impl PartialEq for BitVec {
+    fn eq(&self, other: &Self) -> bool {
+        if self.len != other.len {
+            return false;
+        }
+
+        let index = self.len / 32;
+        if self.data[0..index] != other.data[0..index] {
+            return false;
+        }
+
+        let rest = self.len % 32;
+        if rest != 0 {
+            let a = self.data[index] ^ other.data[index];
+            let b: u32 = (1 << rest as u32) - 1;
+            a & b == 0
+        } else {
+            true
+        }
     }
 }
 

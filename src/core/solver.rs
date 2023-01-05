@@ -233,7 +233,7 @@ pub struct VariSat<'a> {
     num_variables: u32,
     num_clauses: usize,
     solver: varisat::Solver<'a>,
-    solution: bit_vec::BitVec,
+    solution: super::bitvec::BitVec,
     temp: Vec<varisat::Lit>,
 }
 
@@ -244,7 +244,7 @@ impl<'a> Default for VariSat<'a> {
             num_variables: 0,
             num_clauses: 0,
             solver: varisat::Solver::new(),
-            solution: bit_vec::BitVec::new(),
+            solution: super::bitvec::BitVec::new(),
             temp: Vec::new(),
         }
     }
@@ -292,7 +292,7 @@ impl<'a> SatInterface for VariSat<'a> {
         self.solution.truncate(0);
         let solvable = self.solver.solve().unwrap();
         if solvable {
-            self.solution.grow(self.num_variables() as usize, false);
+            self.solution.resize(self.num_variables() as usize, false);
             for lit in self.solver.model().unwrap() {
                 if lit.is_positive() {
                     let var = lit.index();
@@ -306,7 +306,7 @@ impl<'a> SatInterface for VariSat<'a> {
     fn get_value(&self, lit: Literal) -> bool {
         let lit = VariSat::decode(lit);
         let var = lit.index();
-        self.solution.get(var).unwrap() ^ lit.is_negative()
+        self.solution.get(var) ^ lit.is_negative()
     }
 
     fn get_name(&self) -> &'static str {

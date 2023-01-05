@@ -17,7 +17,7 @@
 
 //! A generic vector trait to work with regular and bit vectors.
 
-use bit_vec::{BitBlock as _, BitVec};
+use super::bitvec::BitVec;
 use std::iter::{Extend, FromIterator, FusedIterator};
 
 use super::Literal;
@@ -154,11 +154,11 @@ where
     ELEM: Copy,
 {
     fn gen_new() -> Self {
-        Vec::new()
+        Self::new()
     }
 
     fn gen_with_capacity(capacity: usize) -> Self {
-        Vec::with_capacity(capacity)
+        Self::with_capacity(capacity)
     }
 
     fn gen_from_elem(elem: ELEM) -> Self {
@@ -166,32 +166,32 @@ where
     }
 
     fn gen_clear(&mut self) {
-        Vec::clear(self);
+        Self::clear(self);
     }
 
     fn gen_truncate(&mut self, new_len: usize) {
         assert!(new_len <= Vec::len(self));
-        Vec::truncate(self, new_len);
+        Self::truncate(self, new_len);
     }
 
     fn gen_resize(&mut self, new_len: usize, elem: ELEM) {
-        Vec::resize(self, new_len, elem);
+        Self::resize(self, new_len, elem);
     }
 
     fn gen_reserve(&mut self, additional: usize) {
-        Vec::reserve(self, additional);
+        Self::reserve(self, additional);
     }
 
     fn gen_push(&mut self, elem: ELEM) {
-        Vec::push(self, elem);
+        Self::push(self, elem);
     }
 
     fn gen_pop(&mut self) -> Option<ELEM> {
-        Vec::pop(self)
+        Self::pop(self)
     }
 
     fn gen_append(&mut self, other: &mut Self) {
-        Vec::append(self, other);
+        Self::append(self, other);
     }
 
     fn gen_get(&self, index: usize) -> ELEM {
@@ -211,99 +211,81 @@ where
     }
 
     fn gen_len(&self) -> usize {
-        Vec::len(self)
+        Self::len(self)
     }
 
     fn gen_is_empty(&self) -> bool {
-        Vec::is_empty(self)
+        Self::is_empty(self)
     }
 
     fn gen_capacity(&self) -> usize {
-        Vec::capacity(self)
+        Self::capacity(self)
     }
 }
+
 impl GenericVector<bool> for BitVec {
     fn gen_new() -> Self {
-        BitVec::new()
+        Self::new()
     }
 
     fn gen_with_capacity(capacity: usize) -> Self {
-        BitVec::with_capacity(capacity)
+        Self::with_capacity(capacity)
     }
 
     fn gen_clear(&mut self) {
-        BitVec::truncate(self, 0);
+        Self::clear(self);
     }
 
     fn gen_truncate(&mut self, new_len: usize) {
-        assert!(new_len <= BitVec::len(self));
-        BitVec::truncate(self, new_len);
+        self.truncate(new_len);
     }
 
     fn gen_resize(&mut self, new_len: usize, elem: bool) {
-        if new_len > BitVec::len(self) {
-            BitVec::grow(self, new_len - self.gen_len(), elem);
-        } else {
-            BitVec::truncate(self, new_len);
-        }
+        self.resize(new_len, elem);
     }
 
     fn gen_reserve(&mut self, additional: usize) {
-        BitVec::reserve(self, additional);
+        self.reserve(additional);
     }
 
     fn gen_push(&mut self, elem: bool) {
-        BitVec::push(self, elem);
+        self.push(elem);
     }
 
     fn gen_pop(&mut self) -> Option<bool> {
-        BitVec::pop(self)
+        self.pop()
     }
 
     fn gen_append(&mut self, other: &mut Self) {
-        BitVec::append(self, other);
+        self.append(other);
     }
 
     fn gen_get(&self, index: usize) -> bool {
-        BitVec::get(self, index).unwrap()
+        self.get(index)
     }
 
     unsafe fn gen_get_unchecked(&self, index: usize) -> bool {
-        type B = u32;
-        let w = index / B::bits();
-        let b = index % B::bits();
-        let x = *BitVec::storage(self).get_unchecked(w);
-        let y = B::one() << b;
-        (x & y) != B::zero()
+        self.get_unchecked(index)
     }
 
     fn gen_set(&mut self, index: usize, elem: bool) {
-        BitVec::set(self, index, elem);
+        self.set(index, elem);
     }
 
     unsafe fn gen_set_unchecked(&mut self, index: usize, elem: bool) {
-        type B = u32;
-        let w = index / B::bits();
-        let b = index % B::bits();
-        let x = BitVec::storage_mut(self).get_unchecked_mut(w);
-        let y = B::one() << b;
-        if elem {
-            *x |= y;
-        } else {
-            *x &= !y;
-        }
+        self.set_unchecked(index, elem);
     }
 
     fn gen_len(&self) -> usize {
-        BitVec::len(self)
+        self.len()
     }
 
     fn gen_is_empty(&self) -> bool {
-        BitVec::is_empty(self)
+        self.is_empty()
     }
 
     fn gen_capacity(&self) -> usize {
-        BitVec::capacity(self)
+        self.capacity()
     }
 }
 
@@ -482,10 +464,10 @@ impl<'a, ELEM: 'a + Copy> CopyIterable<'a, ELEM> for Vec<ELEM> {
 }
 
 impl<'a> CopyIterable<'a, bool> for BitVec {
-    type Iter = bit_vec::Iter<'a>;
+    type Iter = super::bitvec::CopyIter<'a>;
 
     fn iter_copy(&'a self) -> Self::Iter {
-        self.iter()
+        self.copy_iter()
     }
 }
 
@@ -531,6 +513,7 @@ mod tests {
         let mut v1: Vec<bool> = GenericVector::gen_new();
         let mut v2: GenericVec<bool> = GenericVector::gen_new();
         let mut v3: GenericVec<()> = GenericVector::gen_new();
+        let mut v4: GenericVec<bool> = GenericVector::gen_new();
 
         for i in 0..50 {
             let b = i % 2 == 0;
@@ -546,6 +529,13 @@ mod tests {
             for j in 0..v1.len() {
                 assert_eq!(v1.gen_get(j), v2.gen_get(j));
             }
+
+            v4.clear();
+            v4.extend(v1.clone());
+            assert_eq!(v2, v4);
+
+            v4.set(v4.len() - 1, !v4.get(v4.len() - 1));
+            assert!(v2 != v4);
         }
 
         for _ in 0..50 {
@@ -558,6 +548,13 @@ mod tests {
             for j in 0..v1.len() {
                 assert_eq!(v1.gen_get(j), v2.gen_get(j));
             }
+
+            v4.clear();
+            v4.extend(v1.clone());
+            assert_eq!(v2, v4);
+
+            v4.set(v4.len() - 1, !v4.get(v4.len() - 1));
+            assert!(v2 != v4);
         }
     }
 

@@ -233,7 +233,7 @@ pub struct VariSat<'a> {
     num_variables: u32,
     num_clauses: usize,
     solver: varisat::Solver<'a>,
-    solution: super::bitvec::BitVec,
+    solution: super::BitVec,
     temp: Vec<varisat::Lit>,
 }
 
@@ -244,7 +244,7 @@ impl<'a> Default for VariSat<'a> {
             num_variables: 0,
             num_clauses: 0,
             solver: varisat::Solver::new(),
-            solution: super::bitvec::BitVec::new(),
+            solution: super::BitVec::new(),
             temp: Vec::new(),
         }
     }

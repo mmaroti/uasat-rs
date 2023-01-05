@@ -19,7 +19,7 @@
 
 use std::ops;
 
-use super::{BooleanAlgebra, BooleanSolver, GenElem, GenVec};
+use super::{BooleanAlgebra, BooleanSolver, GenElem, GenVec, VecFor};
 
 /// The shape of a tensor.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -186,7 +186,7 @@ where
     ELEM: GenElem,
 {
     shape: Shape,
-    elems: ELEM::Vector,
+    elems: VecFor<ELEM>,
 }
 
 impl<ELEM> Tensor<ELEM>
@@ -194,7 +194,7 @@ where
     ELEM: GenElem,
 {
     /// Creates a tensor of the given shape and with the given elements.
-    pub fn new(shape: Shape, elems: ELEM::Vector) -> Self {
+    pub fn new(shape: Shape, elems: VecFor<ELEM>) -> Self {
         assert_eq!(shape.size(), elems.len());
         Tensor { shape, elems }
     }
@@ -211,7 +211,7 @@ where
         OP: FnMut(&[usize]) -> ELEM,
     {
         let mut coords = vec![0; shape.len()];
-        let elems: ELEM::Vector = (0..shape.size())
+        let elems: VecFor<ELEM> = (0..shape.size())
             .map(|_| {
                 let e = op(&coords);
                 for (a, b) in coords.iter_mut().zip(shape.dims.iter()) {
@@ -260,7 +260,7 @@ where
             iter.add_stride(*val, strides[idx]);
         }
 
-        let elems: ELEM::Vector = iter.map(|i| self.elems.get(i)).collect();
+        let elems: VecFor<ELEM> = iter.map(|i| self.elems.get(i)).collect();
         Tensor::new(shape, elems)
     }
 

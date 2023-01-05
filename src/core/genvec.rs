@@ -482,24 +482,26 @@ impl<'a> CopyIterable<'a, ()> for UnitVec {
 /// A trait for elements that can be stored in a generic vector.
 pub trait GenElem: Copy {
     /// A type that can be used for storing a vector of elements.
-    type Vector: GenVec<Self> + PartialEq + std::fmt::Debug + for<'a> CopyIterable<'a, Self>;
+    type Vec: GenVec<Self> + PartialEq + std::fmt::Debug + for<'a> CopyIterable<'a, Self>;
 }
 
 impl GenElem for bool {
-    type Vector = BitVec;
+    type Vec = BitVec;
 }
 
 impl GenElem for usize {
-    type Vector = Vec<Self>;
+    type Vec = Vec<Self>;
 }
 
 impl GenElem for Literal {
-    type Vector = Vec<Self>;
+    type Vec = Vec<Self>;
 }
 
 impl GenElem for () {
-    type Vector = UnitVec;
+    type Vec = UnitVec;
 }
+
+pub type VecFor<ELEM> = <ELEM as GenElem>::Vec;
 
 #[cfg(test)]
 mod tests {
@@ -508,9 +510,9 @@ mod tests {
     #[test]
     fn resize() {
         let mut v1: Vec<bool> = GenVec::new();
-        let mut v2: BitVec = GenVec::new();
-        let mut v3: UnitVec = GenVec::new();
-        let mut v4: BitVec = GenVec::new();
+        let mut v2: VecFor<bool> = GenVec::new();
+        let mut v3: VecFor<()> = GenVec::new();
+        let mut v4: VecFor<bool> = GenVec::new();
 
         for i in 0..50 {
             let b = i % 2 == 0;
@@ -559,8 +561,8 @@ mod tests {
     fn iters() {
         let e1 = vec![true, false, true];
         let e2 = e1.clone();
-        let v1: BitVec = e1.into_iter().collect();
-        let mut v2: BitVec = GenVec::new();
+        let v1: VecFor<bool> = e1.into_iter().collect();
+        let mut v2: VecFor<bool> = GenVec::new();
         for b in e2 {
             v2.push(b);
         }
@@ -572,8 +574,8 @@ mod tests {
         assert_eq!(iter.next(), None);
 
         let e1 = [true, false];
-        let v1: BitVec = e1.iter().copied().collect();
-        let mut v2: BitVec = GenVec::new();
+        let v1: VecFor<bool> = e1.iter().copied().collect();
+        let mut v2: VecFor<bool> = GenVec::new();
         for b in &e1 {
             v2.push(*b);
         }

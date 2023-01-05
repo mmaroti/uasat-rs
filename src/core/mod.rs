@@ -21,7 +21,7 @@ mod bitvec;
 pub use bitvec::BitVec;
 
 mod genvec;
-pub use genvec::{GenElem, GenVec};
+pub use genvec::{GenElem, GenVec, VecFor};
 
 mod solver;
 pub use solver::{create_solver, Literal, SatInterface};

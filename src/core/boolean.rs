@@ -21,7 +21,7 @@
 
 use std::iter;
 
-use super::{create_solver, BitVec, GenElem, GenVec, Literal, SatInterface};
+use super::{create_solver, GenElem, GenVec, Literal, SatInterface, VecFor};
 
 /// A boolean algebra supporting boolean calculation.
 pub trait BooleanAlgebra {
@@ -347,7 +347,7 @@ pub trait BooleanSolver: BooleanAlgebra + Sized {
         &mut self,
         assumptions: &[Self::Elem],
         literals: ITER,
-    ) -> Option<BitVec>
+    ) -> Option<VecFor<bool>>
     where
         ITER: Iterator<Item = Self::Elem>;
 
@@ -357,7 +357,7 @@ pub trait BooleanSolver: BooleanAlgebra + Sized {
         ITER: Iterator<Item = Self::Elem>,
     {
         let mut count = 0;
-        let literals: <Self::Elem as GenElem>::Vector = literals.collect();
+        let literals: VecFor<Self::Elem> = literals.collect();
         let mut clause: Vec<Self::Elem> = Vec::with_capacity(literals.len());
         while let Some(result) = self.bool_find_one_model(&[], literals.gen_iter()) {
             count += 1;
@@ -378,13 +378,13 @@ pub trait BooleanSolver: BooleanAlgebra + Sized {
     where
         ITER: Iterator<Item = Self::Elem>,
     {
-        let literals: <Self::Elem as GenElem>::Vector = literals
+        let literals: VecFor<Self::Elem> = literals
             .chain([self.bool_unit(), self.bool_zero()].iter().copied())
             .collect();
         let len = literals.len();
 
         // bound variables
-        let variables: <Self::Elem as GenElem>::Vector =
+        let variables: VecFor<Self::Elem> =
             (0..(2 * len)).map(|_| self.bool_add_variable()).collect();
 
         // lower bound
@@ -395,11 +395,11 @@ pub trait BooleanSolver: BooleanAlgebra + Sized {
         let result = self.bool_cmp_ltn(literals.gen_iter().zip(variables.gen_iter().skip(len)));
         self.bool_add_clause(&[result]);
 
-        let mut lower_bound: BitVec = iter::repeat(true)
+        let mut lower_bound: VecFor<bool> = iter::repeat(true)
             .take(len - 2)
             .chain([false, false].iter().copied())
             .collect();
-        let mut upper_bounds: BitVec = iter::repeat(false)
+        let mut upper_bounds: VecFor<bool> = iter::repeat(false)
             .take(len - 2)
             .chain([false, true].iter().copied())
             .collect();
@@ -456,7 +456,7 @@ impl BooleanSolver for Solver {
         &mut self,
         assumptions: &[Self::Elem],
         literals: ITER,
-    ) -> Option<BitVec>
+    ) -> Option<VecFor<bool>>
     where
         ITER: Iterator<Item = Self::Elem>,
     {

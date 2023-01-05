@@ -21,12 +21,12 @@
 
 use std::iter;
 
-use super::{create_solver, GenericElem, GenericVec, GenericVector as _, Literal, SatInterface};
+use super::{create_solver, BitVec, GenElem, GenVec, Literal, SatInterface};
 
 /// A boolean algebra supporting boolean calculation.
 pub trait BooleanAlgebra {
     /// The element type of this bool algebra.
-    type Elem: GenericElem;
+    type Elem: GenElem;
 
     /// Returns the logical true (top) element of the algebra.
     fn bool_unit(&self) -> Self::Elem {
@@ -347,7 +347,7 @@ pub trait BooleanSolver: BooleanAlgebra + Sized {
         &mut self,
         assumptions: &[Self::Elem],
         literals: ITER,
-    ) -> Option<GenericVec<bool>>
+    ) -> Option<BitVec>
     where
         ITER: Iterator<Item = Self::Elem>;
 
@@ -357,8 +357,8 @@ pub trait BooleanSolver: BooleanAlgebra + Sized {
         ITER: Iterator<Item = Self::Elem>,
     {
         let mut count = 0;
-        let literals: GenericVec<Self::Elem> = literals.collect();
-        let mut clause: Vec<Self::Elem> = Vec::with_capacity(literals.gen_len());
+        let literals: <Self::Elem as GenElem>::Vector = literals.collect();
+        let mut clause: Vec<Self::Elem> = Vec::with_capacity(literals.len());
         while let Some(result) = self.bool_find_one_model(&[], literals.gen_iter()) {
             count += 1;
             clause.clear();
@@ -378,13 +378,13 @@ pub trait BooleanSolver: BooleanAlgebra + Sized {
     where
         ITER: Iterator<Item = Self::Elem>,
     {
-        let literals: GenericVec<Self::Elem> = literals
+        let literals: <Self::Elem as GenElem>::Vector = literals
             .chain([self.bool_unit(), self.bool_zero()].iter().copied())
             .collect();
-        let len = literals.gen_len();
+        let len = literals.len();
 
         // bound variables
-        let variables: GenericVec<Self::Elem> =
+        let variables: <Self::Elem as GenElem>::Vector =
             (0..(2 * len)).map(|_| self.bool_add_variable()).collect();
 
         // lower bound
@@ -395,19 +395,19 @@ pub trait BooleanSolver: BooleanAlgebra + Sized {
         let result = self.bool_cmp_ltn(literals.gen_iter().zip(variables.gen_iter().skip(len)));
         self.bool_add_clause(&[result]);
 
-        let mut lower_bound: GenericVec<bool> = iter::repeat(true)
+        let mut lower_bound: BitVec = iter::repeat(true)
             .take(len - 2)
             .chain([false, false].iter().copied())
             .collect();
-        let mut upper_bounds: GenericVec<bool> = iter::repeat(false)
+        let mut upper_bounds: BitVec = iter::repeat(false)
             .take(len - 2)
             .chain([false, true].iter().copied())
             .collect();
 
         let mut count = 0;
         let mut assumptions: Vec<Self::Elem> = Vec::with_capacity(2 * len);
-        while !upper_bounds.gen_is_empty() {
-            let end = upper_bounds.gen_len();
+        while !upper_bounds.is_empty() {
+            let end = upper_bounds.len();
             let last = end - len;
             assumptions.clear();
             assumptions.extend(
@@ -427,13 +427,13 @@ pub trait BooleanSolver: BooleanAlgebra + Sized {
 
             match self.bool_find_one_model(&assumptions, literals.gen_iter()) {
                 None => {
-                    lower_bound.gen_clear();
+                    lower_bound.clear();
                     lower_bound.extend(upper_bounds.gen_iter().skip(last));
-                    upper_bounds.gen_truncate(last);
+                    upper_bounds.truncate(last);
                 }
                 Some(result) => {
                     count += 1;
-                    assert_eq!(result.gen_len(), len);
+                    assert_eq!(result.len(), len);
                     upper_bounds.extend(result.gen_iter());
                 }
             }
@@ -456,7 +456,7 @@ impl BooleanSolver for Solver {
         &mut self,
         assumptions: &[Self::Elem],
         literals: ITER,
-    ) -> Option<GenericVec<bool>>
+    ) -> Option<BitVec>
     where
         ITER: Iterator<Item = Self::Elem>,
     {
@@ -491,8 +491,8 @@ mod tests {
         let s = alg.bool_find_one_model(&[], [a, b].iter().copied());
         assert!(s.is_some());
         let s = s.unwrap();
-        assert_eq!(s.gen_len(), 2);
-        assert_eq!(s.gen_get(0), true);
-        assert_eq!(s.gen_get(1), true);
+        assert_eq!(s.len(), 2);
+        assert_eq!(s.get(0), true);
+        assert_eq!(s.get(1), true);
     }
 }

@@ -538,7 +538,7 @@ impl SatInterface for CaDiCaL {
     }
 
     fn num_clauses(&self) -> usize {
-        self.solver.num_clauses() as usize
+        self.solver.num_clauses()
     }
 }
 

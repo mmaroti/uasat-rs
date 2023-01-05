@@ -95,7 +95,7 @@ impl BitVec {
 
     pub fn append(&mut self, other: &mut Self) {
         self.reserve(other.len());
-        for elem in other.copy_iter() {
+        for elem in other.iter_copy() {
             self.push(elem);
         }
         other.clear();
@@ -153,7 +153,7 @@ impl BitVec {
         self.data.capacity() * 32
     }
 
-    pub fn copy_iter(&self) -> CopyIter<'_> {
+    pub fn iter_copy(&self) -> CopyIter<'_> {
         CopyIter { pos: 0, vec: self }
     }
 }

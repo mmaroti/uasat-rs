@@ -19,7 +19,7 @@
 
 use std::ops;
 
-use super::{BooleanAlgebra, BooleanSolver, GenericElem, GenericVec, GenericVector as _};
+use super::{BooleanAlgebra, BooleanSolver, GenElem, GenVec};
 
 /// The shape of a tensor.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -183,19 +183,19 @@ impl Iterator for StrideIter {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Tensor<ELEM>
 where
-    ELEM: GenericElem,
+    ELEM: GenElem,
 {
     shape: Shape,
-    elems: GenericVec<ELEM>,
+    elems: ELEM::Vector,
 }
 
 impl<ELEM> Tensor<ELEM>
 where
-    ELEM: GenericElem,
+    ELEM: GenElem,
 {
     /// Creates a tensor of the given shape and with the given elements.
-    pub fn new(shape: Shape, elems: GenericVec<ELEM>) -> Self {
-        assert_eq!(shape.size(), elems.gen_len());
+    pub fn new(shape: Shape, elems: ELEM::Vector) -> Self {
+        assert_eq!(shape.size(), elems.len());
         Tensor { shape, elems }
     }
 
@@ -211,7 +211,7 @@ where
         OP: FnMut(&[usize]) -> ELEM,
     {
         let mut coords = vec![0; shape.len()];
-        let elems = (0..shape.size())
+        let elems: ELEM::Vector = (0..shape.size())
             .map(|_| {
                 let e = op(&coords);
                 for (a, b) in coords.iter_mut().zip(shape.dims.iter()) {
@@ -231,19 +231,19 @@ where
 
     /// Returns the element at the given index.
     pub fn very_slow_get(&self, coords: &[usize]) -> ELEM {
-        self.elems.gen_get(self.shape.index(coords))
+        self.elems.get(self.shape.index(coords))
     }
 
     /// Sets the element at the given index.
     pub fn very_slow_set(&mut self, coords: &[usize], elem: ELEM) {
-        self.elems.gen_set(self.shape.index(coords), elem);
+        self.elems.set(self.shape.index(coords), elem);
     }
 
     /// Returns the scalar value contained within a tensor of shape [].
     pub fn scalar(&self) -> ELEM {
         assert!(self.shape.is_empty());
-        assert!(self.elems.gen_len() == 1);
-        self.elems.gen_get(0)
+        assert!(self.elems.len() == 1);
+        self.elems.get(0)
     }
 
     /// Creates a new tensor of the given shape from the given old tensor with
@@ -260,7 +260,7 @@ where
             iter.add_stride(*val, strides[idx]);
         }
 
-        let elems: GenericVec<ELEM> = iter.map(|i| self.elems.gen_get(i)).collect();
+        let elems: ELEM::Vector = iter.map(|i| self.elems.get(i)).collect();
         Tensor::new(shape, elems)
     }
 
@@ -436,7 +436,7 @@ where
         let (head, shape) = elem.shape.split1();
         let elems = elem
             .elems
-            .gen_split(head)
+            .split(head)
             .iter()
             .map(|v| self.bool_fold_all(v.gen_iter()))
             .collect();
@@ -447,7 +447,7 @@ where
         let (head, shape) = elem.shape.split1();
         let elems = elem
             .elems
-            .gen_split(head)
+            .split(head)
             .iter()
             .map(|v| self.bool_fold_any(v.gen_iter()))
             .collect();
@@ -458,7 +458,7 @@ where
         let (head, shape) = elem.shape.split1();
         let elems = elem
             .elems
-            .gen_split(head)
+            .split(head)
             .iter()
             .map(|v| self.bool_fold_sum(v.gen_iter()))
             .collect();
@@ -469,7 +469,7 @@ where
         let (head, shape) = elem.shape.split1();
         let elems = elem
             .elems
-            .gen_split(head)
+            .split(head)
             .iter()
             .map(|v| self.bool_fold_one(v.gen_iter()))
             .collect();
@@ -480,7 +480,7 @@ where
         let (head, shape) = elem.shape.split1();
         let elems = elem
             .elems
-            .gen_split(head)
+            .split(head)
             .iter()
             .map(|v| self.bool_fold_amo(v.gen_iter()))
             .collect();
@@ -575,7 +575,7 @@ where
         let mut clause2: Vec<ALG::Elem> = Vec::with_capacity(clause.len());
         for i in 0..shape.size() {
             clause2.clear();
-            clause2.extend(clause.iter().map(|t| t.elems.gen_get(i)));
+            clause2.extend(clause.iter().map(|t| t.elems.get(i)));
             self.bool_add_clause(&clause2);
         }
     }

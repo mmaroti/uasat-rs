@@ -21,7 +21,8 @@
 
 use std::iter;
 
-use super::{create_solver, GenElem, GenVec, Literal, SatInterface, VecFor};
+use super::{create_solver, Literal, SatInterface};
+use crate::genvec::{GenElem, GenVec, VecFor};
 
 /// A boolean algebra supporting boolean calculation.
 pub trait BooleanAlgebra {

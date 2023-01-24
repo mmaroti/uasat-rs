@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2019-2020, Miklos Maroti
+* Copyright (C) 2021, Miklos Maroti
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -15,19 +15,16 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//! A SAT based discrete mathematics and universal algebra calculator.
+//! Module for the core components that seems to have stabilized.
 
-#[macro_use]
-extern crate lazy_static;
+mod traits;
+pub use traits::{CopyIterable, GenElem, GenSlice, GenVec, VecFor};
 
-pub mod adt;
-pub mod alg;
-pub mod core;
-pub mod genvec;
-pub mod math;
+mod bitvec;
+pub use bitvec::BitVec;
 
-pub fn main() {
-    math::validate();
-    // math::extremeconn_test();
-    // math::obstruction_test();
-}
+mod unitvec;
+mod vec;
+
+#[cfg(test)]
+mod tests;

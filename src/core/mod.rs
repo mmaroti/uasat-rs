@@ -17,12 +17,6 @@
 
 //! Module for the core components that seems to have stabilized.
 
-mod bitvec;
-pub use bitvec::BitVec;
-
-mod genvec;
-pub use genvec::{CopyIterable, GenElem, GenVec, VecFor};
-
 mod solver;
 pub use solver::{create_solver, Literal, SatInterface};
 

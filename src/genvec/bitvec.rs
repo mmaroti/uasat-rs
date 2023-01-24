@@ -17,8 +17,7 @@
 
 //! A simple bit vector implementation.
 
-#![allow(unused)]
-
+use super::{CopyIterable, GenElem, GenVec};
 use std::iter::{ExactSizeIterator, Extend, FromIterator, FusedIterator};
 
 /// A simple bit vector implementation.
@@ -28,40 +27,40 @@ pub struct BitVec {
     data: Vec<u32>,
 }
 
-impl BitVec {
-    pub fn new() -> Self {
+impl GenVec<bool> for BitVec {
+    fn new() -> Self {
         BitVec {
             len: 0,
             data: Vec::new(),
         }
     }
 
-    pub fn with_capacity(capacity: usize) -> Self {
+    fn with_capacity(capacity: usize) -> Self {
         BitVec {
             len: 0,
             data: Vec::with_capacity((capacity + 31) / 32),
         }
     }
 
-    pub fn from_elem(elem: bool) -> Self {
+    fn from_elem(elem: bool) -> Self {
         BitVec {
             len: 1,
             data: vec![u32::from(elem)],
         }
     }
 
-    pub fn clear(&mut self) {
+    fn clear(&mut self) {
         self.len = 0;
         self.data.clear();
     }
 
-    pub fn truncate(&mut self, new_len: usize) {
+    fn truncate(&mut self, new_len: usize) {
         assert!(new_len <= self.len);
         self.len = new_len;
         self.data.truncate((new_len + 31) / 32);
     }
 
-    pub fn resize(&mut self, new_len: usize, elem: bool) {
+    fn resize(&mut self, new_len: usize, elem: bool) {
         while self.len < new_len && self.len % 32 != 0 {
             self.push(elem);
         }
@@ -70,12 +69,12 @@ impl BitVec {
             .resize((new_len + 31) / 32, if elem { 0xffffffff } else { 0x0 });
     }
 
-    pub fn reserve(&mut self, additional: usize) {
+    fn reserve(&mut self, additional: usize) {
         let new_len = (self.len + additional + 31) / 32;
         self.data.reserve(new_len - self.data.len());
     }
 
-    pub fn push(&mut self, elem: bool) {
+    fn push(&mut self, elem: bool) {
         if self.len % 32 == 0 {
             self.data.push(0);
         }
@@ -83,7 +82,7 @@ impl BitVec {
         unsafe { self.set_unchecked(self.len - 1, elem) };
     }
 
-    pub fn pop(&mut self) -> Option<bool> {
+    fn pop(&mut self) -> Option<bool> {
         if self.len == 0 {
             None
         } else {
@@ -93,7 +92,7 @@ impl BitVec {
         }
     }
 
-    pub fn append(&mut self, other: &mut Self) {
+    fn append(&mut self, other: &mut Self) {
         self.reserve(other.len());
         for elem in other.iter_copy() {
             self.push(elem);
@@ -101,23 +100,21 @@ impl BitVec {
         other.clear();
     }
 
-    pub fn get(&self, index: usize) -> bool {
+    fn get(&self, index: usize) -> bool {
         assert!(index < self.len);
         let a = self.data[index / 32];
         let b = 1 << (index % 32);
         (a & b) != 0
     }
 
-    /// # Safety
-    /// Index must be less than length.
-    pub unsafe fn get_unchecked(&self, index: usize) -> bool {
+    unsafe fn get_unchecked(&self, index: usize) -> bool {
         debug_assert!(index < self.len);
         let a = self.data.get_unchecked(index / 32);
         let b = 1 << (index % 32);
         (a & b) != 0
     }
 
-    pub fn set(&mut self, index: usize, elem: bool) {
+    fn set(&mut self, index: usize, elem: bool) {
         assert!(index < self.len);
         let a = &mut self.data[index / 32];
         let b = 1 << (index % 32);
@@ -128,9 +125,7 @@ impl BitVec {
         }
     }
 
-    /// # Safety
-    /// Index must be less than length.
-    pub unsafe fn set_unchecked(&mut self, index: usize, elem: bool) {
+    unsafe fn set_unchecked(&mut self, index: usize, elem: bool) {
         debug_assert!(index < self.len);
         let a = self.data.get_unchecked_mut(index / 32);
         let b = 1 << (index % 32);
@@ -141,20 +136,16 @@ impl BitVec {
         }
     }
 
-    pub fn len(&self) -> usize {
+    fn len(&self) -> usize {
         self.len
     }
 
-    pub fn is_empty(&self) -> bool {
+    fn is_empty(&self) -> bool {
         self.len == 0
     }
 
-    pub fn capacity(&self) -> usize {
+    fn capacity(&self) -> usize {
         self.data.capacity() * 32
-    }
-
-    pub fn iter_copy(&self) -> CopyIter<'_> {
-        CopyIter { pos: 0, vec: self }
     }
 }
 
@@ -262,4 +253,16 @@ impl IntoIterator for BitVec {
     fn into_iter(self) -> IntoIter {
         IntoIter { pos: 0, vec: self }
     }
+}
+
+impl<'a> CopyIterable<'a, bool> for BitVec {
+    type Iter = super::bitvec::CopyIter<'a>;
+
+    fn iter_copy(&'a self) -> Self::Iter {
+        CopyIter { pos: 0, vec: self }
+    }
+}
+
+impl GenElem for bool {
+    type Vec = BitVec;
 }

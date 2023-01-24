@@ -24,6 +24,9 @@ use batsat::SolverInterface as _;
 #[cfg(feature = "varisat")]
 use varisat::ExtendFormula as _;
 
+#[cfg(feature = "varisat")]
+use crate::genvec::{BitVec, GenVec};
+
 /// Uniform literal to allow runtime solver selection.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Literal {
@@ -229,25 +232,13 @@ impl Drop for MiniSat {
 
 /// A modern SAT solver implemented in pure rust.
 #[cfg(feature = "varisat")]
+#[derive(Default)]
 pub struct VariSat<'a> {
     num_variables: u32,
     num_clauses: usize,
     solver: varisat::Solver<'a>,
-    solution: super::BitVec,
+    solution: BitVec,
     temp: Vec<varisat::Lit>,
-}
-
-#[cfg(feature = "varisat")]
-impl<'a> Default for VariSat<'a> {
-    fn default() -> Self {
-        VariSat {
-            num_variables: 0,
-            num_clauses: 0,
-            solver: varisat::Solver::new(),
-            solution: super::BitVec::new(),
-            temp: Vec::new(),
-        }
-    }
 }
 
 #[cfg(feature = "varisat")]

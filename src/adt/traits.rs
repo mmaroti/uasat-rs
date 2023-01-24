@@ -45,7 +45,7 @@ pub trait Domain: Clone {
 }
 
 /// A domain where the elements can be counted and indexed.
-pub trait Indexable: Domain {
+pub trait Countable: Domain {
     /// Returns the number of elements of the domain.
     fn count(&self) -> usize;
 

@@ -19,7 +19,8 @@
 
 use std::ops;
 
-use super::{BooleanAlgebra, BooleanSolver, GenElem, GenVec, VecFor};
+use super::{BooleanAlgebra, BooleanSolver};
+use crate::genvec::{GenElem, GenVec, VecFor};
 
 /// The shape of a tensor.
 #[derive(Clone, PartialEq, Eq, Debug)]

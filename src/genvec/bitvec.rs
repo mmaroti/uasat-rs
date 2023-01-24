@@ -17,7 +17,7 @@
 
 //! A simple bit vector implementation.
 
-use super::{CopyIterable, GenElem, GenVec};
+use super::{GenElem, GenIterable, GenSlice, GenVec};
 use std::iter::{ExactSizeIterator, Extend, FromIterator, FusedIterator};
 
 /// A simple bit vector implementation.
@@ -94,7 +94,7 @@ impl GenVec<bool> for BitVec {
 
     fn append(&mut self, other: &mut Self) {
         self.reserve(other.len());
-        for elem in other.iter_copy() {
+        for elem in other.gen_iter() {
             self.push(elem);
         }
         other.clear();
@@ -255,14 +255,60 @@ impl IntoIterator for BitVec {
     }
 }
 
-impl<'a> CopyIterable<'a, bool> for BitVec {
-    type Iter = super::bitvec::CopyIter<'a>;
+impl GenElem for bool {
+    type Vec = BitVec;
+}
 
-    fn iter_copy(&'a self) -> Self::Iter {
-        CopyIter { pos: 0, vec: self }
+#[derive(Clone, Copy)]
+pub struct BitSlice<'a> {
+    vec: &'a BitVec,
+    start: usize,
+    len: usize,
+}
+
+impl<'a> GenSlice<bool> for BitSlice<'a> {
+    fn len(self) -> usize {
+        self.len
+    }
+
+    fn is_empty(self) -> bool {
+        self.len != 0
+    }
+
+    fn get(self, index: usize) -> bool {
+        assert!(index < self.len);
+        self.vec.get(self.start + index)
+    }
+
+    unsafe fn get_unchecked(self, index: usize) -> bool {
+        debug_assert!(index < self.len);
+        self.vec.get_unchecked(self.start + index)
+    }
+
+    fn get_slice(self, start: usize, end: usize) -> Self {
+        assert!(start <= end && end <= self.len);
+        Self {
+            vec: self.vec,
+            start: self.start + start,
+            len: end - start,
+        }
     }
 }
 
-impl GenElem for bool {
-    type Vec = BitVec;
+impl<'a> GenIterable<'a, bool> for BitVec {
+    type Slice = BitSlice<'a>;
+
+    fn gen_slice_impl(&'a self) -> Self::Slice {
+        BitSlice {
+            vec: self,
+            start: 0,
+            len: self.len,
+        }
+    }
+
+    type Iter = super::bitvec::CopyIter<'a>;
+
+    fn gen_iter_impl(&'a self) -> Self::Iter {
+        CopyIter { pos: 0, vec: self }
+    }
 }

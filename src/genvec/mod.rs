@@ -18,7 +18,7 @@
 //! Module for the core components that seems to have stabilized.
 
 mod traits;
-pub use traits::{CopyIterable, GenElem, GenSlice, GenVec, VecFor};
+pub use traits::{GenElem, GenIterable, GenSlice, GenVec, VecFor};
 
 mod bitvec;
 pub use bitvec::BitVec;

@@ -138,53 +138,69 @@ where
     fn capacity(&self) -> usize;
 
     /// Returns an iterator over copied elements of the vector.
-    fn gen_iter<'a>(&'a self) -> <Self as CopyIterable<'a, ELEM>>::Iter
+    fn gen_iter<'a>(&'a self) -> <Self as GenIterable<'a, ELEM>>::Iter
     where
-        Self: CopyIterable<'a, ELEM>,
+        Self: GenIterable<'a, ELEM>,
     {
-        self.iter_copy()
+        self.gen_iter_impl()
     }
+
+    /// Returns an iterator over copied elements of the vector.
+    fn gen_slice<'a>(&'a self) -> <Self as GenIterable<'a, ELEM>>::Slice
+    where
+        Self: GenIterable<'a, ELEM>,
+    {
+        self.gen_slice_impl()
+    }
+}
+
+/// A helper trait to find the right slice and iterator type for the vector.
+pub trait GenIterable<'a, ELEM>
+where
+    ELEM: Copy,
+{
+    type Iter: Iterator<Item = ELEM>;
+
+    fn gen_iter_impl(&'a self) -> Self::Iter;
+
+    type Slice: GenSlice<ELEM>;
+
+    /// Returns a slice object covering all elements of this vector.
+    fn gen_slice_impl(&'a self) -> Self::Slice;
 }
 
 pub trait GenSlice<ELEM>
 where
+    Self: Sized + Copy,
     ELEM: Copy,
 {
     /// Returns the number of elements in the slice.
-    fn len(&self) -> usize;
+    fn len(self) -> usize;
 
     /// Returns `true` if the length is zero.
-    fn is_empty(&self) -> bool {
+    fn is_empty(self) -> bool {
         self.len() == 0
     }
 
     /// Returns the element at the given index. Panics if the index is
     /// out of bounds.
-    fn get(&self, index: usize) -> ELEM;
+    fn get(self, index: usize) -> ELEM;
 
     /// Returns the element at the given index without bound checks.
     /// # Safety
     /// Do not use this in general code, use `ranges` if possible.
-    unsafe fn get_unchecked(&self, index: usize) -> ELEM {
+    unsafe fn get_unchecked(self, index: usize) -> ELEM {
         self.get(index)
     }
 
     /// Returns a slice containing the selected range of elements.
-    fn slice(&self, start: usize, end: usize) -> Self;
-}
-
-/// A helper trait to find the right iterator that returns elements and not
-/// references.
-pub trait CopyIterable<'a, ELEM> {
-    type Iter: Iterator<Item = ELEM>;
-
-    fn iter_copy(&'a self) -> Self::Iter;
+    fn get_slice(self, start: usize, end: usize) -> Self;
 }
 
 /// A trait for elements that can be stored in a generic vector.
 pub trait GenElem: Copy {
     /// A type that can be used for storing a vector of elements.
-    type Vec: GenVec<Self> + PartialEq + std::fmt::Debug + for<'a> CopyIterable<'a, Self>;
+    type Vec: GenVec<Self> + PartialEq + std::fmt::Debug + for<'a> GenIterable<'a, Self>;
 }
 
 pub type VecFor<ELEM> = <ELEM as GenElem>::Vec;

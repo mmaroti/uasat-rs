@@ -17,33 +17,8 @@
 
 //! A generic vector trait to work with regular and bit vectors.
 
-use super::{CopyIterable, GenElem, GenSlice, GenVec};
+use super::{GenElem, GenIterable, GenSlice, GenVec};
 use crate::core::Literal;
-
-impl<'a, ELEM> GenSlice<ELEM> for &'a [ELEM]
-where
-    ELEM: Copy,
-{
-    fn len(&self) -> usize {
-        <[ELEM]>::len(self)
-    }
-
-    fn is_empty(&self) -> bool {
-        <[ELEM]>::is_empty(self)
-    }
-
-    fn get(&self, index: usize) -> ELEM {
-        self[index]
-    }
-
-    unsafe fn get_unchecked(&self, index: usize) -> ELEM {
-        *<[ELEM]>::get_unchecked(self, index)
-    }
-
-    fn slice(&self, start: usize, end: usize) -> Self {
-        &self[start..end]
-    }
-}
 
 impl<ELEM> GenVec<ELEM> for Vec<ELEM>
 where
@@ -119,11 +94,45 @@ where
     }
 }
 
-impl<'a, ELEM: Copy + 'a> CopyIterable<'a, ELEM> for Vec<ELEM> {
+impl<'a, ELEM> GenIterable<'a, ELEM> for Vec<ELEM>
+where
+    ELEM: Copy + 'a,
+{
+    type Slice = &'a [ELEM];
+
+    fn gen_slice_impl(&'a self) -> Self::Slice {
+        self
+    }
+
     type Iter = std::iter::Copied<std::slice::Iter<'a, ELEM>>;
 
-    fn iter_copy(&'a self) -> Self::Iter {
+    fn gen_iter_impl(&'a self) -> Self::Iter {
         self.iter().copied()
+    }
+}
+
+impl<'a, ELEM> GenSlice<ELEM> for &'a [ELEM]
+where
+    ELEM: Copy,
+{
+    fn len(self) -> usize {
+        <[ELEM]>::len(self)
+    }
+
+    fn is_empty(self) -> bool {
+        <[ELEM]>::is_empty(self)
+    }
+
+    fn get(self, index: usize) -> ELEM {
+        self[index]
+    }
+
+    unsafe fn get_unchecked(self, index: usize) -> ELEM {
+        *<[ELEM]>::get_unchecked(self, index)
+    }
+
+    fn get_slice(self, start: usize, end: usize) -> Self {
+        &self[start..end]
     }
 }
 

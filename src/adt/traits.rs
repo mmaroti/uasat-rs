@@ -15,7 +15,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BooleanAlgebra, BooleanSolver};
+use super::{BooleanAlgebra, BooleanSolver, GenVec, VecFor};
 
 /// An arbitrary set of elements that can be representable by bit vectors.
 pub trait Domain: Clone {
@@ -25,22 +25,33 @@ pub trait Domain: Clone {
 
     /// Verifies that the given bit vector is encoding a valid element of
     /// this domain.
+    /// TODO: switch the elem to a generic vec, but we need generic slices.
     fn contains<ALG>(&self, alg: &mut ALG, elem: &[ALG::Elem]) -> ALG::Elem
     where
         ALG: BooleanAlgebra;
 
     /// Adds a new variable to the given solver, which is just a list of
     /// fresh literals.
-    fn add_variable<ALG>(&self, alg: &mut ALG) -> Box<[ALG::Elem]>
+    fn add_variable<ALG>(&self, alg: &mut ALG) -> VecFor<ALG::Elem>
     where
         ALG: BooleanSolver,
     {
-        let mut elem = Vec::with_capacity(self.num_bits());
+        let mut elem: VecFor<ALG::Elem> = GenVec::with_capacity(self.num_bits());
         for _ in 0..self.num_bits() {
             elem.push(alg.bool_add_variable());
         }
-        elem.into_boxed_slice()
+        elem
     }
 }
 
-pub trait Finite: Domain {}
+/// A domain where the elements can be counted and indexed.
+pub trait Indexable: Domain {
+    /// Returns the number of elements of the domain.
+    fn count(&self) -> usize;
+
+    /// Returns the given element of the domain.
+    fn elem(&self, index: usize) -> VecFor<bool>;
+
+    /// Returns the index of the given element.
+    fn index(&self, elem: &VecFor<bool>) -> usize;
+}

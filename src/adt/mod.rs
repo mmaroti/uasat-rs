@@ -17,7 +17,7 @@
 
 //! Module for working with abstract data types.
 
-use crate::core::{BooleanAlgebra, BooleanSolver};
+use super::core::{BooleanAlgebra, BooleanSolver, GenVec, VecFor};
 
 mod product;
 pub use product::*;

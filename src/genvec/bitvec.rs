@@ -285,7 +285,7 @@ impl<'a> GenSlice<bool> for BitSlice<'a> {
         self.vec.get_unchecked(self.start + index)
     }
 
-    fn get_slice(self, start: usize, end: usize) -> Self {
+    fn slice(self, start: usize, end: usize) -> Self {
         assert!(start <= end && end <= self.len);
         Self {
             vec: self.vec,
@@ -293,12 +293,21 @@ impl<'a> GenSlice<bool> for BitSlice<'a> {
             len: end - start,
         }
     }
+
+    type Iter = super::bitvec::CopyIter<'a>;
+
+    fn iter(self) -> Self::Iter {
+        CopyIter {
+            pos: 0,
+            vec: self.vec,
+        }
+    }
 }
 
 impl<'a> GenIterable<'a, bool> for BitVec {
     type Slice = BitSlice<'a>;
 
-    fn gen_slice_impl(&'a self) -> Self::Slice {
+    fn slice_impl(&'a self) -> Self::Slice {
         BitSlice {
             vec: self,
             start: 0,

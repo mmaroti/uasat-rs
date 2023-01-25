@@ -15,7 +15,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BooleanAlgebra, BooleanSolver, GenVec, VecFor};
+use super::{BooleanAlgebra, BooleanSolver, GenVec, SliceFor, VecFor};
 
 /// An arbitrary set of elements that can be representable by bit vectors.
 pub trait Domain: Clone {
@@ -26,7 +26,7 @@ pub trait Domain: Clone {
     /// Verifies that the given bit vector is encoding a valid element of
     /// this domain.
     /// TODO: switch the elem to a generic vec, but we need generic slices.
-    fn contains<ALG>(&self, alg: &mut ALG, elem: &[ALG::Elem]) -> ALG::Elem
+    fn contains<ALG>(&self, alg: &mut ALG, elem: SliceFor<'_, ALG::Elem>) -> ALG::Elem
     where
         ALG: BooleanAlgebra;
 

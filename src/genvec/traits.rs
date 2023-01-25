@@ -146,11 +146,11 @@ where
     }
 
     /// Returns an iterator over copied elements of the vector.
-    fn gen_slice<'a>(&'a self) -> <Self as GenIterable<'a, ELEM>>::Slice
+    fn slice<'a>(&'a self) -> <Self as GenIterable<'a, ELEM>>::Slice
     where
         Self: GenIterable<'a, ELEM>,
     {
-        self.gen_slice_impl()
+        self.slice_impl()
     }
 }
 
@@ -166,7 +166,7 @@ where
     type Slice: GenSlice<ELEM>;
 
     /// Returns a slice object covering all elements of this vector.
-    fn gen_slice_impl(&'a self) -> Self::Slice;
+    fn slice_impl(&'a self) -> Self::Slice;
 }
 
 pub trait GenSlice<ELEM>
@@ -174,6 +174,9 @@ where
     Self: Sized + Copy,
     ELEM: Copy,
 {
+    /// The iterator type for this slice.
+    type Iter: Iterator<Item = ELEM>;
+
     /// Returns the number of elements in the slice.
     fn len(self) -> usize;
 
@@ -194,7 +197,10 @@ where
     }
 
     /// Returns a slice containing the selected range of elements.
-    fn get_slice(self, start: usize, end: usize) -> Self;
+    fn slice(self, start: usize, end: usize) -> Self;
+
+    /// Returns an iterator over this slice.
+    fn iter(self) -> Self::Iter;
 }
 
 /// A trait for elements that can be stored in a generic vector.
@@ -204,3 +210,4 @@ pub trait GenElem: Copy {
 }
 
 pub type VecFor<ELEM> = <ELEM as GenElem>::Vec;
+pub type SliceFor<'a, ELEM> = <<ELEM as GenElem>::Vec as GenIterable<'a, ELEM>>::Slice;

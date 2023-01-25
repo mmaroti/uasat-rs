@@ -15,7 +15,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BooleanAlgebra, Domain};
+use super::{BooleanAlgebra, Domain, GenSlice, SliceFor};
 
 /// The product of a list of domains.
 #[derive(Clone)]
@@ -50,7 +50,7 @@ where
         self.parts.iter().map(|p| p.num_bits()).sum()
     }
 
-    fn contains<ALG>(&self, alg: &mut ALG, elem: &[ALG::Elem]) -> ALG::Elem
+    fn contains<ALG>(&self, alg: &mut ALG, elem: SliceFor<'_, ALG::Elem>) -> ALG::Elem
     where
         ALG: BooleanAlgebra,
     {
@@ -58,7 +58,7 @@ where
         let mut pos = 0;
         for p in self.parts.iter() {
             let end = pos + p.num_bits();
-            let v = p.contains(alg, &elem[pos..end]);
+            let v = p.contains(alg, elem.slice(pos, end));
             valid = alg.bool_and(valid, v);
             pos = end;
         }

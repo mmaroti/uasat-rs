@@ -18,7 +18,7 @@
 //! Module for working with abstract data types.
 
 use super::core::{BooleanAlgebra, BooleanSolver};
-use super::genvec::{GenVec, VecFor};
+use super::genvec::{GenSlice, GenVec, SliceFor, VecFor};
 
 mod product;
 pub use product::*;

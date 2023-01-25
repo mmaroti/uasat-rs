@@ -15,7 +15,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BooleanAlgebra, Domain};
+use super::{BooleanAlgebra, Domain, GenSlice, SliceFor};
 
 /// A small set encoded as a one-hot vector of booleans.
 #[derive(Clone)]
@@ -35,11 +35,11 @@ impl Domain for SmallSet {
         self.size
     }
 
-    fn contains<ALG>(&self, alg: &mut ALG, elem: &[ALG::Elem]) -> ALG::Elem
+    fn contains<ALG>(&self, alg: &mut ALG, elem: SliceFor<'_, ALG::Elem>) -> ALG::Elem
     where
         ALG: BooleanAlgebra,
     {
-        alg.bool_fold_one(elem.iter().copied())
+        alg.bool_fold_one(elem.iter())
     }
 }
 

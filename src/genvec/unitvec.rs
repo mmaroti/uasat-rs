@@ -141,16 +141,22 @@ impl GenSlice<()> for UnitVec {
 
     unsafe fn get_unchecked(self, _index: usize) {}
 
-    fn get_slice(self, start: usize, end: usize) -> Self {
+    fn slice(self, start: usize, end: usize) -> Self {
         assert!(start <= end);
         Self { len: end - start }
+    }
+
+    type Iter = UnitIter;
+
+    fn iter(self) -> Self::Iter {
+        self.into_iter()
     }
 }
 
 impl<'a> GenIterable<'a, ()> for UnitVec {
     type Slice = UnitVec;
 
-    fn gen_slice_impl(&'a self) -> Self::Slice {
+    fn slice_impl(&'a self) -> Self::Slice {
         *self
     }
 

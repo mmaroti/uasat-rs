@@ -100,7 +100,7 @@ where
 {
     type Slice = &'a [ELEM];
 
-    fn gen_slice_impl(&'a self) -> Self::Slice {
+    fn slice_impl(&'a self) -> Self::Slice {
         self
     }
 
@@ -115,6 +115,8 @@ impl<'a, ELEM> GenSlice<ELEM> for &'a [ELEM]
 where
     ELEM: Copy,
 {
+    type Iter = std::iter::Copied<std::slice::Iter<'a, ELEM>>;
+
     fn len(self) -> usize {
         <[ELEM]>::len(self)
     }
@@ -131,8 +133,12 @@ where
         *<[ELEM]>::get_unchecked(self, index)
     }
 
-    fn get_slice(self, start: usize, end: usize) -> Self {
+    fn slice(self, start: usize, end: usize) -> Self {
         &self[start..end]
+    }
+
+    fn iter(self) -> Self::Iter {
+        self.iter().copied()
     }
 }
 

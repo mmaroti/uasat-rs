@@ -27,6 +27,8 @@ where
     Self: IntoIterator<Item = ELEM>,
     Self: FromIterator<ELEM>,
     Self: Extend<ELEM>,
+    Self: PartialEq,
+    Self: for<'a> GenIterable<'a, ELEM>,
 {
     /// Constructs a new empty vector. The vector will not allocate until
     /// elements are pushed onto it.
@@ -136,37 +138,21 @@ where
 
     /// Returns the number of elements the vector can hold without reallocating.
     fn capacity(&self) -> usize;
-
-    /// Returns an iterator over copied elements of the vector.
-    fn gen_iter<'a>(&'a self) -> <Self as GenIterable<'a, ELEM>>::Iter
-    where
-        Self: GenIterable<'a, ELEM>,
-    {
-        self.gen_iter_impl()
-    }
-
-    /// Returns an iterator over copied elements of the vector.
-    fn slice<'a>(&'a self) -> <Self as GenIterable<'a, ELEM>>::Slice
-    where
-        Self: GenIterable<'a, ELEM>,
-    {
-        self.slice_impl()
-    }
 }
 
 /// A helper trait to find the right slice and iterator type for the vector.
 pub trait GenIterable<'a, ELEM>
 where
-    ELEM: Copy,
+    ELEM: Copy + 'a,
 {
     type Iter: Iterator<Item = ELEM>;
 
-    fn gen_iter_impl(&'a self) -> Self::Iter;
+    fn copy_iter(&'a self) -> Self::Iter;
 
     type Slice: GenSlice<ELEM>;
 
     /// Returns a slice object covering all elements of this vector.
-    fn slice_impl(&'a self) -> Self::Slice;
+    fn slice(&'a self) -> Self::Slice;
 }
 
 pub trait GenSlice<ELEM>
@@ -206,7 +192,7 @@ where
 /// A trait for elements that can be stored in a generic vector.
 pub trait GenElem: Copy {
     /// A type that can be used for storing a vector of elements.
-    type Vec: GenVec<Self> + PartialEq + std::fmt::Debug + for<'a> GenIterable<'a, Self>;
+    type Vec: GenVec<Self> + std::fmt::Debug;
 }
 
 pub type VecFor<ELEM> = <ELEM as GenElem>::Vec;

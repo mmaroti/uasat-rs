@@ -15,7 +15,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{GenVec, VecFor};
+use super::{GenVec, GenIterable, VecFor};
 
 #[test]
 fn resize() {
@@ -78,7 +78,7 @@ fn iters() {
     }
     assert_eq!(v1, v2);
 
-    let mut iter = v1.gen_iter().skip(1);
+    let mut iter = v1.copy_iter().skip(1);
     assert_eq!(iter.next(), Some(false));
     assert_eq!(iter.next(), Some(true));
     assert_eq!(iter.next(), None);

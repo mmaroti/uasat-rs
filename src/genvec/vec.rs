@@ -22,7 +22,8 @@ use crate::core::Literal;
 
 impl<ELEM> GenVec<ELEM> for Vec<ELEM>
 where
-    ELEM: Copy,
+    ELEM: Copy + PartialEq,
+    Self: for<'a> GenIterable<'a, ELEM>,
 {
     fn new() -> Self {
         Self::new()
@@ -100,13 +101,13 @@ where
 {
     type Slice = &'a [ELEM];
 
-    fn slice_impl(&'a self) -> Self::Slice {
+    fn slice(&'a self) -> Self::Slice {
         self
     }
 
     type Iter = std::iter::Copied<std::slice::Iter<'a, ELEM>>;
 
-    fn gen_iter_impl(&'a self) -> Self::Iter {
+    fn copy_iter(&'a self) -> Self::Iter {
         self.iter().copied()
     }
 }

@@ -156,13 +156,13 @@ impl GenSlice<()> for UnitVec {
 impl<'a> GenIterable<'a, ()> for UnitVec {
     type Slice = UnitVec;
 
-    fn slice_impl(&'a self) -> Self::Slice {
+    fn slice(&'a self) -> Self::Slice {
         *self
     }
 
     type Iter = UnitIter;
 
-    fn gen_iter_impl(&'a self) -> Self::Iter {
+    fn copy_iter(&'a self) -> Self::Iter {
         self.into_iter()
     }
 }

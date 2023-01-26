@@ -128,6 +128,12 @@ impl GenVec<()> for UnitVec {
     fn capacity(&self) -> usize {
         usize::max_value()
     }
+
+    type Iter<'a> = UnitIter;
+
+    fn copy_iter(&self) -> Self::Iter<'_> {
+        self.into_iter()
+    }
 }
 
 impl GenSlice<()> for UnitVec {
@@ -158,12 +164,6 @@ impl<'a> GenIterable<'a, ()> for UnitVec {
 
     fn slice(&'a self) -> Self::Slice {
         *self
-    }
-
-    type Iter = UnitIter;
-
-    fn copy_iter(&'a self) -> Self::Iter {
-        self.into_iter()
     }
 }
 

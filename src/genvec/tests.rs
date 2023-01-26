@@ -15,7 +15,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{GenVec, GenIterable, VecFor};
+use super::{GenVec, VecFor};
 
 #[test]
 fn resize() {

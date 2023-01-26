@@ -93,6 +93,12 @@ where
     fn capacity(&self) -> usize {
         self.capacity()
     }
+
+    type Iter<'a> = std::iter::Copied<std::slice::Iter<'a, ELEM>> where ELEM: 'a;
+
+    fn copy_iter(&self) -> Self::Iter<'_> {
+        self.iter().copied()
+    }
 }
 
 impl<'a, ELEM> GenIterable<'a, ELEM> for Vec<ELEM>
@@ -103,12 +109,6 @@ where
 
     fn slice(&'a self) -> Self::Slice {
         self
-    }
-
-    type Iter = std::iter::Copied<std::slice::Iter<'a, ELEM>>;
-
-    fn copy_iter(&'a self) -> Self::Iter {
-        self.iter().copied()
     }
 }
 

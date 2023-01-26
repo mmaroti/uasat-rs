@@ -138,17 +138,21 @@ where
 
     /// Returns the number of elements the vector can hold without reallocating.
     fn capacity(&self) -> usize;
+
+    /// The type of iterator that can return the elements as copied values.
+    type Iter<'a>: Iterator<Item = ELEM>
+    where
+        Self: 'a;
+
+    /// Creates an iterator that returns the elements copied values.
+    fn copy_iter(&self) -> Self::Iter<'_>;
 }
 
 /// A helper trait to find the right slice and iterator type for the vector.
 pub trait GenIterable<'a, ELEM>
 where
-    ELEM: Copy + 'a,
+    ELEM: Copy,
 {
-    type Iter: Iterator<Item = ELEM>;
-
-    fn copy_iter(&'a self) -> Self::Iter;
-
     type Slice: GenSlice<ELEM>;
 
     /// Returns a slice object covering all elements of this vector.

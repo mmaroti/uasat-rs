@@ -17,7 +17,7 @@
 
 //! A simple bit vector implementation.
 
-use super::{GenElem, GenIterable, GenSlice, GenVec};
+use super::{GenElem, GenSlice, GenVec};
 use std::iter::{ExactSizeIterator, Extend, FromIterator, FusedIterator};
 
 /// A simple bit vector implementation.
@@ -152,6 +152,16 @@ impl GenVec<bool> for BitVec {
 
     fn copy_iter(&self) -> Self::Iter<'_> {
         CopyIter { pos: 0, vec: self }
+    }
+
+    type Slice<'a> = BitSlice<'a>;
+
+    fn slice(&self) -> Self::Slice<'_> {
+        BitSlice {
+            vec: self,
+            start: 0,
+            len: self.len,
+        }
     }
 }
 
@@ -302,22 +312,10 @@ impl<'a> GenSlice<bool> for BitSlice<'a> {
 
     type Iter = CopyIter<'a>;
 
-    fn iter(self) -> Self::Iter {
+    fn copy_iter(self) -> Self::Iter {
         CopyIter {
             pos: 0,
             vec: self.vec,
-        }
-    }
-}
-
-impl<'a> GenIterable<'a, bool> for BitVec {
-    type Slice = BitSlice<'a>;
-
-    fn slice(&'a self) -> Self::Slice {
-        BitSlice {
-            vec: self,
-            start: 0,
-            len: self.len,
         }
     }
 }

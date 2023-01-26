@@ -39,7 +39,7 @@ impl Domain for SmallSet {
     where
         ALG: BooleanAlgebra,
     {
-        alg.bool_fold_one(elem.iter())
+        alg.bool_fold_one(elem.copy_iter())
     }
 }
 

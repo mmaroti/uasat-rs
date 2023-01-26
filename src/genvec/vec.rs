@@ -17,13 +17,12 @@
 
 //! A generic vector trait to work with regular and bit vectors.
 
-use super::{GenElem, GenIterable, GenSlice, GenVec};
+use super::{GenElem, GenSlice, GenVec};
 use crate::core::Literal;
 
 impl<ELEM> GenVec<ELEM> for Vec<ELEM>
 where
     ELEM: Copy + PartialEq,
-    Self: for<'a> GenIterable<'a, ELEM>,
 {
     fn new() -> Self {
         Self::new()
@@ -94,20 +93,15 @@ where
         self.capacity()
     }
 
-    type Iter<'a> = std::iter::Copied<std::slice::Iter<'a, ELEM>> where ELEM: 'a;
+    type Iter<'a> = std::iter::Copied<std::slice::Iter<'a, ELEM>> where Self: 'a;
 
     fn copy_iter(&self) -> Self::Iter<'_> {
         self.iter().copied()
     }
-}
 
-impl<'a, ELEM> GenIterable<'a, ELEM> for Vec<ELEM>
-where
-    ELEM: Copy + 'a,
-{
-    type Slice = &'a [ELEM];
+    type Slice<'a> = &'a [ELEM] where Self: 'a;
 
-    fn slice(&'a self) -> Self::Slice {
+    fn slice(&self) -> Self::Slice<'_> {
         self
     }
 }
@@ -138,7 +132,7 @@ where
         &self[start..end]
     }
 
-    fn iter(self) -> Self::Iter {
+    fn copy_iter(self) -> Self::Iter {
         self.iter().copied()
     }
 }

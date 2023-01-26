@@ -15,7 +15,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BooleanAlgebra, Domain, GenSlice, SliceFor};
+use super::{BooleanAlgebra, Countable, Domain, GenSlice, GenVec, SliceFor, VecFor};
 
 /// A small set encoded as a one-hot vector of booleans.
 #[derive(Clone)]
@@ -41,12 +41,48 @@ impl Domain for SmallSet {
     {
         alg.bool_fold_one(elem.copy_iter())
     }
+
+    fn display_elem<'a>(
+        &self,
+        f: &mut std::fmt::Formatter<'a>,
+        elem: SliceFor<'_, bool>,
+    ) -> std::fmt::Result {
+        write!(f, "{}", self.index(elem))
+    }
+}
+
+impl Countable for SmallSet {
+    fn count(&self) -> usize {
+        self.size
+    }
+
+    fn elem(&self, index: usize) -> VecFor<bool> {
+        assert!(index < self.size);
+        let mut vec: VecFor<bool> = GenVec::with_capacity(self.size);
+        for i in 0..self.size {
+            vec.push(i == index);
+        }
+        vec
+    }
+
+    fn index(&self, elem: SliceFor<'_, bool>) -> usize {
+        assert!(elem.len() == self.size);
+        let mut index = self.size;
+        for (i, v) in elem.copy_iter().enumerate() {
+            if v {
+                debug_assert!(index == self.size);
+                index = i;
+            }
+        }
+        assert!(index < self.size);
+        index
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::{BooleanSolver, Solver};
+    use crate::core::{BooleanSolver, Bools, Solver};
 
     #[test]
     fn size() {
@@ -57,7 +93,19 @@ mod tests {
         let test = domain.contains(&mut solver, &elem);
         solver.bool_add_clause(&[test]);
 
-        let num = solver.bool_find_num_models_method1(elem.iter().cloned());
+        let num = solver.bool_find_num_models_method1(elem.iter().copied());
         assert_eq!(num, 5);
+    }
+
+    #[test]
+    fn index() {
+        let mut alg = Bools();
+        let domain = SmallSet::new(5);
+
+        for idx in 0..domain.count() {
+            let elem = domain.elem(idx);
+            assert!(domain.contains(&mut alg, elem.slice()));
+            assert!(domain.index(elem.slice()) == idx);
+        }
     }
 }

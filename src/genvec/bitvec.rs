@@ -148,10 +148,14 @@ impl GenVec<bool> for BitVec {
         self.data.capacity() * 32
     }
 
-    type Iter<'a> = CopyIter<'a>;
+    type Iter<'a> = BitSlice<'a>;
 
     fn copy_iter(&self) -> Self::Iter<'_> {
-        CopyIter { pos: 0, vec: self }
+        BitSlice {
+            vec: self,
+            start: 0,
+            end: self.len,
+        }
     }
 
     type Slice<'a> = BitSlice<'a>;
@@ -160,7 +164,7 @@ impl GenVec<bool> for BitVec {
         BitSlice {
             vec: self,
             start: 0,
-            len: self.len,
+            end: self.len,
         }
     }
 }
@@ -206,34 +210,6 @@ impl FromIterator<bool> for BitVec {
     }
 }
 
-pub struct CopyIter<'a> {
-    pos: usize,
-    vec: &'a BitVec,
-}
-
-impl<'a> Iterator for CopyIter<'a> {
-    type Item = bool;
-
-    fn next(&mut self) -> Option<bool> {
-        if self.pos < self.vec.len() {
-            let elem = self.vec.get(self.pos);
-            self.pos += 1;
-            Some(elem)
-        } else {
-            None
-        }
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let num = self.vec.len() - self.pos;
-        (num, Some(num))
-    }
-}
-
-impl<'a> FusedIterator for CopyIter<'a> {}
-
-impl<'a> ExactSizeIterator for CopyIter<'a> {}
-
 pub struct IntoIter {
     pos: usize,
     vec: BitVec,
@@ -275,47 +251,71 @@ impl GenElem for bool {
     type Vec = BitVec;
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct BitSlice<'a> {
     vec: &'a BitVec,
     start: usize,
-    len: usize,
+    end: usize,
 }
 
 impl<'a> GenSlice<bool> for BitSlice<'a> {
     fn len(self) -> usize {
-        self.len
+        self.end - self.start
     }
 
     fn is_empty(self) -> bool {
-        self.len != 0
+        self.start >= self.end
     }
 
     fn get(self, index: usize) -> bool {
-        assert!(index < self.len);
-        self.vec.get(self.start + index)
+        let index = self.start + index;
+        assert!(index < self.end);
+        self.vec.get(index)
     }
 
     unsafe fn get_unchecked(self, index: usize) -> bool {
-        debug_assert!(index < self.len);
-        self.vec.get_unchecked(self.start + index)
+        let index = self.start + index;
+        debug_assert!(index < self.end);
+        self.vec.get_unchecked(index)
     }
 
     fn slice(self, start: usize, end: usize) -> Self {
-        assert!(start <= end && end <= self.len);
+        let start = self.start + start;
+        let end = self.start + end;
+        assert!(start <= end && end <= self.end);
         Self {
             vec: self.vec,
-            start: self.start + start,
-            len: end - start,
+            start,
+            end,
         }
     }
 
-    type Iter = CopyIter<'a>;
+    type Iter = Self;
 
     fn copy_iter(self) -> Self::Iter {
-        CopyIter {
-            pos: 0,
-            vec: self.vec,
-        }
+        self
     }
 }
+
+impl<'a> Iterator for BitSlice<'a> {
+    type Item = bool;
+
+    fn next(&mut self) -> Option<bool> {
+        if self.start < self.end {
+            let elem = self.vec.get(self.start);
+            self.start += 1;
+            Some(elem)
+        } else {
+            None
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.end - self.start;
+        (len, Some(len))
+    }
+}
+
+impl<'a> FusedIterator for BitSlice<'a> {}
+
+impl<'a> ExactSizeIterator for BitSlice<'a> {}

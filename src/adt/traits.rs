@@ -15,7 +15,25 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BooleanAlgebra, BooleanSolver, GenVec, SliceFor, VecFor};
+use super::{BooleanAlgebra, BooleanSolver, GenSlice, GenVec, SliceFor, Solver, VecFor};
+
+/// A helper structure for displaying domain elements.
+pub struct Format<'a, DOM>
+where
+    DOM: Domain,
+{
+    domain: &'a DOM,
+    elem: SliceFor<'a, bool>,
+}
+
+impl<'a, Dom> std::fmt::Display for Format<'a, Dom>
+where
+    Dom: Domain,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.domain.display_elem(f, self.elem)
+    }
+}
 
 /// An arbitrary set of elements that can be representable by bit vectors.
 pub trait Domain: Clone {
@@ -42,6 +60,32 @@ pub trait Domain: Clone {
         }
         elem
     }
+
+    /// Returns an object for formatting the given element.
+    fn format<'a>(&'a self, elem: SliceFor<'a, bool>) -> Format<'a, Self> {
+        Format { domain: self, elem }
+    }
+
+    /// Formats the given element using the provided formatter.
+    fn display_elem<'a>(
+        &self,
+        f: &mut std::fmt::Formatter<'a>,
+        elem: SliceFor<'_, bool>,
+    ) -> std::fmt::Result {
+        for v in elem.copy_iter() {
+            write!(f, "{}", if v { '1' } else { '0' })?;
+        }
+        Ok(())
+    }
+
+    /// Finds an element of this domain if it has one.
+    fn find_element(&self) -> Option<VecFor<bool>> {
+        let mut solver = Solver::new("");
+        let elem = self.add_variable(&mut solver);
+        let test = self.contains(&mut solver, &elem);
+        solver.bool_add_clause(&[test]);
+        solver.bool_find_one_model(&[], elem.copy_iter())
+    }
 }
 
 /// A domain where the elements can be counted and indexed.
@@ -53,5 +97,5 @@ pub trait Countable: Domain {
     fn elem(&self, index: usize) -> VecFor<bool>;
 
     /// Returns the index of the given element.
-    fn index(&self, elem: &VecFor<bool>) -> usize;
+    fn index(&self, elem: SliceFor<'_, bool>) -> usize;
 }

@@ -27,7 +27,8 @@ pub mod genvec;
 pub mod math;
 
 pub fn main() {
-    math::validate();
+    // math::validate();
     // math::extremeconn_test();
     // math::obstruction_test();
+    adt::test();
 }

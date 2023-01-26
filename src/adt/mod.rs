@@ -17,8 +17,11 @@
 
 //! Module for working with abstract data types.
 
-use super::core::{BooleanAlgebra, BooleanSolver};
+use super::core::{BooleanAlgebra, BooleanSolver, Solver};
 use super::genvec::{GenSlice, GenVec, SliceFor, VecFor};
+
+mod power;
+pub use power::*;
 
 mod product;
 pub use product::*;
@@ -28,3 +31,9 @@ pub use small_set::*;
 
 mod traits;
 pub use traits::*;
+
+pub fn test() {
+    let alg = Power::new(SmallSet::new(5), SmallSet::new(2));
+    let elem = alg.find_element().unwrap();
+    println!("{}", alg.format(elem.slice()));
+}

@@ -23,9 +23,21 @@ pub struct SmallSet {
     size: usize,
 }
 
+pub const ZERO: SmallSet = SmallSet::new(0);
+pub const ONE: SmallSet = SmallSet::new(1);
+pub const TWO: SmallSet = SmallSet::new(2);
+pub const THREE: SmallSet = SmallSet::new(3);
+pub const FOUR: SmallSet = SmallSet::new(4);
+pub const FIVE: SmallSet = SmallSet::new(5);
+pub const SIX: SmallSet = SmallSet::new(6);
+pub const SEVEN: SmallSet = SmallSet::new(7);
+pub const EIGHT: SmallSet = SmallSet::new(8);
+pub const NINE: SmallSet = SmallSet::new(9);
+pub const TEN: SmallSet = SmallSet::new(10);
+
 impl SmallSet {
     /// Creates a new small set of the given size.
-    pub fn new(size: usize) -> Self {
+    pub const fn new(size: usize) -> Self {
         Self { size }
     }
 }
@@ -39,6 +51,7 @@ impl Domain for SmallSet {
     where
         ALG: BooleanAlgebra,
     {
+        assert!(elem.len() == self.size);
         alg.bool_fold_one(elem.copy_iter())
     }
 
@@ -52,7 +65,7 @@ impl Domain for SmallSet {
 }
 
 impl Countable for SmallSet {
-    fn count(&self) -> usize {
+    fn size(&self) -> usize {
         self.size
     }
 
@@ -101,8 +114,9 @@ mod tests {
     fn index() {
         let mut alg = Bools();
         let domain = SmallSet::new(5);
+        assert!(domain.size() == 5);
 
-        for idx in 0..domain.count() {
+        for idx in 0..domain.size() {
             let elem = domain.elem(idx);
             assert!(domain.contains(&mut alg, elem.slice()));
             assert!(domain.index(elem.slice()) == idx);

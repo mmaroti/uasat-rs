@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2022, Miklos Maroti
+* Copyright (C) 2022-2023, Miklos Maroti
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -16,24 +16,6 @@
 */
 
 use super::{BooleanAlgebra, BooleanSolver, GenSlice, GenVec, SliceFor, Solver, VecFor};
-
-/// A helper structure for displaying domain elements.
-pub struct Format<'a, DOM>
-where
-    DOM: Domain,
-{
-    domain: &'a DOM,
-    elem: SliceFor<'a, bool>,
-}
-
-impl<'a, Dom> std::fmt::Display for Format<'a, Dom>
-where
-    Dom: Domain,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.domain.display_elem(f, self.elem)
-    }
-}
 
 /// An arbitrary set of elements that can be representable by bit vectors.
 pub trait Domain: Clone {
@@ -72,6 +54,7 @@ pub trait Domain: Clone {
         f: &mut std::fmt::Formatter<'a>,
         elem: SliceFor<'_, bool>,
     ) -> std::fmt::Result {
+        assert!(elem.len() == self.num_bits());
         for v in elem.copy_iter() {
             write!(f, "{}", if v { '1' } else { '0' })?;
         }
@@ -88,10 +71,28 @@ pub trait Domain: Clone {
     }
 }
 
+/// A helper structure for displaying domain elements.
+pub struct Format<'a, DOM>
+where
+    DOM: Domain,
+{
+    domain: &'a DOM,
+    elem: SliceFor<'a, bool>,
+}
+
+impl<'a, Dom> std::fmt::Display for Format<'a, Dom>
+where
+    Dom: Domain,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.domain.display_elem(f, self.elem)
+    }
+}
+
 /// A domain where the elements can be counted and indexed.
 pub trait Countable: Domain {
     /// Returns the number of elements of the domain.
-    fn count(&self) -> usize;
+    fn size(&self) -> usize;
 
     /// Returns the given element of the domain.
     fn elem(&self, index: usize) -> VecFor<bool>;

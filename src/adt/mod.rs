@@ -20,6 +20,9 @@
 use super::core::{BooleanAlgebra, BooleanSolver, Solver};
 use super::genvec::{GenSlice, GenVec, SliceFor, VecFor};
 
+mod boolean;
+pub use boolean::*;
+
 mod power;
 pub use power::*;
 
@@ -33,7 +36,10 @@ mod traits;
 pub use traits::*;
 
 pub fn test() {
-    let alg = Power::new(SmallSet::new(5), SmallSet::new(2));
+    let alg = Product2::new(
+        Power::new(BOOLEAN, Power::new(SmallSet::new(4), TWO)),
+        SmallSet::new(7),
+    );
     let elem = alg.find_element().unwrap();
     println!("{}", alg.format(elem.slice()));
 }

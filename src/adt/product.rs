@@ -15,7 +15,10 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BooleanAlgebra, Countable, Domain, GenSlice, GenVec, SliceFor, VecFor};
+use super::{
+    BooleanAlgebra, BoundedOrder, Countable, Domain, GenSlice, GenVec, PartialOrder, SliceFor,
+    VecFor,
+};
 
 /// The product of two domains.
 #[derive(Debug, Clone)]
@@ -47,6 +50,26 @@ where
     pub fn dom1(&self) -> &DOM1 {
         &self.dom1
     }
+
+    /// Returns the first part of an element.
+    pub fn part0<SLICE, ELEM>(&self, elem: SLICE) -> SLICE
+    where
+        SLICE: GenSlice<ELEM>,
+        ELEM: Copy,
+    {
+        debug_assert!(elem.len() == self.num_bits());
+        elem.head(self.dom0.num_bits())
+    }
+
+    /// Returns the second part of an element.
+    pub fn part1<SLICE, ELEM>(&self, elem: SLICE) -> SLICE
+    where
+        SLICE: GenSlice<ELEM>,
+        ELEM: Copy,
+    {
+        debug_assert!(elem.len() == self.num_bits());
+        elem.tail(self.dom0.num_bits())
+    }
 }
 
 impl<DOM0, DOM1> Domain for Product2<DOM0, DOM1>
@@ -63,8 +86,8 @@ where
         ALG: BooleanAlgebra,
     {
         let bits0 = self.dom0.num_bits();
-        let valid0 = self.dom0.contains(alg, elem.slice(0, bits0));
-        let valid1 = self.dom1.contains(alg, elem.slice(bits0, elem.len()));
+        let valid0 = self.dom0.contains(alg, elem.head(bits0));
+        let valid1 = self.dom1.contains(alg, elem.tail(bits0));
         alg.bool_and(valid0, valid1)
     }
 
@@ -75,9 +98,9 @@ where
     ) -> std::fmt::Result {
         let bits0 = self.dom0.num_bits();
         write!(f, "(")?;
-        self.dom0.display_elem(f, elem.slice(0, bits0))?;
+        self.dom0.display_elem(f, elem.head(bits0))?;
         write!(f, ",")?;
-        self.dom1.display_elem(f, elem.slice(bits0, elem.len()))?;
+        self.dom1.display_elem(f, elem.tail(bits0))?;
         write!(f, ")")
     }
 }
@@ -103,10 +126,51 @@ where
     fn index(&self, elem: SliceFor<'_, bool>) -> usize {
         debug_assert!(elem.len() == self.num_bits());
         let bits0 = self.dom0.num_bits();
-        let part0 = self.dom0.index(elem.slice(0, bits0));
+        let part0 = self.dom0.index(elem.head(bits0));
 
         let size0 = self.dom0.size();
-        part0 + size0 * self.dom1.index(elem.slice(bits0, elem.len()))
+        part0 + size0 * self.dom1.index(elem.tail(bits0))
+    }
+}
+
+impl<DOM0, DOM1> PartialOrder for Product2<DOM0, DOM1>
+where
+    DOM0: PartialOrder,
+    DOM1: PartialOrder,
+{
+    fn leq<ALG>(
+        &self,
+        alg: &mut ALG,
+        elem0: SliceFor<'_, ALG::Elem>,
+        elem1: SliceFor<'_, ALG::Elem>,
+    ) -> ALG::Elem
+    where
+        ALG: BooleanAlgebra,
+    {
+        let bits0 = self.dom0.num_bits();
+        let test0 = self.dom0.leq(alg, elem0.head(bits0), elem1.head(bits0));
+        let test1 = self.dom1.leq(alg, elem0.tail(bits0), elem1.tail(bits0));
+        alg.bool_and(test0, test1)
+    }
+}
+
+impl<DOM0, DOM1> BoundedOrder for Product2<DOM0, DOM1>
+where
+    DOM0: BoundedOrder,
+    DOM1: BoundedOrder,
+{
+    fn top(&self) -> VecFor<bool> {
+        let mut elem: VecFor<bool> = GenVec::with_capacity(self.num_bits());
+        elem.append(&mut self.dom0.top());
+        elem.append(&mut self.dom1.top());
+        elem
+    }
+
+    fn bottom(&self) -> VecFor<bool> {
+        let mut elem: VecFor<bool> = GenVec::with_capacity(self.num_bits());
+        elem.append(&mut self.dom0.bottom());
+        elem.append(&mut self.dom1.bottom());
+        elem
     }
 }
 

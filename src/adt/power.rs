@@ -15,7 +15,58 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BooleanAlgebra, Countable, Domain, GenSlice, GenVec, SliceFor, VecFor};
+use super::{
+    BooleanAlgebra, BoundedOrder, Countable, Domain, GenSlice, GenVec, PartialOrder, SliceFor,
+    VecFor,
+};
+
+use std::iter::{ExactSizeIterator, Extend, FusedIterator};
+
+/// A helper iterator to go through the parts of an element.
+struct PartIter<SLICE, ELEM>
+where
+    SLICE: GenSlice<ELEM>,
+    ELEM: Copy,
+{
+    slice: SLICE,
+    step: usize,
+    phantom: std::marker::PhantomData<ELEM>,
+}
+
+impl<SLICE, ELEM> Iterator for PartIter<SLICE, ELEM>
+where
+    SLICE: GenSlice<ELEM>,
+    ELEM: Copy,
+{
+    type Item = SLICE;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.slice.is_empty() {
+            None
+        } else {
+            let next = self.slice.head(self.step);
+            self.slice = self.slice.tail(self.step);
+            Some(next)
+        }
+    }
+}
+
+impl<SLICE, ELEM> FusedIterator for PartIter<SLICE, ELEM>
+where
+    SLICE: GenSlice<ELEM>,
+    ELEM: Copy,
+{
+}
+
+impl<SLICE, ELEM> ExactSizeIterator for PartIter<SLICE, ELEM>
+where
+    SLICE: GenSlice<ELEM>,
+    ELEM: Copy,
+{
+    fn len(&self) -> usize {
+        self.slice.len() / self.step
+    }
+}
 
 /// The product of a list of domains.
 #[derive(Clone)]
@@ -47,6 +98,32 @@ where
     pub fn exponent(&self) -> &EXP {
         &self.exponent
     }
+
+    /// Returns the part of an element at the given index.
+    fn part_iter<SLICE, ELEM>(&self, elem: SLICE) -> PartIter<SLICE, ELEM>
+    where
+        SLICE: GenSlice<ELEM>,
+        ELEM: Copy,
+    {
+        debug_assert!(elem.len() == self.num_bits());
+        PartIter {
+            slice: elem,
+            step: self.base.num_bits(),
+            phantom: Default::default(),
+        }
+    }
+
+    /// Returns the part of an element at the given index.
+    pub fn part<SLICE, ELEM>(&self, elem: SLICE, index: usize) -> SLICE
+    where
+        SLICE: GenSlice<ELEM>,
+        ELEM: Copy,
+    {
+        debug_assert!(elem.len() == self.num_bits());
+        let step = self.base().num_bits();
+        let start = index * step;
+        elem.slice(start, start + step)
+    }
 }
 
 impl<PART, EXP> Domain for Power<PART, EXP>
@@ -62,16 +139,11 @@ where
     where
         ALG: BooleanAlgebra,
     {
-        let step = self.base().num_bits();
         let mut valid = alg.bool_lift(true);
-        let mut pos = 0;
-        while pos < elem.len() {
-            let end = pos + step;
-            let v = self.base.contains(alg, elem.slice(pos, end));
+        for part in self.part_iter(elem) {
+            let v = self.base.contains(alg, part);
             valid = alg.bool_and(valid, v);
-            pos = end;
         }
-        assert!(pos == elem.len());
         valid
     }
 
@@ -80,18 +152,16 @@ where
         f: &mut std::fmt::Formatter<'a>,
         elem: SliceFor<'_, bool>,
     ) -> std::fmt::Result {
-        let step = self.base().num_bits();
-        let mut pos = 0;
+        let mut first = true;
         write!(f, "[")?;
-        while pos < elem.len() {
-            if pos > 0 {
-                write!(f, ",")?
+        for part in self.part_iter(elem) {
+            if first {
+                first = false;
+            } else {
+                write!(f, ",")?;
             }
-            let end = pos + step;
-            self.base.display_elem(f, elem.slice(pos, end))?;
-            pos = end;
+            self.base.display_elem(f, part)?;
         }
-        assert!(pos == elem.len());
         write!(f, "]")
     }
 }
@@ -128,18 +198,59 @@ where
         let base_size = self.base.size();
         let mut power = 1;
 
-        let step = self.base().num_bits();
-        let mut pos = 0;
-        while pos < elem.len() {
-            let end = pos + step;
-            let sub_index = self.base.index(elem.slice(pos, end));
-            index += sub_index * power;
+        for part in self.part_iter(elem) {
+            index += self.base.index(part) * power;
             power *= base_size;
-            pos = end;
         }
-        assert!(pos == elem.len());
 
         index
+    }
+}
+
+impl<BASE, EXP> PartialOrder for Power<BASE, EXP>
+where
+    BASE: PartialOrder,
+    EXP: Countable,
+{
+    fn leq<ALG>(
+        &self,
+        alg: &mut ALG,
+        elem0: SliceFor<'_, ALG::Elem>,
+        elem1: SliceFor<'_, ALG::Elem>,
+    ) -> ALG::Elem
+    where
+        ALG: BooleanAlgebra,
+    {
+        let mut valid = alg.bool_lift(true);
+        for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
+            let v = self.base.leq(alg, part0, part1);
+            valid = alg.bool_and(valid, v);
+        }
+        valid
+    }
+}
+
+impl<BASE, EXP> BoundedOrder for Power<BASE, EXP>
+where
+    BASE: BoundedOrder,
+    EXP: Countable,
+{
+    fn top(&self) -> VecFor<bool> {
+        let part = self.base.top();
+        let mut elem: VecFor<bool> = GenVec::with_capacity(self.num_bits());
+        for _ in 0..self.exponent.size() {
+            elem.extend(part.copy_iter());
+        }
+        elem
+    }
+
+    fn bottom(&self) -> VecFor<bool> {
+        let part = self.base.bottom();
+        let mut elem: VecFor<bool> = GenVec::with_capacity(self.num_bits());
+        for _ in 0..self.exponent.size() {
+            elem.extend(part.copy_iter());
+        }
+        elem
     }
 }
 

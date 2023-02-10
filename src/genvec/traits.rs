@@ -187,6 +187,16 @@ where
 
     /// Returns a slice containing the selected range of elements.
     fn slice(self, start: usize, end: usize) -> Self;
+
+    /// Returns a head slice of elements.
+    fn head(self, end: usize) -> Self {
+        self.slice(0, end)
+    }
+
+    /// Returns a tail slice of elements.
+    fn tail(self, start: usize) -> Self {
+        self.slice(start, self.len())
+    }
 }
 
 /// A trait for elements that can be stored in a generic vector.

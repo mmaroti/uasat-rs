@@ -132,6 +132,14 @@ where
         &self[start..end]
     }
 
+    fn head(self, end: usize) -> Self {
+        &self[..end]
+    }
+
+    fn tail(self, start: usize) -> Self {
+        &self[start..]
+    }
+
     fn copy_iter(self) -> Self::Iter {
         self.iter().copied()
     }

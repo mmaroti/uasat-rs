@@ -15,7 +15,10 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BooleanAlgebra, Countable, Domain, GenSlice, GenVec, SliceFor, VecFor};
+use super::{
+    BooleanAlgebra, BoundedOrder, Countable, Domain, GenSlice, GenVec, PartialOrder, SliceFor,
+    VecFor,
+};
 
 #[derive(Debug, Clone)]
 pub struct Boolean();
@@ -51,5 +54,34 @@ impl Countable for Boolean {
     fn index(&self, elem: SliceFor<'_, bool>) -> usize {
         assert!(elem.len() == 1);
         elem.get(0) as usize
+    }
+}
+
+impl PartialOrder for Boolean {
+    fn leq<ALG>(
+        &self,
+        alg: &mut ALG,
+        elem0: SliceFor<'_, ALG::Elem>,
+        elem1: SliceFor<'_, ALG::Elem>,
+    ) -> ALG::Elem
+    where
+        ALG: BooleanAlgebra,
+    {
+        assert!(elem0.len() == 1 && elem1.len() == 1);
+        alg.bool_imp(elem0.get(0), elem1.get(0))
+    }
+}
+
+impl BoundedOrder for Boolean {
+    fn top(&self) -> VecFor<bool> {
+        let mut elem: VecFor<bool> = GenVec::with_capacity(1);
+        elem.push(true);
+        elem
+    }
+
+    fn bottom(&self) -> VecFor<bool> {
+        let mut elem: VecFor<bool> = GenVec::with_capacity(1);
+        elem.push(false);
+        elem
     }
 }

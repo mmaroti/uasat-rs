@@ -25,7 +25,6 @@ pub trait Domain: Clone {
 
     /// Verifies that the given bit vector is encoding a valid element of
     /// this domain.
-    /// TODO: switch the elem to a generic vec, but we need generic slices.
     fn contains<ALG>(&self, alg: &mut ALG, elem: SliceFor<'_, ALG::Elem>) -> ALG::Elem
     where
         ALG: BooleanAlgebra;
@@ -99,4 +98,75 @@ pub trait Countable: Domain {
 
     /// Returns the index of the given element.
     fn index(&self, elem: SliceFor<'_, bool>) -> usize;
+}
+
+/// A domain with a reflexive, transitive and antisymmetric relation.
+pub trait PartialOrder: Domain {
+    /// Returns true if the first element is less than or equal to the
+    /// second one in the partial order.
+    fn leq<ALG>(
+        &self,
+        alg: &mut ALG,
+        elem0: SliceFor<'_, ALG::Elem>,
+        elem1: SliceFor<'_, ALG::Elem>,
+    ) -> ALG::Elem
+    where
+        ALG: BooleanAlgebra;
+
+    /// Returns true if the two elements are equivalent.
+    fn equals<ALG>(
+        &self,
+        alg: &mut ALG,
+        elem0: SliceFor<'_, ALG::Elem>,
+        elem1: SliceFor<'_, ALG::Elem>,
+    ) -> ALG::Elem
+    where
+        ALG: BooleanAlgebra,
+    {
+        let test0 = self.leq(alg, elem0, elem1);
+        let test1 = self.leq(alg, elem1, elem0);
+        alg.bool_and(test0, test1)
+    }
+
+    /// Returns true if the first element is strictly less than the
+    /// second one.
+    fn less_than<ALG>(
+        &self,
+        alg: &mut ALG,
+        elem0: SliceFor<'_, ALG::Elem>,
+        elem1: SliceFor<'_, ALG::Elem>,
+    ) -> ALG::Elem
+    where
+        ALG: BooleanAlgebra,
+    {
+        let test0 = self.leq(alg, elem0, elem1);
+        let test1 = self.leq(alg, elem1, elem0);
+        let test1 = alg.bool_not(test1);
+        alg.bool_and(test0, test1)
+    }
+
+    /// Returns true if one of the elements is less than or equal to
+    /// the other.
+    fn comparable<ALG>(
+        &self,
+        alg: &mut ALG,
+        elem0: SliceFor<'_, ALG::Elem>,
+        elem1: SliceFor<'_, ALG::Elem>,
+    ) -> ALG::Elem
+    where
+        ALG: BooleanAlgebra,
+    {
+        let test0 = self.leq(alg, elem0, elem1);
+        let test1 = self.leq(alg, elem1, elem0);
+        alg.bool_or(test0, test1)
+    }
+}
+
+/// A partial order that has a largest and smallest element.
+pub trait BoundedOrder: PartialOrder {
+    /// Returns the largest element of the partial order.
+    fn top(&self) -> VecFor<bool>;
+
+    /// Returns the smallest element of the partial order.
+    fn bottom(&self) -> VecFor<bool>;
 }

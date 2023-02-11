@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BooleanAlgebra, BooleanSolver, Countable, GenVec, PartialOrder, Power, Product2, SmallSet,
+    BooleanLogic, BooleanSolver, Countable, GenVec, Logic, PartialOrder, Power, Product2, SmallSet,
     Solver, BOOLEAN,
 };
 
@@ -33,7 +33,7 @@ where
     let count = solver.bool_find_num_models_method1(elem.copy_iter());
     assert_eq!(count, size);
 
-    let mut alg = crate::core::Bools();
+    let mut alg = Logic();
     for index in 0..domain.size() {
         let elem = domain.elem(index);
         assert!(domain.contains(&mut alg, elem.slice()));

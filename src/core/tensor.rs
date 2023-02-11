@@ -19,7 +19,7 @@
 
 use std::ops;
 
-use super::{BooleanAlgebra, BooleanSolver};
+use super::{BooleanLogic, BooleanSolver};
 use crate::genvec::{GenElem, GenVec, VecFor};
 
 /// The shape of a tensor.
@@ -345,7 +345,7 @@ pub trait TensorAlgebra {
 
 impl<ALG> TensorAlgebra for ALG
 where
-    ALG: BooleanAlgebra,
+    ALG: BooleanLogic,
 {
     type Elem = Tensor<ALG::Elem>;
 
@@ -618,7 +618,7 @@ where
 mod tests {
     use std::iter;
 
-    use super::super::Bools;
+    use super::super::Logic;
     use super::*;
 
     #[test]
@@ -643,7 +643,7 @@ mod tests {
 
     #[test]
     fn getset() {
-        let mut alg = Bools();
+        let mut alg = Logic();
         let mut t1: Tensor<bool> = Tensor::new(
             Shape::new(vec![2, 3]),
             iter::repeat(false).take(6).collect(),
@@ -671,7 +671,7 @@ mod tests {
 
     #[test]
     fn fold() {
-        let mut alg = Bools();
+        let mut alg = Logic();
         let mut t1: Tensor<bool> = Tensor::new(
             Shape::new(vec![2, 4]),
             iter::repeat(false).take(8).collect(),

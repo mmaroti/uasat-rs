@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BooleanAlgebra, BoundedOrder, Countable, Domain, GenSlice, GenVec, PartialOrder, SliceFor,
+    BooleanLogic, BoundedOrder, Countable, Domain, GenSlice, GenVec, PartialOrder, SliceFor,
     VecFor,
 };
 
@@ -32,7 +32,7 @@ impl Domain for Boolean {
 
     fn contains<ALG>(&self, alg: &mut ALG, elem: SliceFor<'_, ALG::Elem>) -> ALG::Elem
     where
-        ALG: BooleanAlgebra,
+        ALG: BooleanLogic,
     {
         assert!(elem.len() == 1);
         alg.bool_lift(true)
@@ -65,7 +65,7 @@ impl PartialOrder for Boolean {
         elem1: SliceFor<'_, ALG::Elem>,
     ) -> ALG::Elem
     where
-        ALG: BooleanAlgebra,
+        ALG: BooleanLogic,
     {
         assert!(elem0.len() == 1 && elem1.len() == 1);
         alg.bool_imp(elem0.get(0), elem1.get(0))

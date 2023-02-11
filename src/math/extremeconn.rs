@@ -18,7 +18,7 @@
 #![allow(dead_code, unused_imports)]
 
 use crate::core::{
-    BooleanAlgebra, BooleanSolver, Bools, Literal, Shape, Solver, Tensor, TensorAlgebra,
+    BooleanLogic, BooleanSolver, Logic, Literal, Shape, Solver, Tensor, TensorAlgebra,
     TensorSolver,
 };
 

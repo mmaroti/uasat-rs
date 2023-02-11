@@ -19,7 +19,7 @@
 
 use super::binrel;
 use super::BinaryRel;
-use crate::core::{Bools, Shape, Solver, Tensor, TensorAlgebra, TensorSolver};
+use crate::core::{Logic, Shape, Solver, Tensor, TensorAlgebra, TensorSolver};
 
 fn single(size: usize, i0: usize, i1: usize) -> Tensor<bool> {
     let shape = Shape::new(vec![size, size]);

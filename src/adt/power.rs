@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BooleanAlgebra, BoundedOrder, Countable, Domain, GenSlice, GenVec, PartialOrder, SliceFor,
+    BooleanLogic, BoundedOrder, Countable, Domain, GenSlice, GenVec, PartialOrder, SliceFor,
     VecFor,
 };
 
@@ -137,7 +137,7 @@ where
 
     fn contains<ALG>(&self, alg: &mut ALG, elem: SliceFor<'_, ALG::Elem>) -> ALG::Elem
     where
-        ALG: BooleanAlgebra,
+        ALG: BooleanLogic,
     {
         let mut valid = alg.bool_lift(true);
         for part in self.part_iter(elem) {
@@ -219,7 +219,7 @@ where
         elem1: SliceFor<'_, ALG::Elem>,
     ) -> ALG::Elem
     where
-        ALG: BooleanAlgebra,
+        ALG: BooleanLogic,
     {
         let mut valid = alg.bool_lift(true);
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {

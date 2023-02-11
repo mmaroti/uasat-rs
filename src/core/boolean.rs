@@ -25,7 +25,7 @@ use super::{create_solver, Literal, SatInterface};
 use crate::genvec::{GenElem, GenVec, VecFor};
 
 /// A boolean algebra supporting boolean calculation.
-pub trait BooleanAlgebra {
+pub trait BooleanLogic {
     /// The element type of this bool algebra.
     type Elem: GenElem;
 
@@ -204,26 +204,11 @@ pub trait BooleanAlgebra {
     }
 }
 
-/// The trivial 1-element boolean algebra over the unit `()` element.
-pub struct Trivial();
-
-impl BooleanAlgebra for Trivial {
-    type Elem = ();
-
-    fn bool_lift(&self, _elem: bool) -> Self::Elem {}
-
-    fn bool_not(&mut self, _elem: Self::Elem) -> Self::Elem {}
-
-    fn bool_or(&mut self, _elem1: Self::Elem, _elem2: Self::Elem) -> Self::Elem {}
-
-    fn bool_xor(&mut self, _elem1: Self::Elem, _elem2: Self::Elem) -> Self::Elem {}
-}
-
 /// The two element boolean algebra with native `bool` elements.
 #[derive(Default, Debug)]
-pub struct Bools();
+pub struct Logic();
 
-impl BooleanAlgebra for Bools {
+impl BooleanLogic for Logic {
     type Elem = bool;
 
     fn bool_lift(&self, elem: bool) -> Self::Elem {
@@ -278,7 +263,7 @@ impl Solver {
     }
 }
 
-impl BooleanAlgebra for Solver {
+impl BooleanLogic for Solver {
     type Elem = Literal;
 
     fn bool_lift(&self, elem: bool) -> Self::Elem {
@@ -335,7 +320,7 @@ impl BooleanAlgebra for Solver {
 }
 
 /// Constraint solving over a boolean algebra.
-pub trait BooleanSolver: BooleanAlgebra + Sized {
+pub trait BooleanSolver: BooleanLogic + Sized {
     /// Adds a new variable to the solver
     fn bool_add_variable(&mut self) -> Self::Elem;
 
@@ -482,7 +467,7 @@ mod tests {
 
     #[test]
     fn bool_ops() {
-        let mut alg = Bools();
+        let mut alg = Logic();
         let a = alg.bool_unit();
         let b = alg.bool_not(a);
         assert_eq!(alg.bool_xor(a, b), a);

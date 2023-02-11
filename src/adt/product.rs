@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BooleanAlgebra, BoundedOrder, Countable, Domain, GenSlice, GenVec, PartialOrder, SliceFor,
+    BooleanLogic, BoundedOrder, Countable, Domain, GenSlice, GenVec, PartialOrder, SliceFor,
     VecFor,
 };
 
@@ -83,7 +83,7 @@ where
 
     fn contains<ALG>(&self, alg: &mut ALG, elem: SliceFor<'_, ALG::Elem>) -> ALG::Elem
     where
-        ALG: BooleanAlgebra,
+        ALG: BooleanLogic,
     {
         let bits0 = self.dom0.num_bits();
         let valid0 = self.dom0.contains(alg, elem.head(bits0));
@@ -145,7 +145,7 @@ where
         elem1: SliceFor<'_, ALG::Elem>,
     ) -> ALG::Elem
     where
-        ALG: BooleanAlgebra,
+        ALG: BooleanLogic,
     {
         let bits0 = self.dom0.num_bits();
         let test0 = self.dom0.leq(alg, elem0.head(bits0), elem1.head(bits0));

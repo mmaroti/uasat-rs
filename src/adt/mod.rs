@@ -17,7 +17,8 @@
 
 //! Module for working with abstract data types.
 
-use super::core::{BooleanAlgebra, BooleanSolver, Solver};
+#[allow(unused_imports)]
+use super::core::{BooleanLogic, BooleanSolver, Logic, Solver};
 use super::genvec::{GenSlice, GenVec, SliceFor, VecFor};
 
 mod boolean;

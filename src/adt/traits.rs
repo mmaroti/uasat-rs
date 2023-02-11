@@ -15,7 +15,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BooleanAlgebra, BooleanSolver, GenSlice, GenVec, SliceFor, Solver, VecFor};
+use super::{BooleanLogic, BooleanSolver, GenSlice, GenVec, SliceFor, Solver, VecFor};
 
 /// An arbitrary set of elements that can be representable by bit vectors.
 pub trait Domain: Clone {
@@ -27,7 +27,7 @@ pub trait Domain: Clone {
     /// this domain.
     fn contains<ALG>(&self, alg: &mut ALG, elem: SliceFor<'_, ALG::Elem>) -> ALG::Elem
     where
-        ALG: BooleanAlgebra;
+        ALG: BooleanLogic;
 
     /// Adds a new variable to the given solver, which is just a list of
     /// fresh literals.
@@ -111,7 +111,7 @@ pub trait PartialOrder: Domain {
         elem1: SliceFor<'_, ALG::Elem>,
     ) -> ALG::Elem
     where
-        ALG: BooleanAlgebra;
+        ALG: BooleanLogic;
 
     /// Returns true if the two elements are equivalent.
     fn equals<ALG>(
@@ -121,7 +121,7 @@ pub trait PartialOrder: Domain {
         elem1: SliceFor<'_, ALG::Elem>,
     ) -> ALG::Elem
     where
-        ALG: BooleanAlgebra,
+        ALG: BooleanLogic,
     {
         let test0 = self.leq(alg, elem0, elem1);
         let test1 = self.leq(alg, elem1, elem0);
@@ -137,7 +137,7 @@ pub trait PartialOrder: Domain {
         elem1: SliceFor<'_, ALG::Elem>,
     ) -> ALG::Elem
     where
-        ALG: BooleanAlgebra,
+        ALG: BooleanLogic,
     {
         let test0 = self.leq(alg, elem0, elem1);
         let test1 = self.leq(alg, elem1, elem0);
@@ -154,7 +154,7 @@ pub trait PartialOrder: Domain {
         elem1: SliceFor<'_, ALG::Elem>,
     ) -> ALG::Elem
     where
-        ALG: BooleanAlgebra,
+        ALG: BooleanLogic,
     {
         let test0 = self.leq(alg, elem0, elem1);
         let test1 = self.leq(alg, elem1, elem0);

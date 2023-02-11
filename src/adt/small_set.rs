@@ -91,35 +91,3 @@ impl Countable for SmallSet {
         index
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::{BooleanSolver, Bools, Solver};
-
-    #[test]
-    fn size() {
-        let domain = SmallSet::new(5);
-
-        let mut solver = Solver::new("");
-        let elem = domain.add_variable(&mut solver);
-        let test = domain.contains(&mut solver, &elem);
-        solver.bool_add_clause(&[test]);
-
-        let num = solver.bool_find_num_models_method1(elem.iter().copied());
-        assert_eq!(num, 5);
-    }
-
-    #[test]
-    fn index() {
-        let mut alg = Bools();
-        let domain = SmallSet::new(5);
-        assert!(domain.size() == 5);
-
-        for idx in 0..domain.size() {
-            let elem = domain.elem(idx);
-            assert!(domain.contains(&mut alg, elem.slice()));
-            assert!(domain.index(elem.slice()) == idx);
-        }
-    }
-}

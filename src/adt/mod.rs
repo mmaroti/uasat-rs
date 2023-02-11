@@ -38,6 +38,9 @@ pub use small_set::*;
 mod traits;
 pub use traits::*;
 
+#[cfg(test)]
+mod validate;
+
 pub fn test() {
     let alg = Product2::new(
         Power::new(BOOLEAN, Power::new(SmallSet::new(4), TWO)),

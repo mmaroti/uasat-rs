@@ -138,7 +138,7 @@ pub trait BooleanAlgebra {
         self.bool_and(min1, min2)
     }
 
-    /// Computes the at most one predicate over the given elements.    
+    /// Computes the at most one predicate over the given elements.
     fn bool_fold_amo<ITER>(&mut self, elems: ITER) -> Self::Elem
     where
         ITER: Iterator<Item = Self::Elem>,
@@ -342,6 +342,9 @@ pub trait BooleanSolver: BooleanAlgebra + Sized {
     /// Adds the given (disjunctive) clause to the solver.
     fn bool_add_clause(&mut self, clause: &[Self::Elem]);
 
+    /// Returns if the current set of clauses is solvable.
+    fn bool_solvable(&mut self) -> bool;
+
     /// Runs the solver with the given assumptions and returns the value of
     /// the given literals if a solution is found.
     fn bool_find_one_model<ITER>(
@@ -451,6 +454,10 @@ impl BooleanSolver for Solver {
 
     fn bool_add_clause(&mut self, clause: &[Self::Elem]) {
         self.solver.add_clause(clause)
+    }
+
+    fn bool_solvable(&mut self) -> bool {
+        self.solver.solve()
     }
 
     fn bool_find_one_model<ITER>(

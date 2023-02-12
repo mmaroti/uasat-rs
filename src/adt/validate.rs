@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BooleanLogic, BooleanSolver, Countable, GenVec, Logic, PartialOrder, Power, Product2, SmallSet,
-    Solver, BOOLEAN,
+    BooleanLogic, BooleanSolver, BoundedOrder, Countable, GenVec, Logic, MeetSemilattice,
+    PartialOrder, Power, Product2, SmallSet, Solver, BOOLEAN,
 };
 
 pub fn validate_countable<DOM>(domain: DOM, size: usize)
@@ -26,13 +26,15 @@ where
 {
     assert_eq!(domain.size(), size);
 
-    let mut solver = Solver::new("");
-    let elem = domain.add_variable(&mut solver);
-    let test = domain.contains(&mut solver, &elem);
-    solver.bool_add_clause(&[test]);
-    let count = solver.bool_find_num_models_method1(elem.copy_iter());
+    // count matches
+    let mut alg = Solver::new("");
+    let elem = domain.add_variable(&mut alg);
+    let test = domain.contains(&mut alg, &elem);
+    alg.bool_add_clause(&[test]);
+    let count = alg.bool_find_num_models_method1(elem.copy_iter());
     assert_eq!(count, size);
 
+    // elem and index are inverses of each other
     let mut alg = Logic();
     for index in 0..domain.size() {
         let elem = domain.elem(index);
@@ -54,36 +56,40 @@ pub fn validate_partial_order<DOM>(domain: DOM)
 where
     DOM: PartialOrder,
 {
-    let mut solver = Solver::new("");
-    let elem = domain.add_variable(&mut solver);
-    let test = domain.leq(&mut solver, elem.slice(), elem.slice());
-    let test = solver.bool_not(test);
-    solver.bool_add_clause(&[test]);
-    assert!(!solver.bool_solvable());
+    // reflexive
+    let mut alg = Solver::new("");
+    let elem = domain.add_variable(&mut alg);
+    let test = domain.leq(&mut alg, elem.slice(), elem.slice());
+    let test = alg.bool_not(test);
+    alg.bool_add_clause(&[test]);
+    assert!(!alg.bool_solvable());
 
-    let mut solver = Solver::new("");
-    let elem0 = domain.add_variable(&mut solver);
-    let elem1 = domain.add_variable(&mut solver);
-    let test = domain.leq(&mut solver, elem0.slice(), elem1.slice());
-    solver.bool_add_clause(&[test]);
-    let test = domain.leq(&mut solver, elem1.slice(), elem0.slice());
-    solver.bool_add_clause(&[test]);
-    let test = solver.bool_cmp_neq(elem0.copy_iter().zip(elem1.copy_iter()));
-    solver.bool_add_clause(&[test]);
-    assert!(!solver.bool_solvable());
+    // antisymmetric
+    let mut alg = Solver::new("");
+    let elem0 = domain.add_variable(&mut alg);
+    let elem1 = domain.add_variable(&mut alg);
+    let test = domain.leq(&mut alg, elem0.slice(), elem1.slice());
+    alg.bool_add_clause(&[test]);
+    let test = domain.leq(&mut alg, elem1.slice(), elem0.slice());
+    alg.bool_add_clause(&[test]);
+    let test = domain.equals(&mut alg, elem0.slice(), elem1.slice());
+    let test = alg.bool_not(test);
+    alg.bool_add_clause(&[test]);
+    assert!(!alg.bool_solvable());
 
-    let mut solver = Solver::new("");
-    let elem0 = domain.add_variable(&mut solver);
-    let elem1 = domain.add_variable(&mut solver);
-    let elem2 = domain.add_variable(&mut solver);
-    let test = domain.leq(&mut solver, elem0.slice(), elem1.slice());
-    solver.bool_add_clause(&[test]);
-    let test = domain.leq(&mut solver, elem1.slice(), elem2.slice());
-    solver.bool_add_clause(&[test]);
-    let test = domain.leq(&mut solver, elem0.slice(), elem2.slice());
-    let test = solver.bool_not(test);
-    solver.bool_add_clause(&[test]);
-    assert!(!solver.bool_solvable());
+    // transitive
+    let mut alg = Solver::new("");
+    let elem0 = domain.add_variable(&mut alg);
+    let elem1 = domain.add_variable(&mut alg);
+    let elem2 = domain.add_variable(&mut alg);
+    let test = domain.leq(&mut alg, elem0.slice(), elem1.slice());
+    alg.bool_add_clause(&[test]);
+    let test = domain.leq(&mut alg, elem1.slice(), elem2.slice());
+    alg.bool_add_clause(&[test]);
+    let test = domain.leq(&mut alg, elem0.slice(), elem2.slice());
+    let test = alg.bool_not(test);
+    alg.bool_add_clause(&[test]);
+    assert!(!alg.bool_solvable());
 }
 
 #[test]
@@ -91,4 +97,92 @@ fn partial_order() {
     validate_partial_order(BOOLEAN);
     validate_partial_order(Power::new(BOOLEAN, SmallSet::new(3)));
     validate_partial_order(Product2::new(BOOLEAN, BOOLEAN));
+}
+
+pub fn validate_bounded_order<DOM>(domain: DOM)
+where
+    DOM: BoundedOrder,
+{
+    // top is in domain
+    let mut alg = Logic();
+    let top = domain.top();
+    assert!(domain.contains(&mut alg, top.slice()));
+
+    // bottom is in domain
+    let bottom = domain.bottom();
+    assert!(domain.contains(&mut alg, bottom.slice()));
+    assert!(domain.leq(&mut alg, bottom.slice(), top.slice()));
+
+    // top is above everything
+    let mut alg = Solver::new("");
+    let top = alg.bool_lift_vec(top.slice());
+    let elem = domain.add_variable(&mut alg);
+    let test = domain.leq(&mut alg, elem.slice(), top.slice());
+    let test = alg.bool_not(test);
+    alg.bool_add_clause(&[test]);
+    assert!(!alg.bool_solvable());
+
+    // bottom is below everything
+    let mut alg = Solver::new("");
+    let bottom = alg.bool_lift_vec(bottom.slice());
+    let elem = domain.add_variable(&mut alg);
+    let test = domain.leq(&mut alg, bottom.slice(), elem.slice());
+    let test = alg.bool_not(test);
+    alg.bool_add_clause(&[test]);
+    assert!(!alg.bool_solvable());
+}
+
+#[test]
+fn bounded_order() {
+    validate_bounded_order(BOOLEAN);
+    validate_bounded_order(Power::new(BOOLEAN, SmallSet::new(3)));
+    validate_bounded_order(Product2::new(BOOLEAN, BOOLEAN));
+}
+
+pub fn validate_meet_semilattice<DOM>(domain: DOM)
+where
+    DOM: MeetSemilattice,
+{
+    // meet is in domain
+    let mut alg = Solver::new("");
+    let elem0 = domain.add_variable(&mut alg);
+    let elem1 = domain.add_variable(&mut alg);
+    let elem2 = domain.meet(&mut alg, elem0.slice(), elem1.slice());
+    let test = domain.contains(&mut alg, elem2.slice());
+    let test = alg.bool_not(test);
+    alg.bool_add_clause(&[test]);
+    assert!(!alg.bool_solvable());
+
+    // meet is lower bound
+    let mut alg = Solver::new("");
+    let elem0 = domain.add_variable(&mut alg);
+    let elem1 = domain.add_variable(&mut alg);
+    let elem2 = domain.meet(&mut alg, elem0.slice(), elem1.slice());
+    let test0 = domain.leq(&mut alg, elem2.slice(), elem0.slice());
+    let test1 = domain.leq(&mut alg, elem2.slice(), elem1.slice());
+    let test = [alg.bool_not(test0), alg.bool_not(test1)];
+    alg.bool_add_clause(&test);
+    assert!(!alg.bool_solvable());
+
+    // meet is maximal lower bound
+    let mut alg = Solver::new("");
+    let elem0 = domain.add_variable(&mut alg);
+    let elem1 = domain.add_variable(&mut alg);
+    let elem2 = domain.add_variable(&mut alg);
+    let test = domain.leq(&mut alg, elem2.slice(), elem0.slice());
+    alg.bool_add_clause(&[test]);
+    let test = domain.leq(&mut alg, elem2.slice(), elem1.slice());
+    alg.bool_add_clause(&[test]);
+    let elem3 = domain.meet(&mut alg, elem0.slice(), elem1.slice());
+    let test = domain.leq(&mut alg, elem2.slice(), elem3.slice());
+    let test = alg.bool_not(test);
+    alg.bool_add_clause(&[test]);
+    assert!(!alg.bool_solvable());
+}
+
+#[test]
+fn meet_semilattice() {
+    validate_meet_semilattice(BOOLEAN);
+    validate_meet_semilattice(Power::new(BOOLEAN, SmallSet::new(3)));
+    validate_meet_semilattice(Product2::new(BOOLEAN, BOOLEAN));
 }

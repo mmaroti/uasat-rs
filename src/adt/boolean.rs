@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BooleanLogic, BoundedOrder, Countable, Domain, GenSlice, GenVec, PartialOrder, SliceFor,
-    VecFor,
+    BooleanLogic, BoundedOrder, Countable, Domain, GenSlice, GenVec, MeetSemilattice, PartialOrder,
+    SliceFor, VecFor,
 };
 
 #[derive(Debug, Clone)]
@@ -82,6 +82,23 @@ impl BoundedOrder for Boolean {
     fn bottom(&self) -> VecFor<bool> {
         let mut elem: VecFor<bool> = GenVec::with_capacity(1);
         elem.push(false);
+        elem
+    }
+}
+
+impl MeetSemilattice for Boolean {
+    fn meet<ALG>(
+        &self,
+        alg: &mut ALG,
+        elem0: SliceFor<'_, ALG::Elem>,
+        elem1: SliceFor<'_, ALG::Elem>,
+    ) -> VecFor<ALG::Elem>
+    where
+        ALG: BooleanLogic,
+    {
+        assert!(elem0.len() == 1 && elem1.len() == 1);
+        let mut elem: VecFor<ALG::Elem> = GenVec::with_capacity(1);
+        elem.push(alg.bool_and(elem0.get(0), elem1.get(0)));
         elem
     }
 }

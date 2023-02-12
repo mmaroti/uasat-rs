@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BooleanLogic, BoundedOrder, Countable, Domain, GenSlice, GenVec, PartialOrder, SliceFor,
-    VecFor,
+    BooleanLogic, BoundedOrder, Countable, Domain, GenSlice, GenVec, MeetSemilattice, PartialOrder,
+    SliceFor, VecFor,
 };
 
 /// The product of two domains.
@@ -170,6 +170,28 @@ where
         let mut elem: VecFor<bool> = GenVec::with_capacity(self.num_bits());
         elem.append(&mut self.dom0.bottom());
         elem.append(&mut self.dom1.bottom());
+        elem
+    }
+}
+
+impl<DOM0, DOM1> MeetSemilattice for Product2<DOM0, DOM1>
+where
+    DOM0: MeetSemilattice,
+    DOM1: MeetSemilattice,
+{
+    fn meet<ALG>(
+        &self,
+        alg: &mut ALG,
+        elem0: SliceFor<'_, ALG::Elem>,
+        elem1: SliceFor<'_, ALG::Elem>,
+    ) -> VecFor<ALG::Elem>
+    where
+        ALG: BooleanLogic,
+    {
+        let bits0 = self.dom0.num_bits();
+        let mut elem: VecFor<ALG::Elem> = GenVec::with_capacity(self.num_bits());
+        elem.extend(self.dom0.meet(alg, elem0.head(bits0), elem1.head(bits0)));
+        elem.extend(self.dom0.meet(alg, elem0.tail(bits0), elem1.tail(bits0)));
         elem
     }
 }

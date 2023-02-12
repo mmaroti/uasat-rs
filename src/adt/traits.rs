@@ -29,6 +29,19 @@ pub trait Domain: Clone {
     where
         ALG: BooleanLogic;
 
+    /// Checks if the two bit vectors represent the same element of this domain.
+    fn equals<ALG>(
+        &self,
+        alg: &mut ALG,
+        elem0: SliceFor<'_, ALG::Elem>,
+        elem1: SliceFor<'_, ALG::Elem>,
+    ) -> ALG::Elem
+    where
+        ALG: BooleanLogic,
+    {
+        alg.bool_cmp_equ(elem0.copy_iter().zip(elem1.copy_iter()))
+    }
+
     /// Adds a new variable to the given solver, which is just a list of
     /// fresh literals.
     fn add_variable<ALG>(&self, alg: &mut ALG) -> VecFor<ALG::Elem>
@@ -113,21 +126,6 @@ pub trait PartialOrder: Domain {
     where
         ALG: BooleanLogic;
 
-    /// Returns true if the two elements are equivalent.
-    fn equals<ALG>(
-        &self,
-        alg: &mut ALG,
-        elem0: SliceFor<'_, ALG::Elem>,
-        elem1: SliceFor<'_, ALG::Elem>,
-    ) -> ALG::Elem
-    where
-        ALG: BooleanLogic,
-    {
-        let test0 = self.leq(alg, elem0, elem1);
-        let test1 = self.leq(alg, elem1, elem0);
-        alg.bool_and(test0, test1)
-    }
-
     /// Returns true if the first element is strictly less than the
     /// second one.
     fn less_than<ALG>(
@@ -169,4 +167,16 @@ pub trait BoundedOrder: PartialOrder {
 
     /// Returns the smallest element of the partial order.
     fn bottom(&self) -> VecFor<bool>;
+}
+
+pub trait MeetSemilattice: PartialOrder {
+    /// Calculates the meet of the given elements.
+    fn meet<ALG>(
+        &self,
+        alg: &mut ALG,
+        elem0: SliceFor<'_, ALG::Elem>,
+        elem1: SliceFor<'_, ALG::Elem>,
+    ) -> VecFor<ALG::Elem>
+    where
+        ALG: BooleanLogic;
 }

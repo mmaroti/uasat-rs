@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BooleanLogic, BoundedOrder, Countable, Domain, GenSlice, GenVec, PartialOrder, SliceFor,
-    VecFor,
+    BooleanLogic, BoundedOrder, Countable, Domain, GenSlice, GenVec, MeetSemilattice, PartialOrder,
+    SliceFor, VecFor,
 };
 
 use std::iter::{ExactSizeIterator, Extend, FusedIterator};
@@ -249,6 +249,28 @@ where
         let mut elem: VecFor<bool> = GenVec::with_capacity(self.num_bits());
         for _ in 0..self.exponent.size() {
             elem.extend(part.copy_iter());
+        }
+        elem
+    }
+}
+
+impl<BASE, EXP> MeetSemilattice for Power<BASE, EXP>
+where
+    BASE: MeetSemilattice,
+    EXP: Countable,
+{
+    fn meet<ALG>(
+        &self,
+        alg: &mut ALG,
+        elem0: SliceFor<'_, ALG::Elem>,
+        elem1: SliceFor<'_, ALG::Elem>,
+    ) -> VecFor<ALG::Elem>
+    where
+        ALG: BooleanLogic,
+    {
+        let mut elem: VecFor<ALG::Elem> = GenVec::with_capacity(self.num_bits());
+        for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
+            elem.extend(self.base.meet(alg, part0, part1));
         }
         elem
     }

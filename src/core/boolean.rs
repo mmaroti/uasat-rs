@@ -22,7 +22,7 @@
 use std::iter;
 
 use super::{create_solver, Literal, SatInterface};
-use crate::genvec::{GenElem, GenVec, VecFor};
+use crate::genvec::{GenElem, GenVec, SliceFor, VecFor};
 
 /// A boolean algebra supporting boolean calculation.
 pub trait BooleanLogic {
@@ -201,6 +201,11 @@ pub trait BooleanLogic {
             result = self.bool_maj(a, b, result);
         }
         result
+    }
+
+    /// Lifts each element to this boolean algebra.
+    fn bool_lift_vec(&self, elems: SliceFor<bool>) -> VecFor<Self::Elem> {
+        elems.map(|elem| self.bool_lift(elem)).collect()
     }
 }
 

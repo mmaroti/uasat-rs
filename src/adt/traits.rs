@@ -169,14 +169,59 @@ pub trait BoundedOrder: PartialOrder {
     fn bottom(&self) -> VecFor<bool>;
 }
 
+/// A semilattice with a meet operation.
 pub trait MeetSemilattice: PartialOrder {
-    /// Calculates the meet of the given elements.
+    /// Calculates the meet (the largest lower bound) of
+    /// a pair of elements
     fn meet<ALG>(
         &self,
         alg: &mut ALG,
         elem0: SliceFor<'_, ALG::Elem>,
         elem1: SliceFor<'_, ALG::Elem>,
     ) -> VecFor<ALG::Elem>
+    where
+        ALG: BooleanLogic;
+}
+
+pub trait Lattice: MeetSemilattice {
+    /// Calculates the join (the smallest upper bound) of
+    /// a pair of elements.
+    fn join<ALG>(
+        &self,
+        alg: &mut ALG,
+        elem0: SliceFor<'_, ALG::Elem>,
+        elem1: SliceFor<'_, ALG::Elem>,
+    ) -> VecFor<ALG::Elem>
+    where
+        ALG: BooleanLogic;
+}
+
+pub trait BooleanLattice: Lattice + BoundedOrder {
+    /// Calculates the complement of the given element.
+    fn complement<ALG>(&self, alg: &mut ALG, elem: SliceFor<'_, ALG::Elem>) -> VecFor<ALG::Elem>
+    where
+        ALG: BooleanLogic;
+}
+
+/// A binary relation between two domains
+pub trait BinaryRelation<DOM0, DOM1>: Clone
+where
+    DOM0: Domain,
+    DOM1: Domain,
+{
+    /// Returns the domain of the relation.
+    fn domain(&self) -> &DOM0;
+
+    /// Returns the co-domain of the relation.
+    fn codomain(&self) -> &DOM1;
+
+    /// Returns true if the two elements are related.
+    fn related<ALG>(
+        &self,
+        alg: &mut ALG,
+        elem0: SliceFor<'_, ALG::Elem>,
+        elem1: SliceFor<'_, ALG::Elem>,
+    ) -> ALG::Elem
     where
         ALG: BooleanLogic;
 }

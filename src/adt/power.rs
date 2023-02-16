@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BooleanLogic, BoundedOrder, Countable, Domain, GenSlice, GenVec, MeetSemilattice, PartialOrder,
-    SliceFor, VecFor,
+    BooleanLattice, BooleanLogic, BoundedOrder, Countable, Domain, GenSlice, GenVec, Lattice,
+    MeetSemilattice, PartialOrder, SliceFor, VecFor,
 };
 
 use std::iter::{ExactSizeIterator, Extend, FusedIterator};
@@ -273,5 +273,44 @@ where
             elem.extend(self.base.meet(alg, part0, part1));
         }
         elem
+    }
+}
+
+impl<BASE, EXP> Lattice for Power<BASE, EXP>
+where
+    BASE: Lattice,
+    EXP: Countable,
+{
+    fn join<ALG>(
+        &self,
+        alg: &mut ALG,
+        elem0: SliceFor<'_, ALG::Elem>,
+        elem1: SliceFor<'_, ALG::Elem>,
+    ) -> VecFor<ALG::Elem>
+    where
+        ALG: BooleanLogic,
+    {
+        let mut elem: VecFor<ALG::Elem> = GenVec::with_capacity(self.num_bits());
+        for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
+            elem.extend(self.base.join(alg, part0, part1));
+        }
+        elem
+    }
+}
+
+impl<BASE, EXP> BooleanLattice for Power<BASE, EXP>
+where
+    BASE: BooleanLattice,
+    EXP: Countable,
+{
+    fn complement<ALG>(&self, alg: &mut ALG, elem: SliceFor<'_, ALG::Elem>) -> VecFor<ALG::Elem>
+    where
+        ALG: BooleanLogic,
+    {
+        let mut result: VecFor<ALG::Elem> = GenVec::with_capacity(self.num_bits());
+        for part in self.part_iter(elem) {
+            result.extend(self.base.complement(alg, part));
+        }
+        result
     }
 }

@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BooleanLogic, BoundedOrder, Countable, Domain, GenSlice, GenVec, MeetSemilattice, PartialOrder,
-    SliceFor, VecFor,
+    BooleanLattice, BooleanLogic, BoundedOrder, Countable, Domain, GenSlice, GenVec, Lattice,
+    MeetSemilattice, PartialOrder, SliceFor, VecFor,
 };
 
 /// The product of two domains.
@@ -191,7 +191,45 @@ where
         let bits0 = self.dom0.num_bits();
         let mut elem: VecFor<ALG::Elem> = GenVec::with_capacity(self.num_bits());
         elem.extend(self.dom0.meet(alg, elem0.head(bits0), elem1.head(bits0)));
-        elem.extend(self.dom0.meet(alg, elem0.tail(bits0), elem1.tail(bits0)));
+        elem.extend(self.dom1.meet(alg, elem0.tail(bits0), elem1.tail(bits0)));
         elem
+    }
+}
+
+impl<DOM0, DOM1> Lattice for Product2<DOM0, DOM1>
+where
+    DOM0: Lattice,
+    DOM1: Lattice,
+{
+    fn join<ALG>(
+        &self,
+        alg: &mut ALG,
+        elem0: SliceFor<'_, ALG::Elem>,
+        elem1: SliceFor<'_, ALG::Elem>,
+    ) -> VecFor<ALG::Elem>
+    where
+        ALG: BooleanLogic,
+    {
+        let bits0 = self.dom0.num_bits();
+        let mut elem: VecFor<ALG::Elem> = GenVec::with_capacity(self.num_bits());
+        elem.extend(self.dom0.join(alg, elem0.head(bits0), elem1.head(bits0)));
+        elem.extend(self.dom1.join(alg, elem0.tail(bits0), elem1.tail(bits0)));
+        elem
+    }
+}
+
+impl<DOM0, DOM1> BooleanLattice for Product2<DOM0, DOM1>
+where
+    DOM0: BooleanLattice,
+    DOM1: BooleanLattice,
+{
+    fn complement<ALG>(&self, alg: &mut ALG, elem: SliceFor<'_, ALG::Elem>) -> VecFor<ALG::Elem>
+    where
+        ALG: BooleanLogic,
+    {
+        let bits0 = self.dom0.num_bits();
+        let mut result: VecFor<ALG::Elem> = GenVec::with_capacity(self.num_bits());
+        result.extend(self.dom0.complement(alg, elem.head(bits0)));
+        result
     }
 }

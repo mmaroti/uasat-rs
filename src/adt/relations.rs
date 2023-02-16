@@ -15,15 +15,11 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{Boolean, BooleanSolver, Countable, Domain, GenVec, Power, SmallSet, VecFor};
+use super::{Boolean, BooleanLattice, Countable, Power, SmallSet};
 
-pub trait Relations: Domain {
+pub trait Relations: BooleanLattice {
     /// Returns the arity of the relations.
     fn arity(&self) -> usize;
-
-    fn zero<ALG>(&self, alg: &mut ALG) -> VecFor<ALG::Elem>
-    where
-        ALG: BooleanSolver;
 }
 
 impl<DOM> Relations for Power<Boolean, Power<DOM, SmallSet>>
@@ -32,14 +28,5 @@ where
 {
     fn arity(&self) -> usize {
         self.exponent().exponent().size()
-    }
-
-    fn zero<ALG>(&self, alg: &mut ALG) -> VecFor<ALG::Elem>
-    where
-        ALG: BooleanSolver,
-    {
-        let mut vec: VecFor<ALG::Elem> = GenVec::with_capacity(self.num_bits());
-        vec.resize(self.num_bits(), alg.bool_lift(false));
-        vec
     }
 }

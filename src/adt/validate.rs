@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BooleanLogic, BooleanSolver, BoundedOrder, Countable, GenVec, Logic, MeetSemilattice,
+    BooleanLogic, BooleanSolver, BoundedOrder, Countable, GenVec, Lattice, Logic, MeetSemilattice,
     PartialOrder, Power, Product2, SmallSet, Solver, BOOLEAN,
 };
 
@@ -184,5 +184,53 @@ where
 fn meet_semilattice() {
     validate_meet_semilattice(BOOLEAN);
     validate_meet_semilattice(Power::new(BOOLEAN, SmallSet::new(3)));
-    validate_meet_semilattice(Product2::new(BOOLEAN, BOOLEAN));
+    validate_meet_semilattice(Product2::new(BOOLEAN, Power::new(BOOLEAN, BOOLEAN)));
+}
+
+pub fn validate_lattice<DOM>(domain: DOM)
+where
+    DOM: Lattice,
+{
+    // join is in domain
+    let mut alg = Solver::new("");
+    let elem0 = domain.add_variable(&mut alg);
+    let elem1 = domain.add_variable(&mut alg);
+    let elem2 = domain.join(&mut alg, elem0.slice(), elem1.slice());
+    let test = domain.contains(&mut alg, elem2.slice());
+    let test = alg.bool_not(test);
+    alg.bool_add_clause(&[test]);
+    assert!(!alg.bool_solvable());
+
+    // join is upper bound
+    let mut alg = Solver::new("");
+    let elem0 = domain.add_variable(&mut alg);
+    let elem1 = domain.add_variable(&mut alg);
+    let elem2 = domain.join(&mut alg, elem0.slice(), elem1.slice());
+    let test0 = domain.leq(&mut alg, elem0.slice(), elem2.slice());
+    let test1 = domain.leq(&mut alg, elem1.slice(), elem2.slice());
+    let test = [alg.bool_not(test0), alg.bool_not(test1)];
+    alg.bool_add_clause(&test);
+    assert!(!alg.bool_solvable());
+
+    // join is minimal lower bound
+    let mut alg = Solver::new("");
+    let elem0 = domain.add_variable(&mut alg);
+    let elem1 = domain.add_variable(&mut alg);
+    let elem2 = domain.add_variable(&mut alg);
+    let test = domain.leq(&mut alg, elem0.slice(), elem2.slice());
+    alg.bool_add_clause(&[test]);
+    let test = domain.leq(&mut alg, elem1.slice(), elem2.slice());
+    alg.bool_add_clause(&[test]);
+    let elem3 = domain.join(&mut alg, elem0.slice(), elem1.slice());
+    let test = domain.leq(&mut alg, elem3.slice(), elem2.slice());
+    let test = alg.bool_not(test);
+    alg.bool_add_clause(&[test]);
+    assert!(!alg.bool_solvable());
+}
+
+#[test]
+fn lattice() {
+    validate_lattice(BOOLEAN);
+    validate_lattice(Power::new(BOOLEAN, SmallSet::new(3)));
+    validate_lattice(Product2::new(BOOLEAN, Power::new(BOOLEAN, BOOLEAN)));
 }

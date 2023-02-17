@@ -43,7 +43,7 @@ pub trait BooleanLogic {
     fn bool_lift(&self, elem: bool) -> Self::Elem;
 
     /// Return the logical negation of the element.
-    fn bool_not(&mut self, elem: Self::Elem) -> Self::Elem;
+    fn bool_not(&self, elem: Self::Elem) -> Self::Elem;
 
     /// Returns the logical or (lattice join) of a pair of elements.
     fn bool_or(&mut self, elem1: Self::Elem, elem2: Self::Elem) -> Self::Elem;
@@ -220,7 +220,7 @@ impl BooleanLogic for Logic {
         elem
     }
 
-    fn bool_not(&mut self, elem: Self::Elem) -> Self::Elem {
+    fn bool_not(&self, elem: Self::Elem) -> Self::Elem {
         !elem
     }
 
@@ -279,7 +279,7 @@ impl BooleanLogic for Solver {
         }
     }
 
-    fn bool_not(&mut self, elem: Self::Elem) -> Self::Elem {
+    fn bool_not(&self, elem: Self::Elem) -> Self::Elem {
         self.solver.negate(elem)
     }
 
@@ -331,6 +331,21 @@ pub trait BooleanSolver: BooleanLogic + Sized {
 
     /// Adds the given (disjunctive) clause to the solver.
     fn bool_add_clause(&mut self, clause: &[Self::Elem]);
+
+    /// Adds a unary clause to the solver.
+    fn bool_add_clause1(&mut self, lit0: Self::Elem) {
+        self.bool_add_clause(&[lit0]);
+    }
+
+    /// Adds a binary clause to the solver.
+    fn bool_add_clause2(&mut self, lit0: Self::Elem, lit1: Self::Elem) {
+        self.bool_add_clause(&[lit0, lit1]);
+    }
+
+    /// Adds a ternary clause to the solver.
+    fn bool_add_clause3(&mut self, lit0: Self::Elem, lit1: Self::Elem, lit2: Self::Elem) {
+        self.bool_add_clause(&[lit0, lit1, lit2]);
+    }
 
     /// Returns if the current set of clauses is solvable.
     fn bool_solvable(&mut self) -> bool;

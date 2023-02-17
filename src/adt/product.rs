@@ -91,6 +91,21 @@ where
         alg.bool_and(valid0, valid1)
     }
 
+    fn equals<ALG>(
+        &self,
+        alg: &mut ALG,
+        elem0: SliceFor<'_, ALG::Elem>,
+        elem1: SliceFor<'_, ALG::Elem>,
+    ) -> ALG::Elem
+    where
+        ALG: BooleanLogic,
+    {
+        let bits0 = self.dom0.num_bits();
+        let test0 = self.dom0.equals(alg, elem0.head(bits0), elem1.head(bits0));
+        let test1 = self.dom1.equals(alg, elem0.tail(bits0), elem1.tail(bits0));
+        alg.bool_and(test0, test1)
+    }
+
     fn display_elem<'a>(
         &self,
         f: &mut std::fmt::Formatter<'a>,

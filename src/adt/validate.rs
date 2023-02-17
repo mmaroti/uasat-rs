@@ -20,6 +20,43 @@ use super::{
     PartialOrder, Power, Product2, SmallSet, Solver, BOOLEAN,
 };
 
+pub fn validate_domain<DOM>(domain: DOM)
+where
+    DOM: Countable,
+{
+    // reflexivity
+    let mut alg = Solver::new("");
+    let elem = domain.add_variable(&mut alg);
+    let test = domain.contains(&mut alg, elem.slice());
+    alg.bool_add_clause1(test);
+    let test = domain.equals(&mut alg, elem.slice(), elem.slice());
+    alg.bool_add_clause1(alg.bool_not(test));
+    assert!(!alg.bool_solvable());
+
+    // equality
+    let mut alg = Solver::new("");
+    let elem0 = domain.add_variable(&mut alg);
+    let test = domain.contains(&mut alg, elem0.slice());
+    alg.bool_add_clause1(test);
+    let elem1 = domain.add_variable(&mut alg);
+    let test = domain.contains(&mut alg, elem1.slice());
+    alg.bool_add_clause1(test);
+    let test = domain.equals(&mut alg, elem0.slice(), elem1.slice());
+    alg.bool_add_clause1(test);
+    let test = alg.bool_cmp_equ(elem0.copy_iter().zip(elem1.copy_iter()));
+    alg.bool_add_clause1(alg.bool_not(test));
+    assert!(!alg.bool_solvable());
+}
+
+#[test]
+fn domain() {
+    validate_domain(BOOLEAN);
+    validate_domain(SmallSet::new(5));
+    validate_domain(Power::new(BOOLEAN, SmallSet::new(3)));
+    validate_domain(Power::new(SmallSet::new(3), BOOLEAN));
+    validate_domain(Product2::new(BOOLEAN, SmallSet::new(3)));
+}
+
 pub fn validate_countable<DOM>(domain: DOM, size: usize)
 where
     DOM: Countable,
@@ -30,7 +67,7 @@ where
     let mut alg = Solver::new("");
     let elem = domain.add_variable(&mut alg);
     let test = domain.contains(&mut alg, &elem);
-    alg.bool_add_clause(&[test]);
+    alg.bool_add_clause1(test);
     let count = alg.bool_find_num_models_method1(elem.copy_iter());
     assert_eq!(count, size);
 
@@ -40,6 +77,17 @@ where
         let elem = domain.elem(index);
         assert!(domain.contains(&mut alg, elem.slice()));
         assert_eq!(domain.index(elem.slice()), index);
+    }
+
+    // equality works
+    let mut alg = Logic();
+    for index0 in 0..domain.size() {
+        let elem0 = domain.elem(index0);
+        assert!(domain.equals(&mut alg, elem0.slice(), elem0.slice()));
+        for index1 in 0..index0 {
+            let elem1 = domain.elem(index1);
+            assert!(!domain.equals(&mut alg, elem0.slice(), elem1.slice()));
+        }
     }
 }
 
@@ -60,8 +108,7 @@ where
     let mut alg = Solver::new("");
     let elem = domain.add_variable(&mut alg);
     let test = domain.leq(&mut alg, elem.slice(), elem.slice());
-    let test = alg.bool_not(test);
-    alg.bool_add_clause(&[test]);
+    alg.bool_add_clause1(alg.bool_not(test));
     assert!(!alg.bool_solvable());
 
     // antisymmetric
@@ -69,12 +116,11 @@ where
     let elem0 = domain.add_variable(&mut alg);
     let elem1 = domain.add_variable(&mut alg);
     let test = domain.leq(&mut alg, elem0.slice(), elem1.slice());
-    alg.bool_add_clause(&[test]);
+    alg.bool_add_clause1(test);
     let test = domain.leq(&mut alg, elem1.slice(), elem0.slice());
-    alg.bool_add_clause(&[test]);
+    alg.bool_add_clause1(test);
     let test = domain.equals(&mut alg, elem0.slice(), elem1.slice());
-    let test = alg.bool_not(test);
-    alg.bool_add_clause(&[test]);
+    alg.bool_add_clause1(alg.bool_not(test));
     assert!(!alg.bool_solvable());
 
     // transitive
@@ -83,12 +129,11 @@ where
     let elem1 = domain.add_variable(&mut alg);
     let elem2 = domain.add_variable(&mut alg);
     let test = domain.leq(&mut alg, elem0.slice(), elem1.slice());
-    alg.bool_add_clause(&[test]);
+    alg.bool_add_clause1(test);
     let test = domain.leq(&mut alg, elem1.slice(), elem2.slice());
-    alg.bool_add_clause(&[test]);
+    alg.bool_add_clause1(test);
     let test = domain.leq(&mut alg, elem0.slice(), elem2.slice());
-    let test = alg.bool_not(test);
-    alg.bool_add_clause(&[test]);
+    alg.bool_add_clause1(alg.bool_not(test));
     assert!(!alg.bool_solvable());
 }
 
@@ -118,8 +163,7 @@ where
     let top = alg.bool_lift_vec(top.slice());
     let elem = domain.add_variable(&mut alg);
     let test = domain.leq(&mut alg, elem.slice(), top.slice());
-    let test = alg.bool_not(test);
-    alg.bool_add_clause(&[test]);
+    alg.bool_add_clause1(alg.bool_not(test));
     assert!(!alg.bool_solvable());
 
     // bottom is below everything
@@ -127,8 +171,7 @@ where
     let bottom = alg.bool_lift_vec(bottom.slice());
     let elem = domain.add_variable(&mut alg);
     let test = domain.leq(&mut alg, bottom.slice(), elem.slice());
-    let test = alg.bool_not(test);
-    alg.bool_add_clause(&[test]);
+    alg.bool_add_clause1(alg.bool_not(test));
     assert!(!alg.bool_solvable());
 }
 
@@ -149,8 +192,7 @@ where
     let elem1 = domain.add_variable(&mut alg);
     let elem2 = domain.meet(&mut alg, elem0.slice(), elem1.slice());
     let test = domain.contains(&mut alg, elem2.slice());
-    let test = alg.bool_not(test);
-    alg.bool_add_clause(&[test]);
+    alg.bool_add_clause1(alg.bool_not(test));
     assert!(!alg.bool_solvable());
 
     // meet is lower bound
@@ -160,8 +202,7 @@ where
     let elem2 = domain.meet(&mut alg, elem0.slice(), elem1.slice());
     let test0 = domain.leq(&mut alg, elem2.slice(), elem0.slice());
     let test1 = domain.leq(&mut alg, elem2.slice(), elem1.slice());
-    let test = [alg.bool_not(test0), alg.bool_not(test1)];
-    alg.bool_add_clause(&test);
+    alg.bool_add_clause2(alg.bool_not(test0), alg.bool_not(test1));
     assert!(!alg.bool_solvable());
 
     // meet is maximal lower bound
@@ -170,13 +211,12 @@ where
     let elem1 = domain.add_variable(&mut alg);
     let elem2 = domain.add_variable(&mut alg);
     let test = domain.leq(&mut alg, elem2.slice(), elem0.slice());
-    alg.bool_add_clause(&[test]);
+    alg.bool_add_clause1(test);
     let test = domain.leq(&mut alg, elem2.slice(), elem1.slice());
-    alg.bool_add_clause(&[test]);
+    alg.bool_add_clause1(test);
     let elem3 = domain.meet(&mut alg, elem0.slice(), elem1.slice());
     let test = domain.leq(&mut alg, elem2.slice(), elem3.slice());
-    let test = alg.bool_not(test);
-    alg.bool_add_clause(&[test]);
+    alg.bool_add_clause1(alg.bool_not(test));
     assert!(!alg.bool_solvable());
 }
 
@@ -197,8 +237,7 @@ where
     let elem1 = domain.add_variable(&mut alg);
     let elem2 = domain.join(&mut alg, elem0.slice(), elem1.slice());
     let test = domain.contains(&mut alg, elem2.slice());
-    let test = alg.bool_not(test);
-    alg.bool_add_clause(&[test]);
+    alg.bool_add_clause1(alg.bool_not(test));
     assert!(!alg.bool_solvable());
 
     // join is upper bound
@@ -208,8 +247,7 @@ where
     let elem2 = domain.join(&mut alg, elem0.slice(), elem1.slice());
     let test0 = domain.leq(&mut alg, elem0.slice(), elem2.slice());
     let test1 = domain.leq(&mut alg, elem1.slice(), elem2.slice());
-    let test = [alg.bool_not(test0), alg.bool_not(test1)];
-    alg.bool_add_clause(&test);
+    alg.bool_add_clause2(alg.bool_not(test0), alg.bool_not(test1));
     assert!(!alg.bool_solvable());
 
     // join is minimal lower bound
@@ -218,13 +256,12 @@ where
     let elem1 = domain.add_variable(&mut alg);
     let elem2 = domain.add_variable(&mut alg);
     let test = domain.leq(&mut alg, elem0.slice(), elem2.slice());
-    alg.bool_add_clause(&[test]);
+    alg.bool_add_clause1(test);
     let test = domain.leq(&mut alg, elem1.slice(), elem2.slice());
-    alg.bool_add_clause(&[test]);
+    alg.bool_add_clause1(test);
     let elem3 = domain.join(&mut alg, elem0.slice(), elem1.slice());
     let test = domain.leq(&mut alg, elem3.slice(), elem2.slice());
-    let test = alg.bool_not(test);
-    alg.bool_add_clause(&[test]);
+    alg.bool_add_clause1(alg.bool_not(test));
     assert!(!alg.bool_solvable());
 }
 

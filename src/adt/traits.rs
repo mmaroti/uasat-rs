@@ -29,7 +29,9 @@ pub trait Domain: Clone {
     where
         ALG: BooleanLogic;
 
-    /// Checks if the two bit vectors represent the same element of this domain.
+    /// Checks if the two bit vectors are exactly the same. This offers a
+    /// faster implementation than bitwise comparison, since it has to work
+    /// only for valid bit patterns that encode elements.
     fn equals<ALG>(
         &self,
         alg: &mut ALG,
@@ -37,10 +39,7 @@ pub trait Domain: Clone {
         elem1: SliceFor<'_, ALG::Elem>,
     ) -> ALG::Elem
     where
-        ALG: BooleanLogic,
-    {
-        alg.bool_cmp_equ(elem0.copy_iter().zip(elem1.copy_iter()))
-    }
+        ALG: BooleanLogic;
 
     /// Adds a new variable to the given solver, which is just a list of
     /// fresh literals.

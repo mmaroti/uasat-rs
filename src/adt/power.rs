@@ -147,6 +147,23 @@ where
         valid
     }
 
+    fn equals<ALG>(
+        &self,
+        alg: &mut ALG,
+        elem0: SliceFor<'_, ALG::Elem>,
+        elem1: SliceFor<'_, ALG::Elem>,
+    ) -> ALG::Elem
+    where
+        ALG: BooleanLogic,
+    {
+        let mut valid = alg.bool_lift(true);
+        for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
+            let v = self.base.equals(alg, part0, part1);
+            valid = alg.bool_and(valid, v);
+        }
+        valid
+    }
+
     fn display_elem<'a>(
         &self,
         f: &mut std::fmt::Formatter<'a>,

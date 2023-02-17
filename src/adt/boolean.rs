@@ -37,6 +37,19 @@ impl Domain for Boolean {
         assert!(elem.len() == 1);
         alg.bool_lift(true)
     }
+
+    fn equals<ALG>(
+        &self,
+        alg: &mut ALG,
+        elem0: SliceFor<'_, ALG::Elem>,
+        elem1: SliceFor<'_, ALG::Elem>,
+    ) -> ALG::Elem
+    where
+        ALG: BooleanLogic,
+    {
+        debug_assert!(elem0.len() == 1 && elem1.len() == 1);
+        alg.bool_equ(elem0.get(0), elem1.get(0))
+    }
 }
 
 impl Countable for Boolean {
@@ -67,7 +80,7 @@ impl PartialOrder for Boolean {
     where
         ALG: BooleanLogic,
     {
-        assert!(elem0.len() == 1 && elem1.len() == 1);
+        debug_assert!(elem0.len() == 1 && elem1.len() == 1);
         alg.bool_imp(elem0.get(0), elem1.get(0))
     }
 }
@@ -96,7 +109,7 @@ impl MeetSemilattice for Boolean {
     where
         ALG: BooleanLogic,
     {
-        assert!(elem0.len() == 1 && elem1.len() == 1);
+        debug_assert!(elem0.len() == 1 && elem1.len() == 1);
         let mut elem: VecFor<ALG::Elem> = GenVec::with_capacity(1);
         elem.push(alg.bool_and(elem0.get(0), elem1.get(0)));
         elem
@@ -113,7 +126,7 @@ impl Lattice for Boolean {
     where
         ALG: BooleanLogic,
     {
-        assert!(elem0.len() == 1 && elem1.len() == 1);
+        debug_assert!(elem0.len() == 1 && elem1.len() == 1);
         let mut elem: VecFor<ALG::Elem> = GenVec::with_capacity(1);
         elem.push(alg.bool_or(elem0.get(0), elem1.get(0)));
         elem
@@ -125,7 +138,7 @@ impl BooleanLattice for Boolean {
     where
         ALG: BooleanLogic,
     {
-        assert!(elem.len() == 1);
+        debug_assert!(elem.len() == 1);
         let mut elem: VecFor<ALG::Elem> = GenVec::with_capacity(1);
         elem.push(alg.bool_not(elem.get(0)));
         elem

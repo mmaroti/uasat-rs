@@ -55,6 +55,24 @@ impl Domain for SmallSet {
         alg.bool_fold_one(elem.copy_iter())
     }
 
+    fn equals<ALG>(
+        &self,
+        alg: &mut ALG,
+        elem0: SliceFor<'_, ALG::Elem>,
+        elem1: SliceFor<'_, ALG::Elem>,
+    ) -> ALG::Elem
+    where
+        ALG: BooleanLogic,
+    {
+        debug_assert!(elem0.len() == self.size && elem1.len() == self.size);
+        let mut test = alg.bool_lift(false);
+        for (a, b) in elem0.copy_iter().zip(elem1.copy_iter()) {
+            let v = alg.bool_and(a, b);
+            test = alg.bool_or(test, v);
+        }
+        test
+    }
+
     fn display_elem<'a>(
         &self,
         f: &mut std::fmt::Formatter<'a>,

@@ -15,9 +15,13 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BooleanLogic, Countable, Domain, GenSlice, GenVec, SliceFor, VecFor};
+use super::{
+    BooleanLogic, BoundedOrder, Countable, Domain, GenSlice, GenVec, Lattice, MeetSemilattice,
+    PartialOrder, SliceFor, VecFor,
+};
 
-/// A small set encoded as a one-hot vector of booleans.
+/// A small set encoded as a one-hot vector of booleans representing
+/// the numbers `0..size` with the natural chain order.
 #[derive(Clone)]
 pub struct SmallSet {
     size: usize,
@@ -107,5 +111,73 @@ impl Countable for SmallSet {
         }
         assert!(index < self.size);
         index
+    }
+}
+
+impl PartialOrder for SmallSet {
+    fn leq<ALG>(
+        &self,
+        alg: &mut ALG,
+        elem0: SliceFor<'_, ALG::Elem>,
+        elem1: SliceFor<'_, ALG::Elem>,
+    ) -> ALG::Elem
+    where
+        ALG: BooleanLogic,
+    {
+        debug_assert!(elem0.len() == self.size && elem1.len() == self.size);
+        alg.bool_cmp_leq(elem0.copy_iter().zip(elem1.copy_iter()))
+    }
+}
+
+impl BoundedOrder for SmallSet {
+    fn bottom(&self) -> VecFor<bool> {
+        assert!(self.size != 0);
+        self.elem(0)
+    }
+
+    fn top(&self) -> VecFor<bool> {
+        assert!(self.size != 0);
+        self.elem(self.size - 1)
+    }
+}
+
+impl MeetSemilattice for SmallSet {
+    fn meet<ALG>(
+        &self,
+        alg: &mut ALG,
+        elem0: SliceFor<'_, ALG::Elem>,
+        elem1: SliceFor<'_, ALG::Elem>,
+    ) -> VecFor<ALG::Elem>
+    where
+        ALG: BooleanLogic,
+    {
+        let mut result: VecFor<ALG::Elem> = GenVec::with_capacity(self.num_bits());
+        let mut looking = alg.bool_lift(true);
+        for (a, b) in elem0.copy_iter().zip(elem1.copy_iter()) {
+            let found = alg.bool_or(a, b);
+            result.push(alg.bool_and(looking, found));
+            looking = alg.bool_and(looking, alg.bool_not(found));
+        }
+        result
+    }
+}
+
+impl Lattice for SmallSet {
+    fn join<ALG>(
+        &self,
+        alg: &mut ALG,
+        elem0: SliceFor<'_, ALG::Elem>,
+        elem1: SliceFor<'_, ALG::Elem>,
+    ) -> VecFor<ALG::Elem>
+    where
+        ALG: BooleanLogic,
+    {
+        let mut result: VecFor<ALG::Elem> = GenVec::with_capacity(self.num_bits());
+        let mut looking = alg.bool_lift(false);
+        for (a, b) in elem0.copy_iter().zip(elem1.copy_iter()) {
+            result.push(alg.bool_maj(looking, a, b));
+            looking = alg.bool_sum3(looking, a, b);
+        }
+        result
     }
 }

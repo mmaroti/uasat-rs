@@ -42,7 +42,8 @@ pub trait Domain: Clone {
         ALG: BooleanLogic;
 
     /// Adds a new variable to the given solver, which is just a list of
-    /// fresh literals.
+    /// fresh literals. It also enforces that the returned variable
+    /// is contained in the domain, but adding the appropriate constraint.
     fn add_variable<ALG>(&self, alg: &mut ALG) -> VecFor<ALG::Elem>
     where
         ALG: BooleanSolver,
@@ -51,6 +52,8 @@ pub trait Domain: Clone {
         for _ in 0..self.num_bits() {
             elem.push(alg.bool_add_variable());
         }
+        let test = self.contains(alg, elem.slice());
+        alg.bool_add_clause1(test);
         elem
     }
 

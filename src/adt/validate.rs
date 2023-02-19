@@ -24,11 +24,16 @@ pub fn validate_domain<DOM>(domain: DOM)
 where
     DOM: Countable,
 {
-    // reflexivity
+    // containment
     let mut alg = Solver::new("");
     let elem = domain.add_variable(&mut alg);
     let test = domain.contains(&mut alg, elem.slice());
-    alg.bool_add_clause1(test);
+    alg.bool_add_clause1(alg.bool_not(test));
+    assert!(!alg.bool_solvable());
+
+    // reflexivity
+    let mut alg = Solver::new("");
+    let elem = domain.add_variable(&mut alg);
     let test = domain.equals(&mut alg, elem.slice(), elem.slice());
     alg.bool_add_clause1(alg.bool_not(test));
     assert!(!alg.bool_solvable());
@@ -36,11 +41,7 @@ where
     // equality
     let mut alg = Solver::new("");
     let elem0 = domain.add_variable(&mut alg);
-    let test = domain.contains(&mut alg, elem0.slice());
-    alg.bool_add_clause1(test);
     let elem1 = domain.add_variable(&mut alg);
-    let test = domain.contains(&mut alg, elem1.slice());
-    alg.bool_add_clause1(test);
     let test = domain.equals(&mut alg, elem0.slice(), elem1.slice());
     alg.bool_add_clause1(test);
     let test = alg.bool_cmp_equ(elem0.copy_iter().zip(elem1.copy_iter()));
@@ -140,6 +141,7 @@ where
 #[test]
 fn partial_order() {
     validate_partial_order(BOOLEAN);
+    validate_partial_order(SmallSet::new(7));
     validate_partial_order(Power::new(BOOLEAN, SmallSet::new(3)));
     validate_partial_order(Product2::new(BOOLEAN, BOOLEAN));
 }
@@ -178,6 +180,7 @@ where
 #[test]
 fn bounded_order() {
     validate_bounded_order(BOOLEAN);
+    validate_bounded_order(SmallSet::new(7));
     validate_bounded_order(Power::new(BOOLEAN, SmallSet::new(3)));
     validate_bounded_order(Product2::new(BOOLEAN, BOOLEAN));
 }
@@ -223,6 +226,7 @@ where
 #[test]
 fn meet_semilattice() {
     validate_meet_semilattice(BOOLEAN);
+    validate_meet_semilattice(SmallSet::new(7));
     validate_meet_semilattice(Power::new(BOOLEAN, SmallSet::new(3)));
     validate_meet_semilattice(Product2::new(BOOLEAN, Power::new(BOOLEAN, BOOLEAN)));
 }
@@ -268,6 +272,7 @@ where
 #[test]
 fn lattice() {
     validate_lattice(BOOLEAN);
+    validate_lattice(SmallSet::new(7));
     validate_lattice(Power::new(BOOLEAN, SmallSet::new(3)));
     validate_lattice(Product2::new(BOOLEAN, Power::new(BOOLEAN, BOOLEAN)));
 }

@@ -319,3 +319,15 @@ impl<'a> Iterator for BitSlice<'a> {
 impl<'a> FusedIterator for BitSlice<'a> {}
 
 impl<'a> ExactSizeIterator for BitSlice<'a> {}
+
+impl<'a> DoubleEndedIterator for BitSlice<'a> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.start < self.end {
+            let elem = self.vec.get(self.start);
+            self.end -= 1;
+            Some(elem)
+        } else {
+            None
+        }
+    }
+}

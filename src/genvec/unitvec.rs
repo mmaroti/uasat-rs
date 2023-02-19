@@ -214,3 +214,11 @@ impl Iterator for UnitIter {
 }
 
 impl FusedIterator for UnitIter {}
+
+impl ExactSizeIterator for UnitIter {}
+
+impl DoubleEndedIterator for UnitIter {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.next()
+    }
+}

@@ -17,7 +17,7 @@
 
 //! A generic vector trait to work with regular and bit vectors.
 
-use std::iter::{Extend, FromIterator};
+use std::iter::{Extend, FromIterator, FusedIterator};
 
 /// A unifying interface for regular and bit vectors.
 pub trait GenVec<ELEM>
@@ -139,7 +139,7 @@ where
     fn capacity(&self) -> usize;
 
     /// The type of iterator that can return the elements as copied values.
-    type Iter<'a>: Iterator<Item = ELEM>
+    type Iter<'a>: Iterator<Item = ELEM> + FusedIterator + ExactSizeIterator + DoubleEndedIterator
     where
         Self: 'a;
 

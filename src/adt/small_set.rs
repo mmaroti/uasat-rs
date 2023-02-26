@@ -77,9 +77,9 @@ impl Domain for SmallSet {
         test
     }
 
-    fn display_elem<'a>(
+    fn display_elem(
         &self,
-        f: &mut std::fmt::Formatter<'a>,
+        f: &mut std::fmt::Formatter<'_>,
         elem: SliceFor<'_, bool>,
     ) -> std::fmt::Result {
         write!(f, "{}", self.index(elem))

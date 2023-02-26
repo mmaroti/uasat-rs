@@ -63,9 +63,9 @@ pub trait Domain: Clone {
     }
 
     /// Formats the given element using the provided formatter.
-    fn display_elem<'a>(
+    fn display_elem(
         &self,
-        f: &mut std::fmt::Formatter<'a>,
+        f: &mut std::fmt::Formatter<'_>,
         elem: SliceFor<'_, bool>,
     ) -> std::fmt::Result {
         assert!(elem.len() == self.num_bits());

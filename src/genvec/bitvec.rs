@@ -292,6 +292,8 @@ impl<'a> GenSlice<bool> for BitSlice<'a> {
 
     type Iter = Self;
 
+    type Vec = BitVec;
+
     fn copy_iter(self) -> Self::Iter {
         self
     }

@@ -147,7 +147,7 @@ where
     fn copy_iter(&self) -> Self::Iter<'_>;
 
     /// The type of slice structure that can be further sliced.
-    type Slice<'a>: GenSlice<ELEM, Iter = Self::Iter<'a>>
+    type Slice<'a>: GenSlice<ELEM, Iter = Self::Iter<'a>, Vec = Self>
     where
         Self: 'a;
 
@@ -162,6 +162,9 @@ where
 {
     /// The iterator type for this slice.
     type Iter: Iterator<Item = ELEM>;
+
+    /// A type of vector than can hold elements.
+    type Vec: GenVec<ELEM>;
 
     /// Returns the number of elements in the slice.
     fn len(self) -> usize;

@@ -160,6 +160,8 @@ impl GenSlice<()> for UnitVec {
 
     type Iter = UnitIter;
 
+    type Vec = UnitVec;
+
     fn copy_iter(self) -> Self::Iter {
         self.into_iter()
     }

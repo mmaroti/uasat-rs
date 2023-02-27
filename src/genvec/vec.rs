@@ -108,9 +108,11 @@ where
 
 impl<'a, ELEM> GenSlice<ELEM> for &'a [ELEM]
 where
-    ELEM: Copy,
+    ELEM: Copy + PartialEq,
 {
     type Iter = std::iter::Copied<std::slice::Iter<'a, ELEM>>;
+
+    type Vec = Vec<ELEM>;
 
     fn len(self) -> usize {
         <[ELEM]>::len(self)

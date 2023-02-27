@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2022, Miklos Maroti
+* Copyright (C) 2022-2023, Miklos Maroti
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -15,11 +15,37 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{Boolean, BooleanLattice, Countable, Power, SmallSet};
+use super::{
+    Boolean, BooleanLattice, Countable, Domain, GenSlice, GenVec, Power, SmallSet, BOOLEAN,
+};
 
 pub trait Relations: BooleanLattice {
     /// Returns the arity of the relations.
     fn arity(&self) -> usize;
+
+    /// Creates a new element of the given arity from the given old element with
+    /// permuted, identified or new dummy coordinates. The mapping is a vector
+    /// of length of the original relation with entries identifying the matching
+    /// coordinates in the new relation.
+    fn polymer<SLICE, ELEM>(
+        &self,
+        elem: SLICE,
+        arity: usize,
+        mapping: &[usize],
+    ) -> <SLICE as GenSlice<ELEM>>::Vec
+    where
+        SLICE: GenSlice<ELEM>,
+        ELEM: Copy;
+
+    /// Returns the diagonal relation of the given relation.
+    fn diagonal<SLICE, ELEM>(&self, elem: SLICE) -> <SLICE as GenSlice<ELEM>>::Vec
+    where
+        SLICE: GenSlice<ELEM>,
+        ELEM: Copy,
+    {
+        assert!(self.arity() >= 1);
+        self.polymer(elem, 1, &vec![0; self.arity()])
+    }
 }
 
 impl<DOM> Relations for Power<Boolean, Power<DOM, SmallSet>>
@@ -28,5 +54,92 @@ where
 {
     fn arity(&self) -> usize {
         self.exponent().exponent().size()
+    }
+
+    fn polymer<SLICE, ELEM>(
+        &self,
+        elem: SLICE,
+        arity: usize,
+        mapping: &[usize],
+    ) -> <SLICE as GenSlice<ELEM>>::Vec
+    where
+        SLICE: GenSlice<ELEM>,
+        ELEM: Copy,
+    {
+        assert_eq!(elem.len(), self.num_bits());
+        assert_eq!(mapping.len(), self.arity());
+
+        let mut strides = vec![(0, 0); arity];
+        let size = self.exponent().base().size();
+        let mut power: usize = 1;
+        for &i in mapping {
+            assert!(i < arity);
+            strides[i].0 += power;
+            power *= size;
+        }
+
+        let domain = Power::new(
+            BOOLEAN,
+            Power::new(self.exponent().base().clone(), SmallSet::new(arity)),
+        );
+        let mut result: <SLICE as GenSlice<ELEM>>::Vec = GenVec::with_capacity(domain.num_bits());
+
+        let mut index = 0;
+        'outer: loop {
+            result.extend(self.part(elem, index).copy_iter());
+
+            for stride in strides.iter_mut() {
+                index += stride.0;
+                stride.1 += 1;
+                if stride.1 >= size {
+                    index -= stride.0 * size;
+                    stride.1 = 0;
+                } else {
+                    continue 'outer;
+                }
+            }
+
+            break;
+        }
+
+        debug_assert_eq!(result.len(), domain.num_bits());
+        result
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::{Logic, VecFor};
+    use super::*;
+
+    #[test]
+    fn polymer() {
+        let dom = SmallSet::new(3);
+        let rel1 = Power::new(BOOLEAN, Power::new(dom.clone(), SmallSet::new(1)));
+        let rel2 = Power::new(BOOLEAN, Power::new(dom.clone(), SmallSet::new(2)));
+
+        assert_eq!(rel1.arity(), 1);
+        assert_eq!(rel2.arity(), 2);
+
+        let mut alg = Logic();
+
+        let elem1: VecFor<bool> = vec![false, true, false].into_iter().collect();
+        assert!(rel1.contains(&mut alg, elem1.slice()));
+
+        let elem2: VecFor<bool> = vec![false, true, true, false, true, true, false, false, false]
+            .into_iter()
+            .collect();
+        assert!(rel2.contains(&mut alg, elem2.slice()));
+
+        let elem3: VecFor<bool> = vec![false, false, false, true, true, false, true, true, false]
+            .into_iter()
+            .collect();
+        assert!(rel2.contains(&mut alg, elem3.slice()));
+
+        let elem4 = rel2.polymer(elem2.slice(), 2, &[1, 0]);
+        assert_eq!(elem3, elem4);
+
+        let elem5 = rel2.polymer(elem2.slice(), 1, &[0, 0]);
+        assert_eq!(elem1, elem5);
     }
 }

@@ -24,6 +24,9 @@ use super::genvec::{GenSlice, GenVec, SliceFor, VecFor};
 mod boolean;
 pub use boolean::*;
 
+mod operations;
+pub use operations::*;
+
 mod power;
 pub use power::*;
 

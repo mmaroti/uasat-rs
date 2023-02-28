@@ -210,4 +210,3 @@ pub trait GenElem: Copy {
 }
 
 pub type VecFor<ELEM> = <ELEM as GenElem>::Vec;
-pub type SliceFor<'a, ELEM> = <VecFor<ELEM> as GenVec<ELEM>>::Slice<'a>;

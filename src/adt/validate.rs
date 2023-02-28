@@ -162,7 +162,7 @@ where
 
     // top is above everything
     let mut logic = Solver::new("");
-    let top = logic.bool_lift_vec(top.slice());
+    let top = logic.bool_lift_vec(top.copy_iter());
     let elem = domain.add_variable(&mut logic);
     let test = domain.leq(&mut logic, elem.slice(), top.slice());
     logic.bool_add_clause1(logic.bool_not(test));
@@ -170,7 +170,7 @@ where
 
     // bottom is below everything
     let mut logic = Solver::new("");
-    let bottom = logic.bool_lift_vec(bottom.slice());
+    let bottom = logic.bool_lift_vec(bottom.copy_iter());
     let elem = domain.add_variable(&mut logic);
     let test = domain.leq(&mut logic, bottom.slice(), elem.slice());
     logic.bool_add_clause1(logic.bool_not(test));

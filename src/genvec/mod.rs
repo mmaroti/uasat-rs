@@ -18,12 +18,14 @@
 //! Module for the core components that seems to have stabilized.
 
 mod traits;
-pub use traits::{GenElem, GenSlice, GenVec, SliceFor, VecFor};
+pub use traits::{GenElem, GenSlice, GenVec, VecFor};
 
 mod bitvec;
 pub use bitvec::BitVec;
 
 mod unitvec;
+pub use unitvec::UnitVec;
+
 mod vec;
 
 #[cfg(test)]

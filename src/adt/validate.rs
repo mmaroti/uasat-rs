@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BooleanLogic, BooleanSolver, BoundedOrder, Countable, GenVec, Lattice, Logic, MeetSemilattice,
-    PartialOrder, Power, Product2, SmallSet, Solver, BOOLEAN,
+    BooleanLogic, BooleanSolver, BoundedOrder, Countable, GenVec, Lattice, Logic,
+    MeetSemilattice, PartialOrder, Power, Product2, SmallSet, Solver, BOOLEAN,
 };
 
 pub fn validate_domain<DOM>(domain: DOM)

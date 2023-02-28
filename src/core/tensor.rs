@@ -346,6 +346,7 @@ pub trait TensorAlgebra {
 impl<ALG> TensorAlgebra for ALG
 where
     ALG: BooleanLogic,
+    ALG::Elem: GenElem,
 {
     type Elem = Tensor<ALG::Elem>;
 
@@ -550,6 +551,7 @@ pub trait TensorSolver: TensorAlgebra {
 impl<ALG> TensorSolver for ALG
 where
     ALG: BooleanSolver,
+    ALG::Elem: GenElem,
 {
     fn tensor_add_variable(&mut self, shape: Shape) -> Self::Elem {
         let elems = (0..shape.size())

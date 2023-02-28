@@ -22,12 +22,12 @@
 use std::iter;
 
 use super::{create_solver, Literal, SatInterface};
-use crate::genvec::{BitVec, GenElem, GenVec};
+use crate::genvec::{BitVec, GenVec};
 
 /// A boolean algebra supporting boolean calculation.
 pub trait BooleanLogic {
     /// The element type of this bool algebra.
-    type Elem: GenElem;
+    type Elem: Copy;
 
     /// Returns the logical true (top) element of the algebra.
     fn bool_unit(&self) -> Self::Elem {

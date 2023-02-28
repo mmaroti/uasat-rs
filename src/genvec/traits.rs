@@ -26,7 +26,6 @@ where
     Self: IntoIterator,
     Self: FromIterator<Self::Item>,
     Self: Extend<Self::Item>,
-    Self::Item: Copy,
 {
     /// Constructs a new empty vector. The vector will not allocate until
     /// elements are pushed onto it.

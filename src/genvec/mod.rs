@@ -21,7 +21,7 @@ mod traits;
 pub use traits::{GenElem, GenSlice, GenVec, VecFor};
 
 mod bitvec;
-pub use bitvec::BitVec;
+pub use bitvec::{BitSlice, BitVec};
 
 mod unitvec;
 pub use unitvec::UnitVec;

@@ -30,25 +30,22 @@ impl Domain for Boolean {
         1
     }
 
-    fn contains<ALG>(&self, alg: &mut ALG, elem: SliceFor<'_, ALG::Elem>) -> ALG::Elem
+    fn contains<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> LOGIC::Elem
     where
-        ALG: BooleanLogic,
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>,
     {
         assert!(elem.len() == 1);
-        alg.bool_lift(true)
+        logic.bool_lift(true)
     }
 
-    fn equals<ALG>(
-        &self,
-        alg: &mut ALG,
-        elem0: SliceFor<'_, ALG::Elem>,
-        elem1: SliceFor<'_, ALG::Elem>,
-    ) -> ALG::Elem
+    fn equals<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
-        ALG: BooleanLogic,
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>,
     {
         debug_assert!(elem0.len() == 1 && elem1.len() == 1);
-        alg.bool_equ(elem0.get(0), elem1.get(0))
+        logic.bool_equ(elem0.get(0), elem1.get(0))
     }
 }
 
@@ -64,7 +61,10 @@ impl Countable for Boolean {
         vec
     }
 
-    fn index(&self, elem: SliceFor<'_, bool>) -> usize {
+    fn index<ELEM>(&self, elem: ELEM) -> usize
+    where
+        ELEM: GenSlice<Item = bool>,
+    {
         assert!(elem.len() == 1);
         elem.get(0) as usize
     }

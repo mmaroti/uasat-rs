@@ -51,37 +51,33 @@ impl Domain for SmallSet {
         self.size
     }
 
-    fn contains<ALG>(&self, alg: &mut ALG, elem: SliceFor<'_, ALG::Elem>) -> ALG::Elem
+    fn contains<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> LOGIC::Elem
     where
-        ALG: BooleanLogic,
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>,
     {
         assert!(elem.len() == self.size);
-        alg.bool_fold_one(elem.copy_iter())
+        logic.bool_fold_one(elem.copy_iter())
     }
 
-    fn equals<ALG>(
-        &self,
-        alg: &mut ALG,
-        elem0: SliceFor<'_, ALG::Elem>,
-        elem1: SliceFor<'_, ALG::Elem>,
-    ) -> ALG::Elem
+    fn equals<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
-        ALG: BooleanLogic,
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>,
     {
         debug_assert!(elem0.len() == self.size && elem1.len() == self.size);
-        let mut test = alg.bool_lift(false);
+        let mut test = logic.bool_lift(false);
         for (a, b) in elem0.copy_iter().zip(elem1.copy_iter()) {
-            let v = alg.bool_and(a, b);
-            test = alg.bool_or(test, v);
+            let v = logic.bool_and(a, b);
+            test = logic.bool_or(test, v);
         }
         test
     }
 
-    fn display_elem(
-        &self,
-        f: &mut std::fmt::Formatter<'_>,
-        elem: SliceFor<'_, bool>,
-    ) -> std::fmt::Result {
+    fn display_elem<ELEM>(&self, f: &mut std::fmt::Formatter<'_>, elem: ELEM) -> std::fmt::Result
+    where
+        ELEM: GenSlice<Item = bool>,
+    {
         write!(f, "{}", self.index(elem))
     }
 }
@@ -100,7 +96,10 @@ impl Countable for SmallSet {
         vec
     }
 
-    fn index(&self, elem: SliceFor<'_, bool>) -> usize {
+    fn index<ELEM>(&self, elem: ELEM) -> usize
+    where
+        ELEM: GenSlice<Item = bool>,
+    {
         assert!(elem.len() == self.size);
         let mut index = self.size;
         for (i, v) in elem.copy_iter().enumerate() {

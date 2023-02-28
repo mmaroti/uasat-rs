@@ -25,21 +25,18 @@ pub trait Domain: Clone {
 
     /// Verifies that the given bit vector is encoding a valid element of
     /// this domain.
-    fn contains<ALG>(&self, alg: &mut ALG, elem: SliceFor<'_, ALG::Elem>) -> ALG::Elem
+    fn contains<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> LOGIC::Elem
     where
-        ALG: BooleanLogic;
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>;
 
     /// Checks if the two bit vectors are exactly the same. This offers a
     /// faster implementation than bitwise comparison, since it has to work
     /// only for valid bit patterns that encode elements.
-    fn equals<ALG>(
-        &self,
-        alg: &mut ALG,
-        elem0: SliceFor<'_, ALG::Elem>,
-        elem1: SliceFor<'_, ALG::Elem>,
-    ) -> ALG::Elem
+    fn equals<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
-        ALG: BooleanLogic;
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>;
 
     /// Adds a new variable to the given solver, which is just a list of
     /// fresh literals. It also enforces that the returned variable
@@ -58,16 +55,18 @@ pub trait Domain: Clone {
     }
 
     /// Returns an object for formatting the given element.
-    fn format<'a>(&'a self, elem: SliceFor<'a, bool>) -> Format<'a, Self> {
+    fn format<ELEM>(&self, elem: ELEM) -> Format<'_, Self, ELEM>
+    where
+        ELEM: GenSlice<Item = bool>,
+    {
         Format { domain: self, elem }
     }
 
     /// Formats the given element using the provided formatter.
-    fn display_elem(
-        &self,
-        f: &mut std::fmt::Formatter<'_>,
-        elem: SliceFor<'_, bool>,
-    ) -> std::fmt::Result {
+    fn display_elem<ELEM>(&self, f: &mut std::fmt::Formatter<'_>, elem: ELEM) -> std::fmt::Result
+    where
+        ELEM: GenSlice<Item = bool>,
+    {
         assert!(elem.len() == self.num_bits());
         for v in elem.copy_iter() {
             write!(f, "{}", if v { '1' } else { '0' })?;
@@ -79,24 +78,26 @@ pub trait Domain: Clone {
     fn find_element(&self) -> Option<VecFor<bool>> {
         let mut solver = Solver::new("");
         let elem = self.add_variable(&mut solver);
-        let test = self.contains(&mut solver, &elem);
+        let test = self.contains(&mut solver, elem.slice());
         solver.bool_add_clause(&[test]);
         solver.bool_find_one_model(&[], elem.copy_iter())
     }
 }
 
 /// A helper structure for displaying domain elements.
-pub struct Format<'a, DOM>
+pub struct Format<'a, DOM, ELEM>
 where
     DOM: Domain,
+    ELEM: GenSlice<Item = bool>,
 {
     domain: &'a DOM,
-    elem: SliceFor<'a, bool>,
+    elem: ELEM,
 }
 
-impl<'a, Dom> std::fmt::Display for Format<'a, Dom>
+impl<'a, DOM, ELEM> std::fmt::Display for Format<'a, DOM, ELEM>
 where
-    Dom: Domain,
+    DOM: Domain,
+    ELEM: GenSlice<Item = bool>,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.domain.display_elem(f, self.elem)
@@ -112,7 +113,9 @@ pub trait Countable: Domain {
     fn elem(&self, index: usize) -> VecFor<bool>;
 
     /// Returns the index of the given element.
-    fn index(&self, elem: SliceFor<'_, bool>) -> usize;
+    fn index<ELEM>(&self, elem: ELEM) -> usize
+    where
+        ELEM: GenSlice<Item = bool>;
 }
 
 /// A domain with a reflexive, transitive and antisymmetric relation.

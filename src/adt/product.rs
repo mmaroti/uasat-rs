@@ -52,18 +52,18 @@ where
     }
 
     /// Returns the first part of an element.
-    pub fn part0<SLICE>(&self, elem: SLICE) -> SLICE
+    pub fn part0<ELEM>(&self, elem: ELEM) -> ELEM
     where
-        SLICE: GenSlice,
+        ELEM: GenSlice,
     {
         debug_assert!(elem.len() == self.num_bits());
         elem.head(self.dom0.num_bits())
     }
 
     /// Returns the second part of an element.
-    pub fn part1<SLICE>(&self, elem: SLICE) -> SLICE
+    pub fn part1<ELEM>(&self, elem: ELEM) -> ELEM
     where
-        SLICE: GenSlice,
+        ELEM: GenSlice,
     {
         debug_assert!(elem.len() == self.num_bits());
         elem.tail(self.dom0.num_bits())
@@ -79,36 +79,36 @@ where
         self.dom0.num_bits() + self.dom1.num_bits()
     }
 
-    fn contains<ALG>(&self, alg: &mut ALG, elem: SliceFor<'_, ALG::Elem>) -> ALG::Elem
+    fn contains<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> LOGIC::Elem
     where
-        ALG: BooleanLogic,
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>,
     {
         let bits0 = self.dom0.num_bits();
-        let valid0 = self.dom0.contains(alg, elem.head(bits0));
-        let valid1 = self.dom1.contains(alg, elem.tail(bits0));
-        alg.bool_and(valid0, valid1)
+        let valid0 = self.dom0.contains(logic, elem.head(bits0));
+        let valid1 = self.dom1.contains(logic, elem.tail(bits0));
+        logic.bool_and(valid0, valid1)
     }
 
-    fn equals<ALG>(
-        &self,
-        alg: &mut ALG,
-        elem0: SliceFor<'_, ALG::Elem>,
-        elem1: SliceFor<'_, ALG::Elem>,
-    ) -> ALG::Elem
+    fn equals<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
-        ALG: BooleanLogic,
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>,
     {
         let bits0 = self.dom0.num_bits();
-        let test0 = self.dom0.equals(alg, elem0.head(bits0), elem1.head(bits0));
-        let test1 = self.dom1.equals(alg, elem0.tail(bits0), elem1.tail(bits0));
-        alg.bool_and(test0, test1)
+        let test0 = self
+            .dom0
+            .equals(logic, elem0.head(bits0), elem1.head(bits0));
+        let test1 = self
+            .dom1
+            .equals(logic, elem0.tail(bits0), elem1.tail(bits0));
+        logic.bool_and(test0, test1)
     }
 
-    fn display_elem(
-        &self,
-        f: &mut std::fmt::Formatter<'_>,
-        elem: SliceFor<'_, bool>,
-    ) -> std::fmt::Result {
+    fn display_elem<ELEM>(&self, f: &mut std::fmt::Formatter<'_>, elem: ELEM) -> std::fmt::Result
+    where
+        ELEM: GenSlice<Item = bool>,
+    {
         let bits0 = self.dom0.num_bits();
         write!(f, "(")?;
         self.dom0.display_elem(f, elem.head(bits0))?;
@@ -136,7 +136,10 @@ where
         result
     }
 
-    fn index(&self, elem: SliceFor<'_, bool>) -> usize {
+    fn index<ELEM>(&self, elem: ELEM) -> usize
+    where
+        ELEM: GenSlice<Item = bool>,
+    {
         debug_assert!(elem.len() == self.num_bits());
         let bits0 = self.dom0.num_bits();
         let part0 = self.dom0.index(elem.head(bits0));

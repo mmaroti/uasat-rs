@@ -23,39 +23,39 @@ use super::{
 use std::iter::{ExactSizeIterator, Extend, FusedIterator};
 
 /// A helper iterator to go through the parts of an element.
-struct PartIter<SLICE>
+struct PartIter<ELEM>
 where
-    SLICE: GenSlice,
+    ELEM: GenSlice,
 {
-    slice: SLICE,
+    elem: ELEM,
     step: usize,
 }
 
-impl<SLICE> Iterator for PartIter<SLICE>
+impl<ELEM> Iterator for PartIter<ELEM>
 where
-    SLICE: GenSlice,
+    ELEM: GenSlice,
 {
-    type Item = SLICE;
+    type Item = ELEM;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.slice.is_empty() {
+        if self.elem.is_empty() {
             None
         } else {
-            let next = self.slice.head(self.step);
-            self.slice = self.slice.tail(self.step);
+            let next = self.elem.head(self.step);
+            self.elem = self.elem.tail(self.step);
             Some(next)
         }
     }
 }
 
-impl<SLICE> FusedIterator for PartIter<SLICE> where SLICE: GenSlice {}
+impl<ELEM> FusedIterator for PartIter<ELEM> where ELEM: GenSlice {}
 
-impl<SLICE> ExactSizeIterator for PartIter<SLICE>
+impl<ELEM> ExactSizeIterator for PartIter<ELEM>
 where
-    SLICE: GenSlice,
+    ELEM: GenSlice,
 {
     fn len(&self) -> usize {
-        self.slice.len() / self.step
+        self.elem.len() / self.step
     }
 }
 
@@ -91,21 +91,21 @@ where
     }
 
     /// Returns the part of an element at the given index.
-    fn part_iter<SLICE>(&self, elem: SLICE) -> PartIter<SLICE>
+    fn part_iter<ELEM>(&self, elem: ELEM) -> PartIter<ELEM>
     where
-        SLICE: GenSlice,
+        ELEM: GenSlice,
     {
         debug_assert!(elem.len() == self.num_bits());
         PartIter {
-            slice: elem,
+            elem,
             step: self.base.num_bits(),
         }
     }
 
     /// Returns the part of an element at the given index.
-    pub fn part<SLICE>(&self, elem: SLICE, index: usize) -> SLICE
+    pub fn part<ELEM>(&self, elem: ELEM, index: usize) -> ELEM
     where
-        SLICE: GenSlice,
+        ELEM: GenSlice,
     {
         debug_assert!(elem.len() == self.num_bits());
         let step = self.base().num_bits();
@@ -123,40 +123,36 @@ where
         self.base.num_bits() * self.exponent.size()
     }
 
-    fn contains<ALG>(&self, alg: &mut ALG, elem: SliceFor<'_, ALG::Elem>) -> ALG::Elem
+    fn contains<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> LOGIC::Elem
     where
-        ALG: BooleanLogic,
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>,
     {
-        let mut valid = alg.bool_lift(true);
+        let mut valid = logic.bool_lift(true);
         for part in self.part_iter(elem) {
-            let v = self.base.contains(alg, part);
-            valid = alg.bool_and(valid, v);
+            let v = self.base.contains(logic, part);
+            valid = logic.bool_and(valid, v);
         }
         valid
     }
 
-    fn equals<ALG>(
-        &self,
-        alg: &mut ALG,
-        elem0: SliceFor<'_, ALG::Elem>,
-        elem1: SliceFor<'_, ALG::Elem>,
-    ) -> ALG::Elem
+    fn equals<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
-        ALG: BooleanLogic,
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>,
     {
-        let mut valid = alg.bool_lift(true);
+        let mut valid = logic.bool_lift(true);
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
-            let v = self.base.equals(alg, part0, part1);
-            valid = alg.bool_and(valid, v);
+            let v = self.base.equals(logic, part0, part1);
+            valid = logic.bool_and(valid, v);
         }
         valid
     }
 
-    fn display_elem(
-        &self,
-        f: &mut std::fmt::Formatter<'_>,
-        elem: SliceFor<'_, bool>,
-    ) -> std::fmt::Result {
+    fn display_elem<ELEM>(&self, f: &mut std::fmt::Formatter<'_>, elem: ELEM) -> std::fmt::Result
+    where
+        ELEM: GenSlice<Item = bool>,
+    {
         let mut first = true;
         write!(f, "[")?;
         for part in self.part_iter(elem) {
@@ -198,7 +194,10 @@ where
         result
     }
 
-    fn index(&self, elem: SliceFor<'_, bool>) -> usize {
+    fn index<ELEM>(&self, elem: ELEM) -> usize
+    where
+        ELEM: GenSlice<Item = bool>,
+    {
         let mut index = 0;
         let base_size = self.base.size();
         let mut power = 1;

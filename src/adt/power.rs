@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BooleanLattice, BooleanLogic, BoundedOrder, Countable, Domain, GenSlice, GenVec, Lattice,
-    MeetSemilattice, PartialOrder, SliceFor, VecFor,
+    BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, Domain, GenSlice, GenVec,
+    Lattice, MeetSemilattice, PartialOrder,
 };
 
 use std::iter::{ExactSizeIterator, Extend, FusedIterator};
@@ -181,10 +181,10 @@ where
         result
     }
 
-    fn elem(&self, index: usize) -> VecFor<bool> {
+    fn elem(&self, index: usize) -> BitVec {
         let mut index = index;
         let base_size = self.base.size();
-        let mut result: VecFor<bool> = GenVec::with_capacity(self.num_bits());
+        let mut result: BitVec = GenVec::with_capacity(self.num_bits());
         for _ in 0..self.exponent.size() {
             let other = self.base.elem(index % base_size);
             result.extend(other);
@@ -216,19 +216,15 @@ where
     BASE: PartialOrder,
     EXP: Countable,
 {
-    fn leq<ALG>(
-        &self,
-        alg: &mut ALG,
-        elem0: SliceFor<'_, ALG::Elem>,
-        elem1: SliceFor<'_, ALG::Elem>,
-    ) -> ALG::Elem
+    fn leq<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
-        ALG: BooleanLogic,
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>,
     {
-        let mut valid = alg.bool_lift(true);
+        let mut valid = logic.bool_lift(true);
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
-            let v = self.base.leq(alg, part0, part1);
-            valid = alg.bool_and(valid, v);
+            let v = self.base.leq(logic, part0, part1);
+            valid = logic.bool_and(valid, v);
         }
         valid
     }
@@ -239,18 +235,18 @@ where
     BASE: BoundedOrder,
     EXP: Countable,
 {
-    fn top(&self) -> VecFor<bool> {
+    fn top(&self) -> BitVec {
         let part = self.base.top();
-        let mut elem: VecFor<bool> = GenVec::with_capacity(self.num_bits());
+        let mut elem: BitVec = GenVec::with_capacity(self.num_bits());
         for _ in 0..self.exponent.size() {
             elem.extend(part.copy_iter());
         }
         elem
     }
 
-    fn bottom(&self) -> VecFor<bool> {
+    fn bottom(&self) -> BitVec {
         let part = self.base.bottom();
-        let mut elem: VecFor<bool> = GenVec::with_capacity(self.num_bits());
+        let mut elem: BitVec = GenVec::with_capacity(self.num_bits());
         for _ in 0..self.exponent.size() {
             elem.extend(part.copy_iter());
         }
@@ -263,18 +259,14 @@ where
     BASE: MeetSemilattice,
     EXP: Countable,
 {
-    fn meet<ALG>(
-        &self,
-        alg: &mut ALG,
-        elem0: SliceFor<'_, ALG::Elem>,
-        elem1: SliceFor<'_, ALG::Elem>,
-    ) -> VecFor<ALG::Elem>
+    fn meet<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
     where
-        ALG: BooleanLogic,
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>,
     {
-        let mut elem: VecFor<ALG::Elem> = GenVec::with_capacity(self.num_bits());
+        let mut elem: ELEM::Vec = GenVec::with_capacity(self.num_bits());
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
-            elem.extend(self.base.meet(alg, part0, part1));
+            elem.extend(self.base.meet(logic, part0, part1));
         }
         elem
     }
@@ -285,18 +277,14 @@ where
     BASE: Lattice,
     EXP: Countable,
 {
-    fn join<ALG>(
-        &self,
-        alg: &mut ALG,
-        elem0: SliceFor<'_, ALG::Elem>,
-        elem1: SliceFor<'_, ALG::Elem>,
-    ) -> VecFor<ALG::Elem>
+    fn join<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
     where
-        ALG: BooleanLogic,
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>,
     {
-        let mut elem: VecFor<ALG::Elem> = GenVec::with_capacity(self.num_bits());
+        let mut elem: ELEM::Vec = GenVec::with_capacity(self.num_bits());
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
-            elem.extend(self.base.join(alg, part0, part1));
+            elem.extend(self.base.join(logic, part0, part1));
         }
         elem
     }
@@ -307,13 +295,14 @@ where
     BASE: BooleanLattice,
     EXP: Countable,
 {
-    fn complement<ALG>(&self, alg: &mut ALG, elem: SliceFor<'_, ALG::Elem>) -> VecFor<ALG::Elem>
+    fn complement<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> ELEM::Vec
     where
-        ALG: BooleanLogic,
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>,
     {
-        let mut result: VecFor<ALG::Elem> = GenVec::with_capacity(self.num_bits());
+        let mut result: ELEM::Vec = GenVec::with_capacity(self.num_bits());
         for part in self.part_iter(elem) {
-            result.extend(self.base.complement(alg, part));
+            result.extend(self.base.complement(logic, part));
         }
         result
     }

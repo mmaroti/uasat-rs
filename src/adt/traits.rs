@@ -15,7 +15,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BooleanLogic, BooleanSolver, GenSlice, GenVec, SliceFor, Solver, VecFor};
+use super::{BitVec, BooleanLogic, BooleanSolver, GenSlice, GenVec, Solver};
 
 /// An arbitrary set of elements that can be representable by bit vectors.
 pub trait Domain: Clone {
@@ -41,16 +41,16 @@ pub trait Domain: Clone {
     /// Adds a new variable to the given solver, which is just a list of
     /// fresh literals. It also enforces that the returned variable
     /// is contained in the domain, but adding the appropriate constraint.
-    fn add_variable<ALG>(&self, alg: &mut ALG) -> VecFor<ALG::Elem>
+    fn add_variable<LOGIC>(&self, logic: &mut LOGIC) -> Vec<LOGIC::Elem>
     where
-        ALG: BooleanSolver,
+        LOGIC: BooleanSolver,
     {
-        let mut elem: VecFor<ALG::Elem> = GenVec::with_capacity(self.num_bits());
+        let mut elem: Vec<LOGIC::Elem> = Vec::with_capacity(self.num_bits());
         for _ in 0..self.num_bits() {
-            elem.push(alg.bool_add_variable());
+            elem.push(logic.bool_add_variable());
         }
-        let test = self.contains(alg, elem.slice());
-        alg.bool_add_clause1(test);
+        let test = self.contains(logic, elem.slice());
+        logic.bool_add_clause1(test);
         elem
     }
 
@@ -75,7 +75,7 @@ pub trait Domain: Clone {
     }
 
     /// Finds an element of this domain if it has one.
-    fn find_element(&self) -> Option<VecFor<bool>> {
+    fn find_element(&self) -> Option<BitVec> {
         let mut solver = Solver::new("");
         let elem = self.add_variable(&mut solver);
         let test = self.contains(&mut solver, elem.slice());
@@ -110,7 +110,7 @@ pub trait Countable: Domain {
     fn size(&self) -> usize;
 
     /// Returns the given element of the domain.
-    fn elem(&self, index: usize) -> VecFor<bool>;
+    fn elem(&self, index: usize) -> BitVec;
 
     /// Returns the index of the given element.
     fn index<ELEM>(&self, elem: ELEM) -> usize
@@ -122,25 +122,17 @@ pub trait Countable: Domain {
 pub trait PartialOrder: Domain {
     /// Returns true if the first element is less than or equal to the
     /// second one in the partial order.
-    fn leq<ALG>(
-        &self,
-        alg: &mut ALG,
-        elem0: SliceFor<'_, ALG::Elem>,
-        elem1: SliceFor<'_, ALG::Elem>,
-    ) -> ALG::Elem
+    fn leq<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
-        ALG: BooleanLogic;
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>;
 
     /// Returns true if the first element is strictly less than the
     /// second one.
-    fn less_than<ALG>(
-        &self,
-        alg: &mut ALG,
-        elem0: SliceFor<'_, ALG::Elem>,
-        elem1: SliceFor<'_, ALG::Elem>,
-    ) -> ALG::Elem
+    fn less_than<LOGIC, ELEM>(&self, alg: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
-        ALG: BooleanLogic,
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>,
     {
         let test0 = self.leq(alg, elem0, elem1);
         let test1 = self.leq(alg, elem1, elem0);
@@ -150,14 +142,10 @@ pub trait PartialOrder: Domain {
 
     /// Returns true if one of the elements is less than or equal to
     /// the other.
-    fn comparable<ALG>(
-        &self,
-        alg: &mut ALG,
-        elem0: SliceFor<'_, ALG::Elem>,
-        elem1: SliceFor<'_, ALG::Elem>,
-    ) -> ALG::Elem
+    fn comparable<LOGIC, ELEM>(&self, alg: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
-        ALG: BooleanLogic,
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>,
     {
         let test0 = self.leq(alg, elem0, elem1);
         let test1 = self.leq(alg, elem1, elem0);
@@ -168,44 +156,37 @@ pub trait PartialOrder: Domain {
 /// A partial order that has a largest and smallest element.
 pub trait BoundedOrder: PartialOrder {
     /// Returns the largest element of the partial order.
-    fn top(&self) -> VecFor<bool>;
+    fn top(&self) -> BitVec;
 
     /// Returns the smallest element of the partial order.
-    fn bottom(&self) -> VecFor<bool>;
+    fn bottom(&self) -> BitVec;
 }
 
 /// A semilattice with a meet operation.
 pub trait MeetSemilattice: PartialOrder {
     /// Calculates the meet (the largest lower bound) of
     /// a pair of elements
-    fn meet<ALG>(
-        &self,
-        alg: &mut ALG,
-        elem0: SliceFor<'_, ALG::Elem>,
-        elem1: SliceFor<'_, ALG::Elem>,
-    ) -> VecFor<ALG::Elem>
+    fn meet<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
     where
-        ALG: BooleanLogic;
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>;
 }
 
 pub trait Lattice: MeetSemilattice {
     /// Calculates the join (the smallest upper bound) of
     /// a pair of elements.
-    fn join<ALG>(
-        &self,
-        alg: &mut ALG,
-        elem0: SliceFor<'_, ALG::Elem>,
-        elem1: SliceFor<'_, ALG::Elem>,
-    ) -> VecFor<ALG::Elem>
+    fn join<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
     where
-        ALG: BooleanLogic;
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>;
 }
 
 pub trait BooleanLattice: Lattice + BoundedOrder {
     /// Calculates the complement of the given element.
-    fn complement<ALG>(&self, alg: &mut ALG, elem: SliceFor<'_, ALG::Elem>) -> VecFor<ALG::Elem>
+    fn complement<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> ELEM::Vec
     where
-        ALG: BooleanLogic;
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>;
 }
 
 /// A binary relation between two domains
@@ -221,12 +202,8 @@ where
     fn codomain(&self) -> &DOM1;
 
     /// Returns true if the two elements are related.
-    fn related<ALG>(
-        &self,
-        alg: &mut ALG,
-        elem0: SliceFor<'_, ALG::Elem>,
-        elem1: SliceFor<'_, ALG::Elem>,
-    ) -> ALG::Elem
+    fn related<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
-        ALG: BooleanLogic;
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>;
 }

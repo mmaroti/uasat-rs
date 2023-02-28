@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BooleanLattice, BooleanLogic, BoundedOrder, Countable, Domain, GenSlice, GenVec, Lattice,
-    MeetSemilattice, PartialOrder, SliceFor, VecFor,
+    BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, Domain, GenSlice, GenVec,
+    Lattice, MeetSemilattice, PartialOrder,
 };
 
 #[derive(Debug, Clone)]
@@ -54,11 +54,11 @@ impl Countable for Boolean {
         2
     }
 
-    fn elem(&self, index: usize) -> VecFor<bool> {
+    fn elem(&self, index: usize) -> BitVec {
         assert!(index < 2);
-        let mut vec: VecFor<bool> = GenVec::with_capacity(1);
-        vec.push(index != 0);
-        vec
+        let mut elem: BitVec = GenVec::with_capacity(1);
+        elem.push(index != 0);
+        elem
     }
 
     fn index<ELEM>(&self, elem: ELEM) -> usize
@@ -71,76 +71,65 @@ impl Countable for Boolean {
 }
 
 impl PartialOrder for Boolean {
-    fn leq<ALG>(
-        &self,
-        alg: &mut ALG,
-        elem0: SliceFor<'_, ALG::Elem>,
-        elem1: SliceFor<'_, ALG::Elem>,
-    ) -> ALG::Elem
+    fn leq<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
-        ALG: BooleanLogic,
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>,
     {
         debug_assert!(elem0.len() == 1 && elem1.len() == 1);
-        alg.bool_imp(elem0.get(0), elem1.get(0))
+        logic.bool_imp(elem0.get(0), elem1.get(0))
     }
 }
 
 impl BoundedOrder for Boolean {
-    fn top(&self) -> VecFor<bool> {
-        let mut elem: VecFor<bool> = GenVec::with_capacity(1);
+    fn top(&self) -> BitVec {
+        let mut elem: BitVec = GenVec::with_capacity(1);
         elem.push(true);
         elem
     }
 
-    fn bottom(&self) -> VecFor<bool> {
-        let mut elem: VecFor<bool> = GenVec::with_capacity(1);
+    fn bottom(&self) -> BitVec {
+        let mut elem: BitVec = GenVec::with_capacity(1);
         elem.push(false);
         elem
     }
 }
 
 impl MeetSemilattice for Boolean {
-    fn meet<ALG>(
-        &self,
-        alg: &mut ALG,
-        elem0: SliceFor<'_, ALG::Elem>,
-        elem1: SliceFor<'_, ALG::Elem>,
-    ) -> VecFor<ALG::Elem>
+    fn meet<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
     where
-        ALG: BooleanLogic,
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>,
     {
         debug_assert!(elem0.len() == 1 && elem1.len() == 1);
-        let mut elem: VecFor<ALG::Elem> = GenVec::with_capacity(1);
-        elem.push(alg.bool_and(elem0.get(0), elem1.get(0)));
+        let mut elem: ELEM::Vec = GenVec::with_capacity(1);
+        elem.push(logic.bool_and(elem0.get(0), elem1.get(0)));
         elem
     }
 }
 
 impl Lattice for Boolean {
-    fn join<ALG>(
-        &self,
-        alg: &mut ALG,
-        elem0: SliceFor<'_, ALG::Elem>,
-        elem1: SliceFor<'_, ALG::Elem>,
-    ) -> VecFor<ALG::Elem>
+    fn join<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
     where
-        ALG: BooleanLogic,
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>,
     {
         debug_assert!(elem0.len() == 1 && elem1.len() == 1);
-        let mut elem: VecFor<ALG::Elem> = GenVec::with_capacity(1);
-        elem.push(alg.bool_or(elem0.get(0), elem1.get(0)));
+        let mut elem: ELEM::Vec = GenVec::with_capacity(1);
+        elem.push(logic.bool_or(elem0.get(0), elem1.get(0)));
         elem
     }
 }
 
 impl BooleanLattice for Boolean {
-    fn complement<ALG>(&self, alg: &mut ALG, elem: SliceFor<'_, ALG::Elem>) -> VecFor<ALG::Elem>
+    fn complement<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> ELEM::Vec
     where
-        ALG: BooleanLogic,
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>,
     {
         debug_assert!(elem.len() == 1);
-        let mut elem: VecFor<ALG::Elem> = GenVec::with_capacity(1);
-        elem.push(alg.bool_not(elem.get(0)));
+        let mut elem: ELEM::Vec = GenVec::with_capacity(1);
+        elem.push(logic.bool_not(elem.get(0)));
         elem
     }
 }

@@ -27,12 +27,7 @@ pub trait Relations: BooleanLattice {
     /// permuted, identified or new dummy coordinates. The mapping is a vector
     /// of length of the original relation with entries identifying the matching
     /// coordinates in the new relation.
-    fn polymer<ELEM>(
-        &self,
-        elem: ELEM,
-        arity: usize,
-        mapping: &[usize],
-    ) -> <ELEM as GenSlice>::Vec
+    fn polymer<ELEM>(&self, elem: ELEM, arity: usize, mapping: &[usize]) -> <ELEM as GenSlice>::Vec
     where
         ELEM: GenSlice;
 
@@ -54,12 +49,7 @@ where
         self.exponent().exponent().size()
     }
 
-    fn polymer<ELEM>(
-        &self,
-        elem: ELEM,
-        arity: usize,
-        mapping: &[usize],
-    ) -> <ELEM as GenSlice>::Vec
+    fn polymer<ELEM>(&self, elem: ELEM, arity: usize, mapping: &[usize]) -> <ELEM as GenSlice>::Vec
     where
         ELEM: GenSlice,
     {
@@ -106,7 +96,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::super::{Logic, VecFor};
+    use super::super::{BitVec, Logic};
     use super::*;
 
     #[test]
@@ -120,15 +110,15 @@ mod tests {
 
         let mut logic = Logic();
 
-        let elem1: VecFor<bool> = vec![false, true, false].into_iter().collect();
+        let elem1: BitVec = vec![false, true, false].into_iter().collect();
         assert!(rel1.contains(&mut logic, elem1.slice()));
 
-        let elem2: VecFor<bool> = vec![false, true, true, false, true, true, false, false, false]
+        let elem2: BitVec = vec![false, true, true, false, true, true, false, false, false]
             .into_iter()
             .collect();
         assert!(rel2.contains(&mut logic, elem2.slice()));
 
-        let elem3: VecFor<bool> = vec![false, false, false, true, true, false, true, true, false]
+        let elem3: BitVec = vec![false, false, false, true, true, false, true, true, false]
             .into_iter()
             .collect();
         assert!(rel2.contains(&mut logic, elem3.slice()));

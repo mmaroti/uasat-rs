@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BooleanLattice, BooleanLogic, BoundedOrder, Countable, Domain, GenSlice, GenVec, Lattice,
-    MeetSemilattice, PartialOrder, SliceFor, VecFor,
+    BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, Domain, GenSlice, GenVec,
+    Lattice, MeetSemilattice, PartialOrder,
 };
 
 /// The product of two domains.
@@ -127,9 +127,9 @@ where
         self.dom0.size() * self.dom1.size()
     }
 
-    fn elem(&self, index: usize) -> VecFor<bool> {
+    fn elem(&self, index: usize) -> BitVec {
         let size0 = self.dom0.size();
-        let mut result: VecFor<bool> = GenVec::with_capacity(self.num_bits());
+        let mut result: BitVec = GenVec::with_capacity(self.num_bits());
         result.extend(self.dom0.elem(index % size0));
         result.extend(self.dom1.elem(index / size0));
         debug_assert!(result.len() == self.num_bits());
@@ -154,19 +154,15 @@ where
     DOM0: PartialOrder,
     DOM1: PartialOrder,
 {
-    fn leq<ALG>(
-        &self,
-        alg: &mut ALG,
-        elem0: SliceFor<'_, ALG::Elem>,
-        elem1: SliceFor<'_, ALG::Elem>,
-    ) -> ALG::Elem
+    fn leq<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
-        ALG: BooleanLogic,
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>,
     {
         let bits0 = self.dom0.num_bits();
-        let test0 = self.dom0.leq(alg, elem0.head(bits0), elem1.head(bits0));
-        let test1 = self.dom1.leq(alg, elem0.tail(bits0), elem1.tail(bits0));
-        alg.bool_and(test0, test1)
+        let test0 = self.dom0.leq(logic, elem0.head(bits0), elem1.head(bits0));
+        let test1 = self.dom1.leq(logic, elem0.tail(bits0), elem1.tail(bits0));
+        logic.bool_and(test0, test1)
     }
 }
 
@@ -175,15 +171,15 @@ where
     DOM0: BoundedOrder,
     DOM1: BoundedOrder,
 {
-    fn top(&self) -> VecFor<bool> {
-        let mut elem: VecFor<bool> = GenVec::with_capacity(self.num_bits());
+    fn top(&self) -> BitVec {
+        let mut elem: BitVec = GenVec::with_capacity(self.num_bits());
         elem.append(&mut self.dom0.top());
         elem.append(&mut self.dom1.top());
         elem
     }
 
-    fn bottom(&self) -> VecFor<bool> {
-        let mut elem: VecFor<bool> = GenVec::with_capacity(self.num_bits());
+    fn bottom(&self) -> BitVec {
+        let mut elem: BitVec = GenVec::with_capacity(self.num_bits());
         elem.append(&mut self.dom0.bottom());
         elem.append(&mut self.dom1.bottom());
         elem
@@ -195,19 +191,15 @@ where
     DOM0: MeetSemilattice,
     DOM1: MeetSemilattice,
 {
-    fn meet<ALG>(
-        &self,
-        alg: &mut ALG,
-        elem0: SliceFor<'_, ALG::Elem>,
-        elem1: SliceFor<'_, ALG::Elem>,
-    ) -> VecFor<ALG::Elem>
+    fn meet<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
     where
-        ALG: BooleanLogic,
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>,
     {
         let bits0 = self.dom0.num_bits();
-        let mut elem: VecFor<ALG::Elem> = GenVec::with_capacity(self.num_bits());
-        elem.extend(self.dom0.meet(alg, elem0.head(bits0), elem1.head(bits0)));
-        elem.extend(self.dom1.meet(alg, elem0.tail(bits0), elem1.tail(bits0)));
+        let mut elem: ELEM::Vec = GenVec::with_capacity(self.num_bits());
+        elem.extend(self.dom0.meet(logic, elem0.head(bits0), elem1.head(bits0)));
+        elem.extend(self.dom1.meet(logic, elem0.tail(bits0), elem1.tail(bits0)));
         elem
     }
 }
@@ -217,19 +209,15 @@ where
     DOM0: Lattice,
     DOM1: Lattice,
 {
-    fn join<ALG>(
-        &self,
-        alg: &mut ALG,
-        elem0: SliceFor<'_, ALG::Elem>,
-        elem1: SliceFor<'_, ALG::Elem>,
-    ) -> VecFor<ALG::Elem>
+    fn join<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
     where
-        ALG: BooleanLogic,
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>,
     {
         let bits0 = self.dom0.num_bits();
-        let mut elem: VecFor<ALG::Elem> = GenVec::with_capacity(self.num_bits());
-        elem.extend(self.dom0.join(alg, elem0.head(bits0), elem1.head(bits0)));
-        elem.extend(self.dom1.join(alg, elem0.tail(bits0), elem1.tail(bits0)));
+        let mut elem: ELEM::Vec = GenVec::with_capacity(self.num_bits());
+        elem.extend(self.dom0.join(logic, elem0.head(bits0), elem1.head(bits0)));
+        elem.extend(self.dom1.join(logic, elem0.tail(bits0), elem1.tail(bits0)));
         elem
     }
 }
@@ -239,13 +227,14 @@ where
     DOM0: BooleanLattice,
     DOM1: BooleanLattice,
 {
-    fn complement<ALG>(&self, alg: &mut ALG, elem: SliceFor<'_, ALG::Elem>) -> VecFor<ALG::Elem>
+    fn complement<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> ELEM::Vec
     where
-        ALG: BooleanLogic,
+        LOGIC: BooleanLogic,
+        ELEM: GenSlice<Item = LOGIC::Elem>,
     {
         let bits0 = self.dom0.num_bits();
-        let mut result: VecFor<ALG::Elem> = GenVec::with_capacity(self.num_bits());
-        result.extend(self.dom0.complement(alg, elem.head(bits0)));
+        let mut result: ELEM::Vec = GenVec::with_capacity(self.num_bits());
+        result.extend(self.dom0.complement(logic, elem.head(bits0)));
         result
     }
 }

@@ -27,7 +27,6 @@ where
     Self: IntoIterator<Item = ELEM>,
     Self: FromIterator<ELEM>,
     Self: Extend<ELEM>,
-    Self: PartialEq,
 {
     /// Constructs a new empty vector. The vector will not allocate until
     /// elements are pushed onto it.
@@ -207,7 +206,7 @@ where
 /// A trait for elements that can be stored in a generic vector.
 pub trait GenElem: Copy {
     /// A type that can be used for storing a vector of elements.
-    type Vec: GenVec<Self> + std::fmt::Debug;
+    type Vec: GenVec<Self> + std::fmt::Debug + PartialEq;
 }
 
 pub type VecFor<ELEM> = <ELEM as GenElem>::Vec;

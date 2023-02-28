@@ -22,7 +22,7 @@ use crate::core::Literal;
 
 impl<ELEM> GenVec<ELEM> for Vec<ELEM>
 where
-    ELEM: Copy + PartialEq,
+    ELEM: Copy,
 {
     fn new() -> Self {
         Self::new()
@@ -108,7 +108,7 @@ where
 
 impl<'a, ELEM> GenSlice for &'a [ELEM]
 where
-    ELEM: Copy + PartialEq,
+    ELEM: Copy,
 {
     type Item = ELEM;
 

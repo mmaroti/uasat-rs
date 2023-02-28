@@ -129,12 +129,6 @@ impl Vector for UnitVec {
         usize::max_value()
     }
 
-    type Iter<'a> = UnitIter;
-
-    fn copy_iter(&self) -> Self::Iter<'_> {
-        self.into_iter()
-    }
-
     type Slice<'a> = UnitVec;
 
     fn slice(&self) -> Self::Slice<'_> {

@@ -92,12 +92,6 @@ where
         self.capacity()
     }
 
-    type Iter<'a> = std::iter::Copied<std::slice::Iter<'a, ELEM>> where Self: 'a;
-
-    fn copy_iter(&self) -> Self::Iter<'_> {
-        self.iter().copied()
-    }
-
     type Slice<'a> = &'a [ELEM] where Self: 'a;
 
     fn slice(&self) -> Self::Slice<'_> {

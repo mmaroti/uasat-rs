@@ -136,24 +136,18 @@ where
     /// Returns the number of elements the vector can hold without reallocating.
     fn capacity(&self) -> usize;
 
-    /// The type of iterator that can return the elements as copied values.
-    type Iter<'a>: Iterator<Item = Self::Item>
-        + FusedIterator
-        + ExactSizeIterator
-        + DoubleEndedIterator
-    where
-        Self: 'a;
-
-    /// Creates an iterator that returns the elements copied values.
-    fn copy_iter(&self) -> Self::Iter<'_>;
-
     /// The type of slice structure that can be further sliced.
-    type Slice<'a>: Slice<Item = Self::Item, Iter = Self::Iter<'a>, Vec = Self>
+    type Slice<'a>: Slice<Item = Self::Item, Vec = Self>
     where
         Self: 'a;
 
     /// Returns a slice object covering all elements of this vector.
     fn slice(&self) -> Self::Slice<'_>;
+
+    /// Creates an iterator that returns the elements copied values.
+    fn copy_iter(&self) -> <Self::Slice<'_> as Slice>::Iter {
+        self.slice().copy_iter()
+    }
 }
 
 pub trait Slice
@@ -164,7 +158,7 @@ where
     type Item: Copy;
 
     /// The iterator type for this slice.
-    type Iter: Iterator<Item = Self::Item>;
+    type Iter: Iterator<Item = Self::Item> + FusedIterator + ExactSizeIterator + DoubleEndedIterator;
 
     /// A type of vector than can hold elements.
     type Vec: Vector<Item = Self::Item>;

@@ -148,16 +148,6 @@ impl Vector for BitVec {
         self.data.capacity() * 32
     }
 
-    type Iter<'a> = BitSlice<'a>;
-
-    fn copy_iter(&self) -> Self::Iter<'_> {
-        BitSlice {
-            vec: self,
-            start: 0,
-            end: self.len,
-        }
-    }
-
     type Slice<'a> = BitSlice<'a>;
 
     fn slice(&self) -> Self::Slice<'_> {

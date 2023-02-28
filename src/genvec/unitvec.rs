@@ -142,7 +142,7 @@ impl GenVec<()> for UnitVec {
     }
 }
 
-impl GenSlice<()> for UnitVec {
+impl GenSlice for UnitVec {
     fn len(self) -> usize {
         self.len
     }
@@ -157,6 +157,8 @@ impl GenSlice<()> for UnitVec {
         assert!(start <= end);
         Self { len: end - start }
     }
+
+    type Item = ();
 
     type Iter = UnitIter;
 

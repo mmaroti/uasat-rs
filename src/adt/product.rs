@@ -52,20 +52,18 @@ where
     }
 
     /// Returns the first part of an element.
-    pub fn part0<SLICE, ELEM>(&self, elem: SLICE) -> SLICE
+    pub fn part0<SLICE>(&self, elem: SLICE) -> SLICE
     where
-        SLICE: GenSlice<ELEM>,
-        ELEM: Copy,
+        SLICE: GenSlice,
     {
         debug_assert!(elem.len() == self.num_bits());
         elem.head(self.dom0.num_bits())
     }
 
     /// Returns the second part of an element.
-    pub fn part1<SLICE, ELEM>(&self, elem: SLICE) -> SLICE
+    pub fn part1<SLICE>(&self, elem: SLICE) -> SLICE
     where
-        SLICE: GenSlice<ELEM>,
-        ELEM: Copy,
+        SLICE: GenSlice,
     {
         debug_assert!(elem.len() == self.num_bits());
         elem.tail(self.dom0.num_bits())

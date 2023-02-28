@@ -147,7 +147,7 @@ where
     fn copy_iter(&self) -> Self::Iter<'_>;
 
     /// The type of slice structure that can be further sliced.
-    type Slice<'a>: GenSlice<ELEM, Iter = Self::Iter<'a>, Vec = Self>
+    type Slice<'a>: GenSlice<Item = ELEM, Iter = Self::Iter<'a>, Vec = Self>
     where
         Self: 'a;
 
@@ -155,16 +155,18 @@ where
     fn slice(&self) -> Self::Slice<'_>;
 }
 
-pub trait GenSlice<ELEM>
+pub trait GenSlice
 where
     Self: Sized + Copy,
-    ELEM: Copy,
 {
+    /// The item type for this slice.
+    type Item: Copy;
+
     /// The iterator type for this slice.
-    type Iter: Iterator<Item = ELEM>;
+    type Iter: Iterator<Item = Self::Item>;
 
     /// A type of vector than can hold elements.
-    type Vec: GenVec<ELEM>;
+    type Vec: GenVec<Self::Item>;
 
     /// Returns the number of elements in the slice.
     fn len(self) -> usize;
@@ -176,12 +178,12 @@ where
 
     /// Returns the element at the given index. Panics if the index is
     /// out of bounds.
-    fn get(self, index: usize) -> ELEM;
+    fn get(self, index: usize) -> Self::Item;
 
     /// Returns the element at the given index without bound checks.
     /// # Safety
     /// Do not use this in general code, use `ranges` if possible.
-    unsafe fn get_unchecked(self, index: usize) -> ELEM {
+    unsafe fn get_unchecked(self, index: usize) -> Self::Item {
         self.get(index)
     }
 

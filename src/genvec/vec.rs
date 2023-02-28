@@ -106,10 +106,12 @@ where
     }
 }
 
-impl<'a, ELEM> GenSlice<ELEM> for &'a [ELEM]
+impl<'a, ELEM> GenSlice for &'a [ELEM]
 where
     ELEM: Copy + PartialEq,
 {
+    type Item = ELEM;
+
     type Iter = std::iter::Copied<std::slice::Iter<'a, ELEM>>;
 
     type Vec = Vec<ELEM>;

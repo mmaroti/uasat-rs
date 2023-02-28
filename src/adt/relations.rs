@@ -27,21 +27,19 @@ pub trait Relations: BooleanLattice {
     /// permuted, identified or new dummy coordinates. The mapping is a vector
     /// of length of the original relation with entries identifying the matching
     /// coordinates in the new relation.
-    fn polymer<SLICE, ELEM>(
+    fn polymer<SLICE>(
         &self,
         elem: SLICE,
         arity: usize,
         mapping: &[usize],
-    ) -> <SLICE as GenSlice<ELEM>>::Vec
+    ) -> <SLICE as GenSlice>::Vec
     where
-        SLICE: GenSlice<ELEM>,
-        ELEM: Copy;
+        SLICE: GenSlice;
 
     /// Returns the diagonal relation of the given relation.
-    fn diagonal<SLICE, ELEM>(&self, elem: SLICE) -> <SLICE as GenSlice<ELEM>>::Vec
+    fn diagonal<SLICE>(&self, elem: SLICE) -> <SLICE as GenSlice>::Vec
     where
-        SLICE: GenSlice<ELEM>,
-        ELEM: Copy,
+        SLICE: GenSlice,
     {
         assert!(self.arity() >= 1);
         self.polymer(elem, 1, &vec![0; self.arity()])
@@ -56,15 +54,14 @@ where
         self.exponent().exponent().size()
     }
 
-    fn polymer<SLICE, ELEM>(
+    fn polymer<SLICE>(
         &self,
         elem: SLICE,
         arity: usize,
         mapping: &[usize],
-    ) -> <SLICE as GenSlice<ELEM>>::Vec
+    ) -> <SLICE as GenSlice>::Vec
     where
-        SLICE: GenSlice<ELEM>,
-        ELEM: Copy,
+        SLICE: GenSlice,
     {
         assert_eq!(elem.len(), self.num_bits());
         assert_eq!(mapping.len(), self.arity());
@@ -82,7 +79,7 @@ where
             BOOLEAN,
             Power::new(self.exponent().base().clone(), SmallSet::new(arity)),
         );
-        let mut result: <SLICE as GenSlice<ELEM>>::Vec = GenVec::with_capacity(domain.num_bits());
+        let mut result: <SLICE as GenSlice>::Vec = GenVec::with_capacity(domain.num_bits());
 
         let mut index = 0;
         'outer: loop {

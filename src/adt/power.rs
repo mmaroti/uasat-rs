@@ -23,20 +23,17 @@ use super::{
 use std::iter::{ExactSizeIterator, Extend, FusedIterator};
 
 /// A helper iterator to go through the parts of an element.
-struct PartIter<SLICE, ELEM>
+struct PartIter<SLICE>
 where
-    SLICE: GenSlice<ELEM>,
-    ELEM: Copy,
+    SLICE: GenSlice,
 {
     slice: SLICE,
     step: usize,
-    phantom: std::marker::PhantomData<ELEM>,
 }
 
-impl<SLICE, ELEM> Iterator for PartIter<SLICE, ELEM>
+impl<SLICE> Iterator for PartIter<SLICE>
 where
-    SLICE: GenSlice<ELEM>,
-    ELEM: Copy,
+    SLICE: GenSlice,
 {
     type Item = SLICE;
 
@@ -51,17 +48,11 @@ where
     }
 }
 
-impl<SLICE, ELEM> FusedIterator for PartIter<SLICE, ELEM>
-where
-    SLICE: GenSlice<ELEM>,
-    ELEM: Copy,
-{
-}
+impl<SLICE> FusedIterator for PartIter<SLICE> where SLICE: GenSlice {}
 
-impl<SLICE, ELEM> ExactSizeIterator for PartIter<SLICE, ELEM>
+impl<SLICE> ExactSizeIterator for PartIter<SLICE>
 where
-    SLICE: GenSlice<ELEM>,
-    ELEM: Copy,
+    SLICE: GenSlice,
 {
     fn len(&self) -> usize {
         self.slice.len() / self.step
@@ -100,24 +91,21 @@ where
     }
 
     /// Returns the part of an element at the given index.
-    fn part_iter<SLICE, ELEM>(&self, elem: SLICE) -> PartIter<SLICE, ELEM>
+    fn part_iter<SLICE>(&self, elem: SLICE) -> PartIter<SLICE>
     where
-        SLICE: GenSlice<ELEM>,
-        ELEM: Copy,
+        SLICE: GenSlice,
     {
         debug_assert!(elem.len() == self.num_bits());
         PartIter {
             slice: elem,
             step: self.base.num_bits(),
-            phantom: Default::default(),
         }
     }
 
     /// Returns the part of an element at the given index.
-    pub fn part<SLICE, ELEM>(&self, elem: SLICE, index: usize) -> SLICE
+    pub fn part<SLICE>(&self, elem: SLICE, index: usize) -> SLICE
     where
-        SLICE: GenSlice<ELEM>,
-        ELEM: Copy,
+        SLICE: GenSlice,
     {
         debug_assert!(elem.len() == self.num_bits());
         let step = self.base().num_bits();

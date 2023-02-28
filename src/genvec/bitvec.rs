@@ -258,7 +258,7 @@ pub struct BitSlice<'a> {
     end: usize,
 }
 
-impl<'a> GenSlice<bool> for BitSlice<'a> {
+impl<'a> GenSlice for BitSlice<'a> {
     fn len(self) -> usize {
         self.end - self.start
     }
@@ -289,6 +289,8 @@ impl<'a> GenSlice<bool> for BitSlice<'a> {
             end,
         }
     }
+
+    type Item = bool;
 
     type Iter = Self;
 

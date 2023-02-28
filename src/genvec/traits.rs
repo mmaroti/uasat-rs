@@ -20,13 +20,13 @@
 use std::iter::{Extend, FromIterator, FusedIterator};
 
 /// A unifying interface for regular and bit vectors.
-pub trait GenVec<ELEM>
+pub trait GenVec
 where
-    ELEM: Copy,
     Self: Default + Clone,
-    Self: IntoIterator<Item = ELEM>,
-    Self: FromIterator<ELEM>,
-    Self: Extend<ELEM>,
+    Self: IntoIterator,
+    Self: FromIterator<Self::Item>,
+    Self: Extend<Self::Item>,
+    Self::Item: Copy,
 {
     /// Constructs a new empty vector. The vector will not allocate until
     /// elements are pushed onto it.
@@ -67,7 +67,7 @@ where
     }
 
     /// Creates a vector with a single element.
-    fn from_elem(elem: ELEM) -> Self {
+    fn from_elem(elem: Self::Item) -> Self {
         let mut vec: Self = GenVec::with_capacity(1);
         vec.push(elem);
         vec
@@ -85,7 +85,7 @@ where
     /// If `new_len` is greater than `len`, the the vector is extended by the
     /// difference, with each additional slot filled with `elem`.
     /// If `new_len` is less than `len`, then the vector is simply truncated.
-    fn resize(&mut self, new_len: usize, elem: ELEM);
+    fn resize(&mut self, new_len: usize, elem: Self::Item);
 
     /// Reserves capacity for at least additional more elements to be inserted
     /// in the given vector. The collection may reserve more space to avoid
@@ -93,11 +93,11 @@ where
     fn reserve(&mut self, additional: usize);
 
     /// Appends an element to the back of the vector.
-    fn push(&mut self, elem: ELEM);
+    fn push(&mut self, elem: Self::Item);
 
     /// Removes the last element from a vector and returns it, or `None` if
     /// it is empty.
-    fn pop(&mut self) -> Option<ELEM>;
+    fn pop(&mut self) -> Option<Self::Item>;
 
     /// Extends this vector by moving all elements from the other vector,
     /// leaving the other vector empty.
@@ -105,24 +105,24 @@ where
 
     /// Returns the element at the given index. Panics if the index is
     /// out of bounds.
-    fn get(&self, index: usize) -> ELEM;
+    fn get(&self, index: usize) -> Self::Item;
 
     /// Returns the element at the given index without bound checks.
     /// # Safety
     /// Do not use this in general code, use `ranges` if possible.
-    unsafe fn get_unchecked(&self, index: usize) -> ELEM {
+    unsafe fn get_unchecked(&self, index: usize) -> Self::Item {
         self.get(index)
     }
 
     /// Sets the element at the given index to the new value. Panics if the
     /// index is out of bounds.
-    fn set(&mut self, index: usize, elem: ELEM);
+    fn set(&mut self, index: usize, elem: Self::Item);
 
     /// Sets the element at the given index to the new value without bound
     /// checks.
     /// # Safety
     /// Do not use this in general code.
-    unsafe fn set_unchecked(&mut self, index: usize, elem: ELEM) {
+    unsafe fn set_unchecked(&mut self, index: usize, elem: Self::Item) {
         self.set(index, elem);
     }
 
@@ -138,7 +138,10 @@ where
     fn capacity(&self) -> usize;
 
     /// The type of iterator that can return the elements as copied values.
-    type Iter<'a>: Iterator<Item = ELEM> + FusedIterator + ExactSizeIterator + DoubleEndedIterator
+    type Iter<'a>: Iterator<Item = Self::Item>
+        + FusedIterator
+        + ExactSizeIterator
+        + DoubleEndedIterator
     where
         Self: 'a;
 
@@ -146,7 +149,7 @@ where
     fn copy_iter(&self) -> Self::Iter<'_>;
 
     /// The type of slice structure that can be further sliced.
-    type Slice<'a>: GenSlice<Item = ELEM, Iter = Self::Iter<'a>, Vec = Self>
+    type Slice<'a>: GenSlice<Item = Self::Item, Iter = Self::Iter<'a>, Vec = Self>
     where
         Self: 'a;
 
@@ -165,7 +168,7 @@ where
     type Iter: Iterator<Item = Self::Item>;
 
     /// A type of vector than can hold elements.
-    type Vec: GenVec<Self::Item>;
+    type Vec: GenVec<Item = Self::Item>;
 
     /// Returns the number of elements in the slice.
     fn len(self) -> usize;
@@ -206,7 +209,7 @@ where
 /// A trait for elements that can be stored in a generic vector.
 pub trait GenElem: Copy {
     /// A type that can be used for storing a vector of elements.
-    type Vec: GenVec<Self> + std::fmt::Debug + PartialEq;
+    type Vec: GenVec<Item = Self> + std::fmt::Debug + PartialEq;
 }
 
 pub type VecFor<ELEM> = <ELEM as GenElem>::Vec;

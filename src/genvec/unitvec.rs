@@ -53,7 +53,7 @@ impl Extend<()> for UnitVec {
     }
 }
 
-impl GenVec<()> for UnitVec {
+impl GenVec for UnitVec {
     fn new() -> Self {
         UnitVec { len: 0 }
     }

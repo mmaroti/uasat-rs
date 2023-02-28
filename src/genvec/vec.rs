@@ -20,7 +20,7 @@
 use super::{GenElem, GenSlice, GenVec};
 use crate::core::Literal;
 
-impl<ELEM> GenVec<ELEM> for Vec<ELEM>
+impl<ELEM> GenVec for Vec<ELEM>
 where
     ELEM: Copy,
 {

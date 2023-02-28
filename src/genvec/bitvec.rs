@@ -27,7 +27,7 @@ pub struct BitVec {
     data: Vec<u32>,
 }
 
-impl GenVec<bool> for BitVec {
+impl GenVec for BitVec {
     fn new() -> Self {
         BitVec {
             len: 0,

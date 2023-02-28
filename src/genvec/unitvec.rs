@@ -15,7 +15,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{GenElem, GenSlice, GenVec};
+use super::{GenSlice, GenVec};
 use std::iter::{Extend, FromIterator, FusedIterator};
 
 /// A vector containing unit `()` elements only (just the length is stored).
@@ -167,10 +167,6 @@ impl GenSlice for UnitVec {
     fn copy_iter(self) -> Self::Iter {
         self.into_iter()
     }
-}
-
-impl GenElem for () {
-    type Vec = UnitVec;
 }
 
 /// The iterator for unit vectors.

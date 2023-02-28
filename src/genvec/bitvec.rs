@@ -17,7 +17,7 @@
 
 //! A simple bit vector implementation.
 
-use super::{GenElem, GenSlice, GenVec};
+use super::{GenSlice, GenVec};
 use std::iter::{ExactSizeIterator, Extend, FromIterator, FusedIterator};
 
 /// A simple bit vector implementation.
@@ -245,10 +245,6 @@ impl IntoIterator for BitVec {
     fn into_iter(self) -> IntoIter {
         IntoIter { pos: 0, vec: self }
     }
-}
-
-impl GenElem for bool {
-    type Vec = BitVec;
 }
 
 #[derive(Debug, Clone, Copy)]

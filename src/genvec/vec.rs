@@ -17,8 +17,7 @@
 
 //! A generic vector trait to work with regular and bit vectors.
 
-use super::{GenElem, GenSlice, GenVec};
-use crate::core::Literal;
+use super::{GenSlice, GenVec};
 
 impl<ELEM> GenVec for Vec<ELEM>
 where
@@ -147,12 +146,4 @@ where
     fn copy_iter(self) -> Self::Iter {
         self.iter().copied()
     }
-}
-
-impl GenElem for usize {
-    type Vec = Vec<Self>;
-}
-
-impl GenElem for Literal {
-    type Vec = Vec<Self>;
 }

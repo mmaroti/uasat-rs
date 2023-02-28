@@ -20,7 +20,8 @@
 use std::ops;
 
 use super::{BooleanLogic, BooleanSolver};
-use crate::genvec::{GenElem, GenVec, VecFor};
+use crate::core::Literal;
+use crate::genvec::{BitVec, GenVec};
 
 /// The shape of a tensor.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -180,22 +181,40 @@ impl Iterator for StrideIter {
     }
 }
 
+/// A trait for elements that can be stored in a generic vector.
+pub trait TensorElem: Copy {
+    /// A type that can be used for storing a vector of elements.
+    type Vec: GenVec<Item = Self> + std::fmt::Debug + PartialEq;
+}
+
+impl TensorElem for bool {
+    type Vec = BitVec;
+}
+
+impl TensorElem for usize {
+    type Vec = Vec<Self>;
+}
+
+impl TensorElem for Literal {
+    type Vec = Vec<Self>;
+}
+
 /// A multidimensional array of elements.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Tensor<ELEM>
 where
-    ELEM: GenElem,
+    ELEM: TensorElem,
 {
     shape: Shape,
-    elems: VecFor<ELEM>,
+    elems: ELEM::Vec,
 }
 
 impl<ELEM> Tensor<ELEM>
 where
-    ELEM: GenElem,
+    ELEM: TensorElem,
 {
     /// Creates a tensor of the given shape and with the given elements.
-    pub fn new(shape: Shape, elems: VecFor<ELEM>) -> Self {
+    pub fn new(shape: Shape, elems: ELEM::Vec) -> Self {
         assert_eq!(shape.size(), elems.len());
         Tensor { shape, elems }
     }
@@ -212,7 +231,7 @@ where
         OP: FnMut(&[usize]) -> ELEM,
     {
         let mut coords = vec![0; shape.len()];
-        let elems: VecFor<ELEM> = (0..shape.size())
+        let elems: ELEM::Vec = (0..shape.size())
             .map(|_| {
                 let e = op(&coords);
                 for (a, b) in coords.iter_mut().zip(shape.dims.iter()) {
@@ -261,7 +280,7 @@ where
             iter.add_stride(*val, strides[idx]);
         }
 
-        let elems: VecFor<ELEM> = iter.map(|i| self.elems.get(i)).collect();
+        let elems: ELEM::Vec = iter.map(|i| self.elems.get(i)).collect();
         Tensor::new(shape, elems)
     }
 
@@ -346,7 +365,7 @@ pub trait TensorAlgebra {
 impl<ALG> TensorAlgebra for ALG
 where
     ALG: BooleanLogic,
-    ALG::Elem: GenElem,
+    ALG::Elem: TensorElem,
 {
     type Elem = Tensor<ALG::Elem>;
 
@@ -551,7 +570,7 @@ pub trait TensorSolver: TensorAlgebra {
 impl<ALG> TensorSolver for ALG
 where
     ALG: BooleanSolver,
-    ALG::Elem: GenElem,
+    ALG::Elem: TensorElem,
 {
     fn tensor_add_variable(&mut self, shape: Shape) -> Self::Elem {
         let elems = (0..shape.size())

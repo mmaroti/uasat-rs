@@ -15,7 +15,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BitVec, BooleanLogic, BooleanSolver, GenSlice, GenVec, Solver};
+use super::{BitVec, BooleanLogic, BooleanSolver, Slice, Vector, Solver};
 
 /// An arbitrary set of elements that can be representable by bit vectors.
 pub trait Domain: Clone {
@@ -28,7 +28,7 @@ pub trait Domain: Clone {
     fn contains<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: GenSlice<Item = LOGIC::Elem>;
+        ELEM: Slice<Item = LOGIC::Elem>;
 
     /// Checks if the two bit vectors are exactly the same. This offers a
     /// faster implementation than bitwise comparison, since it has to work
@@ -36,7 +36,7 @@ pub trait Domain: Clone {
     fn equals<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: GenSlice<Item = LOGIC::Elem>;
+        ELEM: Slice<Item = LOGIC::Elem>;
 
     /// Adds a new variable to the given solver, which is just a list of
     /// fresh literals. It also enforces that the returned variable
@@ -57,7 +57,7 @@ pub trait Domain: Clone {
     /// Returns an object for formatting the given element.
     fn format<ELEM>(&self, elem: ELEM) -> Format<'_, Self, ELEM>
     where
-        ELEM: GenSlice<Item = bool>,
+        ELEM: Slice<Item = bool>,
     {
         Format { domain: self, elem }
     }
@@ -65,7 +65,7 @@ pub trait Domain: Clone {
     /// Formats the given element using the provided formatter.
     fn display_elem<ELEM>(&self, f: &mut std::fmt::Formatter<'_>, elem: ELEM) -> std::fmt::Result
     where
-        ELEM: GenSlice<Item = bool>,
+        ELEM: Slice<Item = bool>,
     {
         assert!(elem.len() == self.num_bits());
         for v in elem.copy_iter() {
@@ -88,7 +88,7 @@ pub trait Domain: Clone {
 pub struct Format<'a, DOM, ELEM>
 where
     DOM: Domain,
-    ELEM: GenSlice<Item = bool>,
+    ELEM: Slice<Item = bool>,
 {
     domain: &'a DOM,
     elem: ELEM,
@@ -97,7 +97,7 @@ where
 impl<'a, DOM, ELEM> std::fmt::Display for Format<'a, DOM, ELEM>
 where
     DOM: Domain,
-    ELEM: GenSlice<Item = bool>,
+    ELEM: Slice<Item = bool>,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.domain.display_elem(f, self.elem)
@@ -115,7 +115,7 @@ pub trait Countable: Domain {
     /// Returns the index of the given element.
     fn index<ELEM>(&self, elem: ELEM) -> usize
     where
-        ELEM: GenSlice<Item = bool>;
+        ELEM: Slice<Item = bool>;
 }
 
 /// A domain with a reflexive, transitive and antisymmetric relation.
@@ -125,14 +125,14 @@ pub trait PartialOrder: Domain {
     fn leq<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: GenSlice<Item = LOGIC::Elem>;
+        ELEM: Slice<Item = LOGIC::Elem>;
 
     /// Returns true if the first element is strictly less than the
     /// second one.
     fn less_than<LOGIC, ELEM>(&self, alg: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: GenSlice<Item = LOGIC::Elem>,
+        ELEM: Slice<Item = LOGIC::Elem>,
     {
         let test0 = self.leq(alg, elem0, elem1);
         let test1 = self.leq(alg, elem1, elem0);
@@ -145,7 +145,7 @@ pub trait PartialOrder: Domain {
     fn comparable<LOGIC, ELEM>(&self, alg: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: GenSlice<Item = LOGIC::Elem>,
+        ELEM: Slice<Item = LOGIC::Elem>,
     {
         let test0 = self.leq(alg, elem0, elem1);
         let test1 = self.leq(alg, elem1, elem0);
@@ -169,7 +169,7 @@ pub trait MeetSemilattice: PartialOrder {
     fn meet<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
     where
         LOGIC: BooleanLogic,
-        ELEM: GenSlice<Item = LOGIC::Elem>;
+        ELEM: Slice<Item = LOGIC::Elem>;
 }
 
 pub trait Lattice: MeetSemilattice {
@@ -178,7 +178,7 @@ pub trait Lattice: MeetSemilattice {
     fn join<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
     where
         LOGIC: BooleanLogic,
-        ELEM: GenSlice<Item = LOGIC::Elem>;
+        ELEM: Slice<Item = LOGIC::Elem>;
 }
 
 pub trait BooleanLattice: Lattice + BoundedOrder {
@@ -186,7 +186,7 @@ pub trait BooleanLattice: Lattice + BoundedOrder {
     fn complement<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> ELEM::Vec
     where
         LOGIC: BooleanLogic,
-        ELEM: GenSlice<Item = LOGIC::Elem>;
+        ELEM: Slice<Item = LOGIC::Elem>;
 }
 
 /// A binary relation between two domains
@@ -205,5 +205,5 @@ where
     fn related<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: GenSlice<Item = LOGIC::Elem>;
+        ELEM: Slice<Item = LOGIC::Elem>;
 }

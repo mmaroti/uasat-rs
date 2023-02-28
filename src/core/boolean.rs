@@ -22,7 +22,7 @@
 use std::iter;
 
 use super::{create_solver, Literal, SatInterface};
-use crate::genvec::{BitVec, GenVec};
+use crate::genvec::{BitVec, Vector};
 
 /// A boolean algebra supporting boolean calculation.
 pub trait BooleanLogic {

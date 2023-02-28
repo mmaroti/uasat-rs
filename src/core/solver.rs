@@ -25,7 +25,7 @@ use batsat::SolverInterface as _;
 use varisat::ExtendFormula as _;
 
 #[cfg(feature = "varisat")]
-use crate::genvec::{BitVec, GenVec};
+use crate::genvec::{BitVec, Vector};
 
 /// Uniform literal to allow runtime solver selection.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

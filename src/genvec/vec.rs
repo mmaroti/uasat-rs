@@ -17,9 +17,9 @@
 
 //! A generic vector trait to work with regular and bit vectors.
 
-use super::{GenSlice, GenVec};
+use super::{Slice, Vector};
 
-impl<ELEM> GenVec for Vec<ELEM>
+impl<ELEM> Vector for Vec<ELEM>
 where
     ELEM: Copy,
 {
@@ -105,7 +105,7 @@ where
     }
 }
 
-impl<'a, ELEM> GenSlice for &'a [ELEM]
+impl<'a, ELEM> Slice for &'a [ELEM]
 where
     ELEM: Copy,
 {

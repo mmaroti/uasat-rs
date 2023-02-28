@@ -15,7 +15,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{GenSlice, GenVec};
+use super::{Slice, Vector};
 use std::iter::{Extend, FromIterator, FusedIterator};
 
 /// A vector containing unit `()` elements only (just the length is stored).
@@ -53,7 +53,7 @@ impl Extend<()> for UnitVec {
     }
 }
 
-impl GenVec for UnitVec {
+impl Vector for UnitVec {
     fn new() -> Self {
         UnitVec { len: 0 }
     }
@@ -142,7 +142,7 @@ impl GenVec for UnitVec {
     }
 }
 
-impl GenSlice for UnitVec {
+impl Slice for UnitVec {
     fn len(self) -> usize {
         self.len
     }

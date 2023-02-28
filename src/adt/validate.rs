@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BooleanLogic, BooleanSolver, BoundedOrder, Countable, GenVec, Lattice, Logic,
+    BooleanLogic, BooleanSolver, BoundedOrder, Countable, Vector, Lattice, Logic,
     MeetSemilattice, PartialOrder, Power, Product2, SmallSet, Solver, BOOLEAN,
 };
 

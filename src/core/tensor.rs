@@ -21,7 +21,7 @@ use std::ops;
 
 use super::{BooleanLogic, BooleanSolver};
 use crate::core::Literal;
-use crate::genvec::{BitVec, GenVec};
+use crate::genvec::{BitVec, Vector};
 
 /// The shape of a tensor.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -184,7 +184,7 @@ impl Iterator for StrideIter {
 /// A trait for elements that can be stored in a generic vector.
 pub trait TensorElem: Copy {
     /// A type that can be used for storing a vector of elements.
-    type Vec: GenVec<Item = Self> + std::fmt::Debug + PartialEq;
+    type Vec: Vector<Item = Self> + std::fmt::Debug + PartialEq;
 }
 
 impl TensorElem for bool {

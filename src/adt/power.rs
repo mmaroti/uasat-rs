@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, Domain, GenSlice, GenVec,
+    BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, Domain, Slice, Vector,
     Lattice, MeetSemilattice, PartialOrder,
 };
 
@@ -25,7 +25,7 @@ use std::iter::{ExactSizeIterator, Extend, FusedIterator};
 /// A helper iterator to go through the parts of an element.
 struct PartIter<ELEM>
 where
-    ELEM: GenSlice,
+    ELEM: Slice,
 {
     elem: ELEM,
     step: usize,
@@ -33,7 +33,7 @@ where
 
 impl<ELEM> Iterator for PartIter<ELEM>
 where
-    ELEM: GenSlice,
+    ELEM: Slice,
 {
     type Item = ELEM;
 
@@ -48,11 +48,11 @@ where
     }
 }
 
-impl<ELEM> FusedIterator for PartIter<ELEM> where ELEM: GenSlice {}
+impl<ELEM> FusedIterator for PartIter<ELEM> where ELEM: Slice {}
 
 impl<ELEM> ExactSizeIterator for PartIter<ELEM>
 where
-    ELEM: GenSlice,
+    ELEM: Slice,
 {
     fn len(&self) -> usize {
         self.elem.len() / self.step
@@ -93,7 +93,7 @@ where
     /// Returns the part of an element at the given index.
     fn part_iter<ELEM>(&self, elem: ELEM) -> PartIter<ELEM>
     where
-        ELEM: GenSlice,
+        ELEM: Slice,
     {
         debug_assert!(elem.len() == self.num_bits());
         PartIter {
@@ -105,7 +105,7 @@ where
     /// Returns the part of an element at the given index.
     pub fn part<ELEM>(&self, elem: ELEM, index: usize) -> ELEM
     where
-        ELEM: GenSlice,
+        ELEM: Slice,
     {
         debug_assert!(elem.len() == self.num_bits());
         let step = self.base().num_bits();
@@ -126,7 +126,7 @@ where
     fn contains<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: GenSlice<Item = LOGIC::Elem>,
+        ELEM: Slice<Item = LOGIC::Elem>,
     {
         let mut valid = logic.bool_lift(true);
         for part in self.part_iter(elem) {
@@ -139,7 +139,7 @@ where
     fn equals<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: GenSlice<Item = LOGIC::Elem>,
+        ELEM: Slice<Item = LOGIC::Elem>,
     {
         let mut valid = logic.bool_lift(true);
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
@@ -151,7 +151,7 @@ where
 
     fn display_elem<ELEM>(&self, f: &mut std::fmt::Formatter<'_>, elem: ELEM) -> std::fmt::Result
     where
-        ELEM: GenSlice<Item = bool>,
+        ELEM: Slice<Item = bool>,
     {
         let mut first = true;
         write!(f, "[")?;
@@ -184,7 +184,7 @@ where
     fn elem(&self, index: usize) -> BitVec {
         let mut index = index;
         let base_size = self.base.size();
-        let mut result: BitVec = GenVec::with_capacity(self.num_bits());
+        let mut result: BitVec = Vector::with_capacity(self.num_bits());
         for _ in 0..self.exponent.size() {
             let other = self.base.elem(index % base_size);
             result.extend(other);
@@ -196,7 +196,7 @@ where
 
     fn index<ELEM>(&self, elem: ELEM) -> usize
     where
-        ELEM: GenSlice<Item = bool>,
+        ELEM: Slice<Item = bool>,
     {
         let mut index = 0;
         let base_size = self.base.size();
@@ -219,7 +219,7 @@ where
     fn leq<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: GenSlice<Item = LOGIC::Elem>,
+        ELEM: Slice<Item = LOGIC::Elem>,
     {
         let mut valid = logic.bool_lift(true);
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
@@ -237,7 +237,7 @@ where
 {
     fn top(&self) -> BitVec {
         let part = self.base.top();
-        let mut elem: BitVec = GenVec::with_capacity(self.num_bits());
+        let mut elem: BitVec = Vector::with_capacity(self.num_bits());
         for _ in 0..self.exponent.size() {
             elem.extend(part.copy_iter());
         }
@@ -246,7 +246,7 @@ where
 
     fn bottom(&self) -> BitVec {
         let part = self.base.bottom();
-        let mut elem: BitVec = GenVec::with_capacity(self.num_bits());
+        let mut elem: BitVec = Vector::with_capacity(self.num_bits());
         for _ in 0..self.exponent.size() {
             elem.extend(part.copy_iter());
         }
@@ -262,9 +262,9 @@ where
     fn meet<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
     where
         LOGIC: BooleanLogic,
-        ELEM: GenSlice<Item = LOGIC::Elem>,
+        ELEM: Slice<Item = LOGIC::Elem>,
     {
-        let mut elem: ELEM::Vec = GenVec::with_capacity(self.num_bits());
+        let mut elem: ELEM::Vec = Vector::with_capacity(self.num_bits());
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
             elem.extend(self.base.meet(logic, part0, part1));
         }
@@ -280,9 +280,9 @@ where
     fn join<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
     where
         LOGIC: BooleanLogic,
-        ELEM: GenSlice<Item = LOGIC::Elem>,
+        ELEM: Slice<Item = LOGIC::Elem>,
     {
-        let mut elem: ELEM::Vec = GenVec::with_capacity(self.num_bits());
+        let mut elem: ELEM::Vec = Vector::with_capacity(self.num_bits());
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
             elem.extend(self.base.join(logic, part0, part1));
         }
@@ -298,9 +298,9 @@ where
     fn complement<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> ELEM::Vec
     where
         LOGIC: BooleanLogic,
-        ELEM: GenSlice<Item = LOGIC::Elem>,
+        ELEM: Slice<Item = LOGIC::Elem>,
     {
-        let mut result: ELEM::Vec = GenVec::with_capacity(self.num_bits());
+        let mut result: ELEM::Vec = Vector::with_capacity(self.num_bits());
         for part in self.part_iter(elem) {
             result.extend(self.base.complement(logic, part));
         }

@@ -20,7 +20,7 @@
 use std::iter::{Extend, FromIterator, FusedIterator};
 
 /// A unifying interface for regular and bit vectors.
-pub trait GenVec
+pub trait Vector
 where
     Self: Default + Clone,
     Self: IntoIterator,
@@ -38,7 +38,7 @@ where
     /// Concatenates the given vectors into a new one.
     fn concat(parts: Vec<Self>) -> Self {
         let len = parts.iter().map(|a| a.len()).sum();
-        let mut result: Self = GenVec::with_capacity(len);
+        let mut result: Self = Vector::with_capacity(len);
         for elem in parts.into_iter() {
             result.extend(elem.into_iter());
         }
@@ -56,7 +56,7 @@ where
         let mut result: Vec<Self> = Vec::with_capacity(count);
         let mut iter = self.into_iter();
         for _ in 0..count {
-            let mut vec: Self = GenVec::with_capacity(len);
+            let mut vec: Self = Vector::with_capacity(len);
             for _ in 0..len {
                 vec.push(iter.next().unwrap());
             }
@@ -67,7 +67,7 @@ where
 
     /// Creates a vector with a single element.
     fn from_elem(elem: Self::Item) -> Self {
-        let mut vec: Self = GenVec::with_capacity(1);
+        let mut vec: Self = Vector::with_capacity(1);
         vec.push(elem);
         vec
     }
@@ -148,7 +148,7 @@ where
     fn copy_iter(&self) -> Self::Iter<'_>;
 
     /// The type of slice structure that can be further sliced.
-    type Slice<'a>: GenSlice<Item = Self::Item, Iter = Self::Iter<'a>, Vec = Self>
+    type Slice<'a>: Slice<Item = Self::Item, Iter = Self::Iter<'a>, Vec = Self>
     where
         Self: 'a;
 
@@ -156,7 +156,7 @@ where
     fn slice(&self) -> Self::Slice<'_>;
 }
 
-pub trait GenSlice
+pub trait Slice
 where
     Self: Sized + Copy,
 {
@@ -167,7 +167,7 @@ where
     type Iter: Iterator<Item = Self::Item>;
 
     /// A type of vector than can hold elements.
-    type Vec: GenVec<Item = Self::Item>;
+    type Vec: Vector<Item = Self::Item>;
 
     /// Returns the number of elements in the slice.
     fn len(self) -> usize;

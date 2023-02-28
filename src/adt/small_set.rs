@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BitVec, BooleanLogic, BoundedOrder, Countable, Domain, GenSlice, GenVec, Lattice,
+    BitVec, BooleanLogic, BoundedOrder, Countable, Domain, Slice, Vector, Lattice,
     MeetSemilattice, PartialOrder,
 };
 
@@ -54,7 +54,7 @@ impl Domain for SmallSet {
     fn contains<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: GenSlice<Item = LOGIC::Elem>,
+        ELEM: Slice<Item = LOGIC::Elem>,
     {
         assert!(elem.len() == self.size);
         logic.bool_fold_one(elem.copy_iter())
@@ -63,7 +63,7 @@ impl Domain for SmallSet {
     fn equals<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: GenSlice<Item = LOGIC::Elem>,
+        ELEM: Slice<Item = LOGIC::Elem>,
     {
         debug_assert!(elem0.len() == self.size && elem1.len() == self.size);
         let mut test = logic.bool_lift(false);
@@ -76,7 +76,7 @@ impl Domain for SmallSet {
 
     fn display_elem<ELEM>(&self, f: &mut std::fmt::Formatter<'_>, elem: ELEM) -> std::fmt::Result
     where
-        ELEM: GenSlice<Item = bool>,
+        ELEM: Slice<Item = bool>,
     {
         write!(f, "{}", self.index(elem))
     }
@@ -89,7 +89,7 @@ impl Countable for SmallSet {
 
     fn elem(&self, index: usize) -> BitVec {
         assert!(index < self.size);
-        let mut vec: BitVec = GenVec::with_capacity(self.size);
+        let mut vec: BitVec = Vector::with_capacity(self.size);
         for i in 0..self.size {
             vec.push(i == index);
         }
@@ -98,7 +98,7 @@ impl Countable for SmallSet {
 
     fn index<ELEM>(&self, elem: ELEM) -> usize
     where
-        ELEM: GenSlice<Item = bool>,
+        ELEM: Slice<Item = bool>,
     {
         assert!(elem.len() == self.size);
         let mut index = self.size;
@@ -117,7 +117,7 @@ impl PartialOrder for SmallSet {
     fn leq<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: GenSlice<Item = LOGIC::Elem>,
+        ELEM: Slice<Item = LOGIC::Elem>,
     {
         debug_assert!(elem0.len() == self.size && elem1.len() == self.size);
         logic.bool_cmp_leq(elem0.copy_iter().zip(elem1.copy_iter()))
@@ -140,9 +140,9 @@ impl MeetSemilattice for SmallSet {
     fn meet<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
     where
         LOGIC: BooleanLogic,
-        ELEM: GenSlice<Item = LOGIC::Elem>,
+        ELEM: Slice<Item = LOGIC::Elem>,
     {
-        let mut result: ELEM::Vec = GenVec::with_capacity(self.num_bits());
+        let mut result: ELEM::Vec = Vector::with_capacity(self.num_bits());
         let mut looking = logic.bool_lift(true);
         for (a, b) in elem0.copy_iter().zip(elem1.copy_iter()) {
             let found = logic.bool_or(a, b);
@@ -157,9 +157,9 @@ impl Lattice for SmallSet {
     fn join<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
     where
         LOGIC: BooleanLogic,
-        ELEM: GenSlice<Item = LOGIC::Elem>,
+        ELEM: Slice<Item = LOGIC::Elem>,
     {
-        let mut result: ELEM::Vec = GenVec::with_capacity(self.num_bits());
+        let mut result: ELEM::Vec = Vector::with_capacity(self.num_bits());
         let mut looking = logic.bool_lift(false);
         for (a, b) in elem0.copy_iter().zip(elem1.copy_iter()) {
             result.push(logic.bool_maj(looking, a, b));

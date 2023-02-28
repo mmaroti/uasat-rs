@@ -16,7 +16,7 @@
 */
 
 use super::{
-    Boolean, BooleanLattice, Countable, Domain, GenSlice, GenVec, Power, SmallSet, BOOLEAN,
+    Boolean, BooleanLattice, Countable, Domain, Slice, Vector, Power, SmallSet, BOOLEAN,
 };
 
 pub trait Relations: BooleanLattice {
@@ -27,14 +27,14 @@ pub trait Relations: BooleanLattice {
     /// permuted, identified or new dummy coordinates. The mapping is a vector
     /// of length of the original relation with entries identifying the matching
     /// coordinates in the new relation.
-    fn polymer<ELEM>(&self, elem: ELEM, arity: usize, mapping: &[usize]) -> <ELEM as GenSlice>::Vec
+    fn polymer<ELEM>(&self, elem: ELEM, arity: usize, mapping: &[usize]) -> <ELEM as Slice>::Vec
     where
-        ELEM: GenSlice;
+        ELEM: Slice;
 
     /// Returns the diagonal relation of the given relation.
-    fn diagonal<ELEM>(&self, elem: ELEM) -> <ELEM as GenSlice>::Vec
+    fn diagonal<ELEM>(&self, elem: ELEM) -> <ELEM as Slice>::Vec
     where
-        ELEM: GenSlice,
+        ELEM: Slice,
     {
         assert!(self.arity() >= 1);
         self.polymer(elem, 1, &vec![0; self.arity()])
@@ -49,9 +49,9 @@ where
         self.exponent().exponent().size()
     }
 
-    fn polymer<ELEM>(&self, elem: ELEM, arity: usize, mapping: &[usize]) -> <ELEM as GenSlice>::Vec
+    fn polymer<ELEM>(&self, elem: ELEM, arity: usize, mapping: &[usize]) -> <ELEM as Slice>::Vec
     where
-        ELEM: GenSlice,
+        ELEM: Slice,
     {
         assert_eq!(elem.len(), self.num_bits());
         assert_eq!(mapping.len(), self.arity());
@@ -69,7 +69,7 @@ where
             BOOLEAN,
             Power::new(self.exponent().base().clone(), SmallSet::new(arity)),
         );
-        let mut result: <ELEM as GenSlice>::Vec = GenVec::with_capacity(domain.num_bits());
+        let mut result: <ELEM as Slice>::Vec = Vector::with_capacity(domain.num_bits());
 
         let mut index = 0;
         'outer: loop {

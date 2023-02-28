@@ -17,7 +17,7 @@
 
 //! A simple bit vector implementation.
 
-use super::{GenSlice, GenVec};
+use super::{Slice, Vector};
 use std::iter::{ExactSizeIterator, Extend, FromIterator, FusedIterator};
 
 /// A simple bit vector implementation.
@@ -27,7 +27,7 @@ pub struct BitVec {
     data: Vec<u32>,
 }
 
-impl GenVec for BitVec {
+impl Vector for BitVec {
     fn new() -> Self {
         BitVec {
             len: 0,
@@ -254,7 +254,7 @@ pub struct BitSlice<'a> {
     end: usize,
 }
 
-impl<'a> GenSlice for BitSlice<'a> {
+impl<'a> Slice for BitSlice<'a> {
     fn len(self) -> usize {
         self.end - self.start
     }

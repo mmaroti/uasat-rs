@@ -16,13 +16,13 @@
 */
 
 use super::{
-    BitVec, BooleanLogic, BoundedOrder, Countable, Domain, Slice, Vector, Lattice,
-    MeetSemilattice, PartialOrder,
+    BitVec, BooleanLogic, BoundedOrder, Countable, Domain, Lattice, MeetSemilattice, PartialOrder,
+    Slice, Vector,
 };
 
 /// A small set encoded as a one-hot vector of booleans representing
 /// the numbers `0..size` with the natural chain order.
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct SmallSet {
     size: usize,
 }
@@ -56,7 +56,7 @@ impl Domain for SmallSet {
         LOGIC: BooleanLogic,
         ELEM: Slice<Item = LOGIC::Elem>,
     {
-        assert!(elem.len() == self.size);
+        assert_eq!(elem.len(), self.size);
         logic.bool_fold_one(elem.copy_iter())
     }
 
@@ -65,7 +65,8 @@ impl Domain for SmallSet {
         LOGIC: BooleanLogic,
         ELEM: Slice<Item = LOGIC::Elem>,
     {
-        debug_assert!(elem0.len() == self.size && elem1.len() == self.size);
+        assert_eq!(elem0.len(), self.size);
+        assert_eq!(elem1.len(), self.size);
         let mut test = logic.bool_lift(false);
         for (a, b) in elem0.copy_iter().zip(elem1.copy_iter()) {
             let v = logic.bool_and(a, b);

@@ -19,7 +19,7 @@
 
 #[allow(unused_imports)]
 use super::core::{BooleanLogic, BooleanSolver, Logic, Solver};
-use super::genvec::{BitVec, Slice, Vector};
+use super::genvec::{BitSlice, BitVec, Slice, Vector};
 
 mod boolean;
 pub use boolean::*;

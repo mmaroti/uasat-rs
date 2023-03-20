@@ -15,13 +15,27 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BitVec, BooleanLogic, BooleanSolver, Slice, Vector, Solver};
+use std::fmt::Debug;
+
+use super::{BitSlice, BitVec, BooleanLogic, BooleanSolver, Slice, Solver, Vector};
 
 /// An arbitrary set of elements that can be representable by bit vectors.
-pub trait Domain: Clone {
+pub trait Domain: Clone + PartialEq + Debug {
     /// Returns the number of bits used to represent the elements of this
     /// domain.
     fn num_bits(&self) -> usize;
+
+    fn lift<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: BitSlice) -> ELEM
+    where
+        LOGIC: BooleanLogic,
+        ELEM: Vector<Item = LOGIC::Elem>,
+    {
+        let mut result: ELEM = Vector::with_capacity(elem.len());
+        for a in elem.copy_iter() {
+            result.push(logic.bool_lift(a));
+        }
+        result
+    }
 
     /// Verifies that the given bit vector is encoding a valid element of
     /// this domain.
@@ -116,6 +130,33 @@ pub trait Countable: Domain {
     fn index<ELEM>(&self, elem: ELEM) -> usize
     where
         ELEM: Slice<Item = bool>;
+}
+
+/// A domain that has a rank and is part of a family of similar domains.
+pub trait RankedDomain: Domain {
+    /// Returns the arity (rank) of all elements in the domain.
+    fn arity(&self) -> usize;
+
+    /// Returns the domain in this family of ranked domains
+    /// with the given arity (rank).
+    fn new_arity(&self, arity: usize) -> Self;
+
+    /// Creates a new element of the given arity from an old element with
+    /// permuted, identified and/or new dummy coordinates. The mapping is a
+    /// vector of length of the arity of the original element with entries
+    /// identifying the matching coordinates in the new element.
+    fn polymer<ELEM>(&self, elem: ELEM, arity: usize, mapping: &[usize]) -> ELEM::Vec
+    where
+        ELEM: Slice;
+
+    /// Returns the diagonal unary element of the given element.
+    fn diagonal<ELEM>(&self, elem: ELEM) -> ELEM::Vec
+    where
+        ELEM: Slice,
+    {
+        assert!(self.arity() >= 1);
+        self.polymer(elem, 1, &vec![0; self.arity()])
+    }
 }
 
 /// A domain with a reflexive, transitive and antisymmetric relation.

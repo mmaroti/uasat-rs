@@ -16,12 +16,12 @@
 */
 
 use super::{
-    BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, Domain, Slice, Vector,
-    Lattice, MeetSemilattice, PartialOrder,
+    BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, Domain, Lattice,
+    MeetSemilattice, PartialOrder, Slice, Vector,
 };
 
 /// The product of two domains.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Product2<DOM0, DOM1>
 where
     DOM0: Domain,

@@ -16,14 +16,14 @@
 */
 
 use super::{
-    BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, Domain, Slice, Vector,
-    Lattice, MeetSemilattice, PartialOrder,
+    BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, Domain, Lattice,
+    MeetSemilattice, PartialOrder, RankedDomain, Slice, SmallSet, Vector,
 };
 
 use std::iter::{ExactSizeIterator, Extend, FusedIterator};
 
 /// A helper iterator to go through the parts of an element.
-struct PartIter<ELEM>
+pub struct PartIter<ELEM>
 where
     ELEM: Slice,
 {
@@ -60,7 +60,7 @@ where
 }
 
 /// The product of a list of domains.
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Power<BASE, EXP>
 where
     BASE: Domain,
@@ -91,7 +91,7 @@ where
     }
 
     /// Returns the part of an element at the given index.
-    fn part_iter<ELEM>(&self, elem: ELEM) -> PartIter<ELEM>
+    pub fn part_iter<ELEM>(&self, elem: ELEM) -> PartIter<ELEM>
     where
         ELEM: Slice,
     {
@@ -128,6 +128,7 @@ where
         LOGIC: BooleanLogic,
         ELEM: Slice<Item = LOGIC::Elem>,
     {
+        assert_eq!(elem.len(), self.num_bits());
         let mut valid = logic.bool_lift(true);
         for part in self.part_iter(elem) {
             let v = self.base.contains(logic, part);
@@ -305,5 +306,113 @@ where
             result.extend(self.base.complement(logic, part));
         }
         result
+    }
+}
+
+impl<DOM0, DOM1> RankedDomain for Power<DOM0, Power<DOM1, SmallSet>>
+where
+    DOM0: Domain,
+    DOM1: Countable,
+{
+    fn arity(&self) -> usize {
+        self.exponent().exponent().size()
+    }
+
+    fn new_arity(&self, arity: usize) -> Self {
+        Power::new(
+            self.base.clone(),
+            Power::new(self.exponent.base.clone(), SmallSet::new(arity)),
+        )
+    }
+
+    fn polymer<ELEM>(&self, elem: ELEM, arity: usize, mapping: &[usize]) -> ELEM::Vec
+    where
+        ELEM: Slice,
+    {
+        assert_eq!(elem.len(), self.num_bits());
+        assert_eq!(mapping.len(), self.exponent().exponent().size());
+
+        let mut strides: Vec<(usize, usize, usize)> = vec![(0, 0, 0); arity];
+        let size = self.exponent().base().size();
+        let mut power: usize = 1;
+        for &i in mapping {
+            assert!(i < arity);
+            strides[i].0 += power;
+            power *= size;
+        }
+
+        power = 1;
+        for s in strides.iter_mut() {
+            s.2 = size * s.0;
+            power *= size;
+        }
+
+        let mut result: ELEM::Vec = Vector::with_capacity(self.base.num_bits() * power);
+        let mut index = 0;
+        'outer: loop {
+            result.extend(self.part(elem, index).copy_iter());
+
+            for stride in strides.iter_mut() {
+                index += stride.0;
+                stride.1 += 1;
+                if stride.1 >= size {
+                    stride.1 = 0;
+                    index -= stride.2;
+                } else {
+                    continue 'outer;
+                }
+            }
+
+            break;
+        }
+
+        debug_assert_eq!(result.len(), self.base.num_bits() * power);
+        result
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::{BitVec, Domain, Logic, Vector};
+    use super::*;
+
+    #[test]
+    fn polymer() {
+        let dom0 = SmallSet::new(2);
+        let dom1 = SmallSet::new(3);
+        let op0 = Power::new(dom0.clone(), Power::new(dom1.clone(), SmallSet::new(1)));
+        let op1 = Power::new(dom0.clone(), Power::new(dom1.clone(), SmallSet::new(2)));
+
+        assert_eq!(op0.arity(), 1);
+        assert_eq!(op1.arity(), 2);
+
+        let mut logic = Logic();
+
+        let elem1: BitVec = vec![false, true, true, false, false, true]
+            .into_iter()
+            .collect();
+        assert!(op0.contains(&mut logic, elem1.slice()));
+
+        let elem2: BitVec = vec![
+            false, true, true, false, true, false, false, true, true, false, true, false, false,
+            true, false, true, false, true,
+        ]
+        .into_iter()
+        .collect();
+        assert!(op1.contains(&mut logic, elem2.slice()));
+
+        let elem3: BitVec = vec![
+            false, true, false, true, false, true, true, false, true, false, false, true, true,
+            false, true, false, false, true,
+        ]
+        .into_iter()
+        .collect();
+        assert!(op1.contains(&mut logic, elem3.slice()));
+
+        let elem4 = op1.polymer(elem2.slice(), 2, &[1, 0]);
+        assert_eq!(elem3, elem4);
+
+        let elem5 = op1.polymer(elem2.slice(), 1, &[0, 0]);
+        assert_eq!(elem1, elem5);
     }
 }

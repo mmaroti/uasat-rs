@@ -16,11 +16,11 @@
 */
 
 use super::{
-    BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, Domain, Slice, Vector,
-    Lattice, MeetSemilattice, PartialOrder,
+    BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, Domain, Lattice,
+    MeetSemilattice, PartialOrder, Slice, Vector,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Boolean();
 
 pub const BOOLEAN: Boolean = Boolean();

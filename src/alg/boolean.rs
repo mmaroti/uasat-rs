@@ -59,9 +59,7 @@ impl Countable for Boolean {
 
     fn elem(&self, index: usize) -> BitVec {
         assert!(index < 2);
-        let mut elem: BitVec = Vector::with_capacity(1);
-        elem.push(index != 0);
-        elem
+        Vector::from_elem(index != 0)
     }
 
     fn index(&self, elem: BitSlice<'_>) -> usize {
@@ -89,15 +87,11 @@ impl PartialOrder for Boolean {}
 
 impl BoundedOrder for Boolean {
     fn top(&self) -> BitVec {
-        let mut elem: BitVec = Vector::with_capacity(1);
-        elem.push(true);
-        elem
+        Vector::from_elem(true)
     }
 
     fn bottom(&self) -> BitVec {
-        let mut elem: BitVec = Vector::with_capacity(1);
-        elem.push(false);
-        elem
+        Vector::from_elem(false)
     }
 }
 
@@ -112,9 +106,7 @@ impl MeetSemilattice for Boolean {
         LOGIC: BooleanLogic,
     {
         debug_assert!(elem0.len() == 1 && elem1.len() == 1);
-        let mut elem: LOGIC::Vector = Vector::with_capacity(1);
-        elem.push(logic.bool_and(elem0.get(0), elem1.get(0)));
-        elem
+        Vector::from_elem(logic.bool_and(elem0.get(0), elem1.get(0)))
     }
 }
 
@@ -129,9 +121,7 @@ impl Lattice for Boolean {
         LOGIC: BooleanLogic,
     {
         debug_assert!(elem0.len() == 1 && elem1.len() == 1);
-        let mut elem: LOGIC::Vector = Vector::with_capacity(1);
-        elem.push(logic.bool_or(elem0.get(0), elem1.get(0)));
-        elem
+        Vector::from_elem(logic.bool_or(elem0.get(0), elem1.get(0)))
     }
 }
 
@@ -141,8 +131,6 @@ impl BooleanLattice for Boolean {
         LOGIC: BooleanLogic,
     {
         debug_assert!(elem.len() == 1);
-        let mut elem: LOGIC::Vector = Vector::with_capacity(1);
-        elem.push(logic.bool_not(elem.get(0)));
-        elem
+        Vector::from_elem(logic.bool_not(elem.get(0)))
     }
 }

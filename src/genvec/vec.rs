@@ -31,6 +31,10 @@ where
         Self::with_capacity(capacity)
     }
 
+    fn with_values(len: usize, elem: Self::Item) -> Self {
+        vec![elem; len]
+    }
+
     fn from_elem(elem: ELEM) -> Self {
         vec![elem]
     }

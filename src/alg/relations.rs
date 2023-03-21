@@ -16,13 +16,36 @@
 */
 
 use super::{
-    BitVec, Boolean, BooleanLattice, Countable, Domain, Power, RankedDomain, SmallSet, Vector,
+    BitSlice, BitVec, Boolean, BooleanLattice, BooleanLogic, Countable, Domain, Power,
+    RankedDomain, Slice, SmallSet, Vector,
 };
 
 pub trait Relations: BooleanLattice + RankedDomain {
     /// Returns the relation that is true if and only if all arguments are
     /// the same. This method panics if the arity is zero.
     fn get_diagonal(&self) -> BitVec;
+
+    /// Checks if the given element is the diagonal relation.
+    fn is_diagonal<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        let diag = self.lift(logic, self.get_diagonal().slice());
+        self.equals(logic, elem, diag.slice())
+    }
+
+    /// Returns a unary relation containing the given element only. This
+    /// method panics if the arity of this ranked domain is not one.
+    fn get_singleton(&self, elem: BitSlice<'_>) -> BitVec;
+
+    /// Checks if the given element is a singleton.
+    fn is_singleton<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        assert!(self.arity() == 1);
+        logic.bool_fold_one(elem.copy_iter())
+    }
 }
 
 impl<DOM> Relations for Power<Boolean, Power<DOM, SmallSet>>
@@ -34,7 +57,6 @@ where
 
         let num_bits = self.num_bits();
         let size = self.exponent().size();
-        let mut result: BitVec = Vector::with_capacity(num_bits);
 
         let stride = if size >= 2 {
             (num_bits - 1) / (size - 1)
@@ -42,15 +64,27 @@ where
             1
         };
 
-        for _ in 1..size {
-            result.push(true);
-            for _ in 1..stride {
-                result.push(false);
-            }
-        }
-        result.push(true);
+        let mut result: BitVec = Vector::with_values(num_bits, false);
 
-        debug_assert_eq!(result.len(), num_bits);
+        let mut index = 0;
+        for _ in 0..size {
+            result.set(index, true);
+            index += stride;
+        }
+        debug_assert_eq!(index - stride, num_bits - 1);
+
+        result
+    }
+
+    fn get_singleton(&self, elem: BitSlice<'_>) -> BitVec {
+        assert!(self.arity() == 1);
+
+        let num_bits = self.num_bits();
+        let mut result: BitVec = Vector::with_values(num_bits, false);
+
+        let index = self.exponent().base().index(elem);
+        result.set(index, true);
+
         result
     }
 }

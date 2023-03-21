@@ -35,6 +35,10 @@ where
     /// will be able to hold exactly capacity elements without reallocating.
     fn with_capacity(capacity: usize) -> Self;
 
+    /// Creates a new vector of the given length filled with the specified
+    /// element.
+    fn with_values(len: usize, elem: Self::Item) -> Self;
+
     /// Concatenates the given vectors into a new one.
     fn concat(parts: Vec<Self>) -> Self {
         let len = parts.iter().map(|a| a.len()).sum();

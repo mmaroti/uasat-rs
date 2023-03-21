@@ -15,13 +15,12 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BitVec, Vector, UnitVec};
+use super::{BitVec, Vector};
 
 #[test]
 fn resize() {
     let mut v1: Vec<bool> = Vector::new();
     let mut v2: BitVec = Vector::new();
-    let mut v3: UnitVec = Vector::new();
     let mut v4: BitVec = Vector::new();
 
     for i in 0..50 {
@@ -29,8 +28,6 @@ fn resize() {
 
         for _ in 0..90 {
             v1.push(b);
-            v3.push(());
-            assert_eq!(v1.len(), v3.len());
         }
         v2.resize(v2.len() + 90, b);
 

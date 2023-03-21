@@ -42,6 +42,13 @@ impl Vector for BitVec {
         }
     }
 
+    fn with_values(len: usize, elem: bool) -> Self {
+        BitVec {
+            len,
+            data: vec![if elem { 0xffffffff } else { 0x0 }; len],
+        }
+    }
+
     fn from_elem(elem: bool) -> Self {
         BitVec {
             len: 1,
@@ -88,6 +95,9 @@ impl Vector for BitVec {
         } else {
             let a = unsafe { self.get_unchecked(self.len - 1) };
             self.len -= 1;
+            if self.len % 32 == 0 {
+                self.data.pop();
+            }
             Some(a)
         }
     }
@@ -101,6 +111,7 @@ impl Vector for BitVec {
     }
 
     fn get(&self, index: usize) -> bool {
+        debug_assert_eq!((self.len + 31) / 32, self.data.len());
         assert!(index < self.len);
         let a = self.data[index / 32];
         let b = 1 << (index % 32);
@@ -108,6 +119,7 @@ impl Vector for BitVec {
     }
 
     unsafe fn get_unchecked(&self, index: usize) -> bool {
+        debug_assert_eq!((self.len + 31) / 32, self.data.len());
         debug_assert!(index < self.len);
         let a = self.data.get_unchecked(index / 32);
         let b = 1 << (index % 32);
@@ -115,6 +127,7 @@ impl Vector for BitVec {
     }
 
     fn set(&mut self, index: usize, elem: bool) {
+        debug_assert_eq!((self.len + 31) / 32, self.data.len());
         assert!(index < self.len);
         let a = &mut self.data[index / 32];
         let b = 1 << (index % 32);
@@ -126,6 +139,7 @@ impl Vector for BitVec {
     }
 
     unsafe fn set_unchecked(&mut self, index: usize, elem: bool) {
+        debug_assert_eq!((self.len + 31) / 32, self.data.len());
         debug_assert!(index < self.len);
         let a = self.data.get_unchecked_mut(index / 32);
         let b = 1 << (index % 32);

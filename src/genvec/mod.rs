@@ -23,9 +23,6 @@ pub use traits::{Slice, Vector};
 mod bitvec;
 pub use bitvec::{BitSlice, BitVec};
 
-mod unitvec;
-pub use unitvec::UnitVec;
-
 mod vec;
 
 #[cfg(test)]

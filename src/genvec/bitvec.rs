@@ -244,7 +244,7 @@ pub struct BitSlice<'a> {
     end: usize,
 }
 
-impl<'a> Slice for BitSlice<'a> {
+impl<'a> Slice<'a> for BitSlice<'a> {
     fn len(self) -> usize {
         self.end - self.start
     }

@@ -51,19 +51,19 @@ impl Domain for SmallSet {
         self.size
     }
 
-    fn contains<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> LOGIC::Elem
+    fn contains<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<Item = LOGIC::Elem>,
+        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         assert_eq!(elem.len(), self.size);
         logic.bool_fold_one(elem.copy_iter())
     }
 
-    fn equals<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
+    fn equals<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<Item = LOGIC::Elem>,
+        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         assert_eq!(elem0.len(), self.size);
         assert_eq!(elem1.len(), self.size);
@@ -75,9 +75,13 @@ impl Domain for SmallSet {
         test
     }
 
-    fn display_elem<ELEM>(&self, f: &mut std::fmt::Formatter<'_>, elem: ELEM) -> std::fmt::Result
+    fn display_elem<'a, ELEM>(
+        &self,
+        f: &mut std::fmt::Formatter<'_>,
+        elem: ELEM,
+    ) -> std::fmt::Result
     where
-        ELEM: Slice<Item = bool>,
+        ELEM: Slice<'a, Item = bool>,
     {
         write!(f, "{}", self.index(elem))
     }
@@ -97,9 +101,9 @@ impl Countable for SmallSet {
         vec
     }
 
-    fn index<ELEM>(&self, elem: ELEM) -> usize
+    fn index<'a, ELEM>(&self, elem: ELEM) -> usize
     where
-        ELEM: Slice<Item = bool>,
+        ELEM: Slice<'a, Item = bool>,
     {
         assert!(elem.len() == self.size);
         let mut index = self.size;
@@ -115,10 +119,10 @@ impl Countable for SmallSet {
 }
 
 impl PartialOrder for SmallSet {
-    fn leq<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
+    fn leq<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<Item = LOGIC::Elem>,
+        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         debug_assert!(elem0.len() == self.size && elem1.len() == self.size);
         logic.bool_cmp_leq(elem0.copy_iter().zip(elem1.copy_iter()))
@@ -138,10 +142,10 @@ impl BoundedOrder for SmallSet {
 }
 
 impl MeetSemilattice for SmallSet {
-    fn meet<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
+    fn meet<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<Item = LOGIC::Elem>,
+        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         let mut result: ELEM::Vec = Vector::with_capacity(self.num_bits());
         let mut looking = logic.bool_lift(true);
@@ -155,10 +159,10 @@ impl MeetSemilattice for SmallSet {
 }
 
 impl Lattice for SmallSet {
-    fn join<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
+    fn join<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<Item = LOGIC::Elem>,
+        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         let mut result: ELEM::Vec = Vector::with_capacity(self.num_bits());
         let mut looking = logic.bool_lift(false);

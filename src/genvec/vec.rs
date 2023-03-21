@@ -99,7 +99,7 @@ where
     }
 }
 
-impl<'a, ELEM> Slice for &'a [ELEM]
+impl<'a, ELEM> Slice<'a> for &'a [ELEM]
 where
     ELEM: Copy,
 {

@@ -137,7 +137,7 @@ where
     fn capacity(&self) -> usize;
 
     /// The type of slice structure that can be further sliced.
-    type Slice<'a>: Slice<Item = Self::Item, Vec = Self>
+    type Slice<'a>: Slice<'a, Item = Self::Item, Vec = Self>
     where
         Self: 'a;
 
@@ -150,7 +150,7 @@ where
     }
 }
 
-pub trait Slice
+pub trait Slice<'a>
 where
     Self: Sized + Copy,
 {
@@ -161,7 +161,7 @@ where
     type Iter: Iterator<Item = Self::Item> + FusedIterator + ExactSizeIterator + DoubleEndedIterator;
 
     /// A type of vector than can hold elements.
-    type Vec: Vector<Item = Self::Item>;
+    type Vec: Vector<Item = Self::Item, Slice<'a> = Self> + 'a;
 
     /// Returns the number of elements in the slice.
     fn len(self) -> usize;

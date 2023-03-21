@@ -20,20 +20,20 @@ use super::{BooleanLogic, Countable, Domain, Power, RankedDomain, Slice, SmallSe
 pub trait Operations: RankedDomain {
     /// Returns the graph of this operation, which is a relation
     /// of arity one larger than this operation.
-    fn graph<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM::Slice<'_>) -> ELEM
+    fn graph<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> ELEM::Vec
     where
         LOGIC: BooleanLogic,
-        ELEM: Vector<Item = LOGIC::Elem>;
+        ELEM: Slice<'a, Item = LOGIC::Elem>;
 }
 
 impl<DOM> Operations for Power<DOM, Power<DOM, SmallSet>>
 where
     DOM: Countable,
 {
-    fn graph<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM::Slice<'a>) -> ELEM
+    fn graph<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> ELEM::Vec
     where
         LOGIC: BooleanLogic,
-        ELEM: Vector<Item = LOGIC::Elem>,
+        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         assert_eq!(elem.len(), self.num_bits());
         assert_eq!(self.base(), self.exponent().base());
@@ -45,14 +45,15 @@ where
             power *= size;
         }
 
-        let mut result: ELEM = Vector::with_capacity(power);
+        let result: ELEM::Vec = Vector::with_capacity(power);
 
-        for part in self.part_iter(elem) {
+        for _part in self.part_iter(elem) {
             for index in 0..size {
-                let value = domain.elem(index);
-                let value: ELEM = domain.lift(logic, Vector::slice(&value));
-                let value2 = value.slice();
-                // result.push(domain.equals(logic, value2, part));
+                let value1 = domain.elem(index);
+                let value2 = Vector::slice(&value1);
+                let _value3: ELEM::Vec = domain.lift(logic, value2);
+                // let value4: ELEM = Vector::slice(&value3);
+                // result.push(domain.equals(logic, part, value4));
             }
         }
 

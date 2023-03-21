@@ -136,7 +136,7 @@ impl Vector for UnitVec {
     }
 }
 
-impl Slice for UnitVec {
+impl<'a> Slice<'a> for UnitVec {
     fn len(self) -> usize {
         self.len
     }

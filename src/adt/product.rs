@@ -52,18 +52,18 @@ where
     }
 
     /// Returns the first part of an element.
-    pub fn part0<ELEM>(&self, elem: ELEM) -> ELEM
+    pub fn part0<'a, ELEM>(&self, elem: ELEM) -> ELEM
     where
-        ELEM: Slice,
+        ELEM: Slice<'a>,
     {
         debug_assert!(elem.len() == self.num_bits());
         elem.head(self.dom0.num_bits())
     }
 
     /// Returns the second part of an element.
-    pub fn part1<ELEM>(&self, elem: ELEM) -> ELEM
+    pub fn part1<'a, ELEM>(&self, elem: ELEM) -> ELEM
     where
-        ELEM: Slice,
+        ELEM: Slice<'a>,
     {
         debug_assert!(elem.len() == self.num_bits());
         elem.tail(self.dom0.num_bits())
@@ -79,10 +79,10 @@ where
         self.dom0.num_bits() + self.dom1.num_bits()
     }
 
-    fn contains<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> LOGIC::Elem
+    fn contains<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<Item = LOGIC::Elem>,
+        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         let bits0 = self.dom0.num_bits();
         let valid0 = self.dom0.contains(logic, elem.head(bits0));
@@ -90,10 +90,10 @@ where
         logic.bool_and(valid0, valid1)
     }
 
-    fn equals<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
+    fn equals<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<Item = LOGIC::Elem>,
+        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         let bits0 = self.dom0.num_bits();
         let test0 = self
@@ -105,9 +105,13 @@ where
         logic.bool_and(test0, test1)
     }
 
-    fn display_elem<ELEM>(&self, f: &mut std::fmt::Formatter<'_>, elem: ELEM) -> std::fmt::Result
+    fn display_elem<'a, ELEM>(
+        &self,
+        f: &mut std::fmt::Formatter<'_>,
+        elem: ELEM,
+    ) -> std::fmt::Result
     where
-        ELEM: Slice<Item = bool>,
+        ELEM: Slice<'a, Item = bool>,
     {
         let bits0 = self.dom0.num_bits();
         write!(f, "(")?;
@@ -136,9 +140,9 @@ where
         result
     }
 
-    fn index<ELEM>(&self, elem: ELEM) -> usize
+    fn index<'a, ELEM>(&self, elem: ELEM) -> usize
     where
-        ELEM: Slice<Item = bool>,
+        ELEM: Slice<'a, Item = bool>,
     {
         debug_assert!(elem.len() == self.num_bits());
         let bits0 = self.dom0.num_bits();
@@ -154,10 +158,10 @@ where
     DOM0: PartialOrder,
     DOM1: PartialOrder,
 {
-    fn leq<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
+    fn leq<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<Item = LOGIC::Elem>,
+        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         let bits0 = self.dom0.num_bits();
         let test0 = self.dom0.leq(logic, elem0.head(bits0), elem1.head(bits0));
@@ -191,10 +195,10 @@ where
     DOM0: MeetSemilattice,
     DOM1: MeetSemilattice,
 {
-    fn meet<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
+    fn meet<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<Item = LOGIC::Elem>,
+        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         let bits0 = self.dom0.num_bits();
         let mut elem: ELEM::Vec = Vector::with_capacity(self.num_bits());
@@ -209,10 +213,10 @@ where
     DOM0: Lattice,
     DOM1: Lattice,
 {
-    fn join<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
+    fn join<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<Item = LOGIC::Elem>,
+        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         let bits0 = self.dom0.num_bits();
         let mut elem: ELEM::Vec = Vector::with_capacity(self.num_bits());
@@ -227,10 +231,10 @@ where
     DOM0: BooleanLattice,
     DOM1: BooleanLattice,
 {
-    fn complement<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> ELEM::Vec
+    fn complement<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> ELEM::Vec
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<Item = LOGIC::Elem>,
+        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         let bits0 = self.dom0.num_bits();
         let mut result: ELEM::Vec = Vector::with_capacity(self.num_bits());

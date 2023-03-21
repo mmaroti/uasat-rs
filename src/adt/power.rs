@@ -23,17 +23,18 @@ use super::{
 use std::iter::{ExactSizeIterator, Extend, FusedIterator};
 
 /// A helper iterator to go through the parts of an element.
-pub struct PartIter<ELEM>
+pub struct PartIter<'a, ELEM>
 where
-    ELEM: Slice,
+    ELEM: Slice<'a>,
 {
     elem: ELEM,
     step: usize,
+    phantom: std::marker::PhantomData<&'a ()>,
 }
 
-impl<ELEM> Iterator for PartIter<ELEM>
+impl<'a, ELEM> Iterator for PartIter<'a, ELEM>
 where
-    ELEM: Slice,
+    ELEM: Slice<'a>,
 {
     type Item = ELEM;
 
@@ -48,11 +49,11 @@ where
     }
 }
 
-impl<ELEM> FusedIterator for PartIter<ELEM> where ELEM: Slice {}
+impl<'a, ELEM> FusedIterator for PartIter<'a, ELEM> where ELEM: Slice<'a> {}
 
-impl<ELEM> ExactSizeIterator for PartIter<ELEM>
+impl<'a, ELEM> ExactSizeIterator for PartIter<'a, ELEM>
 where
-    ELEM: Slice,
+    ELEM: Slice<'a>,
 {
     fn len(&self) -> usize {
         self.elem.len() / self.step
@@ -91,21 +92,22 @@ where
     }
 
     /// Returns the part of an element at the given index.
-    pub fn part_iter<ELEM>(&self, elem: ELEM) -> PartIter<ELEM>
+    pub fn part_iter<'a, ELEM>(&self, elem: ELEM) -> PartIter<'a, ELEM>
     where
-        ELEM: Slice,
+        ELEM: Slice<'a>,
     {
         debug_assert!(elem.len() == self.num_bits());
         PartIter {
             elem,
             step: self.base.num_bits(),
+            phantom: Default::default(),
         }
     }
 
     /// Returns the part of an element at the given index.
-    pub fn part<ELEM>(&self, elem: ELEM, index: usize) -> ELEM
+    pub fn part<'a, ELEM>(&self, elem: ELEM, index: usize) -> ELEM
     where
-        ELEM: Slice,
+        ELEM: Slice<'a>,
     {
         debug_assert!(elem.len() == self.num_bits());
         let step = self.base().num_bits();
@@ -123,10 +125,10 @@ where
         self.base.num_bits() * self.exponent.size()
     }
 
-    fn contains<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> LOGIC::Elem
+    fn contains<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<Item = LOGIC::Elem>,
+        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         assert_eq!(elem.len(), self.num_bits());
         let mut valid = logic.bool_lift(true);
@@ -137,10 +139,10 @@ where
         valid
     }
 
-    fn equals<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
+    fn equals<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<Item = LOGIC::Elem>,
+        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         let mut valid = logic.bool_lift(true);
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
@@ -150,9 +152,13 @@ where
         valid
     }
 
-    fn display_elem<ELEM>(&self, f: &mut std::fmt::Formatter<'_>, elem: ELEM) -> std::fmt::Result
+    fn display_elem<'a, ELEM>(
+        &self,
+        f: &mut std::fmt::Formatter<'_>,
+        elem: ELEM,
+    ) -> std::fmt::Result
     where
-        ELEM: Slice<Item = bool>,
+        ELEM: Slice<'a, Item = bool>,
     {
         let mut first = true;
         write!(f, "[")?;
@@ -195,9 +201,9 @@ where
         result
     }
 
-    fn index<ELEM>(&self, elem: ELEM) -> usize
+    fn index<'a, ELEM>(&self, elem: ELEM) -> usize
     where
-        ELEM: Slice<Item = bool>,
+        ELEM: Slice<'a, Item = bool>,
     {
         let mut index = 0;
         let base_size = self.base.size();
@@ -217,10 +223,10 @@ where
     BASE: PartialOrder,
     EXP: Countable,
 {
-    fn leq<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
+    fn leq<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<Item = LOGIC::Elem>,
+        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         let mut valid = logic.bool_lift(true);
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
@@ -260,10 +266,10 @@ where
     BASE: MeetSemilattice,
     EXP: Countable,
 {
-    fn meet<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
+    fn meet<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<Item = LOGIC::Elem>,
+        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         let mut elem: ELEM::Vec = Vector::with_capacity(self.num_bits());
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
@@ -278,10 +284,10 @@ where
     BASE: Lattice,
     EXP: Countable,
 {
-    fn join<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
+    fn join<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<Item = LOGIC::Elem>,
+        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         let mut elem: ELEM::Vec = Vector::with_capacity(self.num_bits());
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
@@ -296,10 +302,10 @@ where
     BASE: BooleanLattice,
     EXP: Countable,
 {
-    fn complement<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> ELEM::Vec
+    fn complement<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> ELEM::Vec
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<Item = LOGIC::Elem>,
+        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         let mut result: ELEM::Vec = Vector::with_capacity(self.num_bits());
         for part in self.part_iter(elem) {
@@ -325,9 +331,9 @@ where
         )
     }
 
-    fn polymer<ELEM>(&self, elem: ELEM, arity: usize, mapping: &[usize]) -> ELEM::Vec
+    fn polymer<'a, ELEM>(&self, elem: ELEM, arity: usize, mapping: &[usize]) -> ELEM::Vec
     where
-        ELEM: Slice,
+        ELEM: Slice<'a>,
     {
         assert_eq!(elem.len(), self.num_bits());
         assert_eq!(mapping.len(), self.exponent().exponent().size());

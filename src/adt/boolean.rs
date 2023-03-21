@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, Domain, Lattice,
+    BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, Domain, Lattice,
     MeetSemilattice, PartialOrder, Slice, Vector,
 };
 
@@ -64,20 +64,21 @@ impl Countable for Boolean {
         elem
     }
 
-    fn index<'a, ELEM>(&self, elem: ELEM) -> usize
-    where
-        ELEM: Slice<'a, Item = bool>,
-    {
+    fn index(&self, elem: BitSlice<'_>) -> usize {
         assert!(elem.len() == 1);
         elem.get(0) as usize
     }
 }
 
 impl PartialOrder for Boolean {
-    fn leq<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
+    fn leq<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         debug_assert!(elem0.len() == 1 && elem1.len() == 1);
         logic.bool_imp(elem0.get(0), elem1.get(0))
@@ -99,39 +100,46 @@ impl BoundedOrder for Boolean {
 }
 
 impl MeetSemilattice for Boolean {
-    fn meet<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
+    fn meet<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         debug_assert!(elem0.len() == 1 && elem1.len() == 1);
-        let mut elem: ELEM::Vec = Vector::with_capacity(1);
+        let mut elem: LOGIC::Vector = Vector::with_capacity(1);
         elem.push(logic.bool_and(elem0.get(0), elem1.get(0)));
         elem
     }
 }
 
 impl Lattice for Boolean {
-    fn join<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
+    fn join<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         debug_assert!(elem0.len() == 1 && elem1.len() == 1);
-        let mut elem: ELEM::Vec = Vector::with_capacity(1);
+        let mut elem: LOGIC::Vector = Vector::with_capacity(1);
         elem.push(logic.bool_or(elem0.get(0), elem1.get(0)));
         elem
     }
 }
 
 impl BooleanLattice for Boolean {
-    fn complement<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> ELEM::Vec
+    fn complement<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         debug_assert!(elem.len() == 1);
-        let mut elem: ELEM::Vec = Vector::with_capacity(1);
+        let mut elem: LOGIC::Vector = Vector::with_capacity(1);
         elem.push(logic.bool_not(elem.get(0)));
         elem
     }

@@ -71,22 +71,16 @@ pub trait Domain: Clone + PartialEq + Debug {
     }
 
     /// Returns an object for formatting the given element.
-    fn format<'a, ELEM>(&'a self, elem: ELEM) -> Format<'a, Self, ELEM>
-    where
-        ELEM: Slice<'a, Item = bool>,
-    {
+    fn format<'a>(&'a self, elem: BitSlice<'a>) -> Format<'a, Self> {
         Format { domain: self, elem }
     }
 
     /// Formats the given element using the provided formatter.
-    fn display_elem<'a, ELEM>(
+    fn display_elem(
         &self,
         f: &mut std::fmt::Formatter<'_>,
-        elem: ELEM,
-    ) -> std::fmt::Result
-    where
-        ELEM: Slice<'a, Item = bool>,
-    {
+        elem: BitSlice<'_>,
+    ) -> std::fmt::Result {
         assert!(elem.len() == self.num_bits());
         for v in elem.copy_iter() {
             write!(f, "{}", if v { '1' } else { '0' })?;
@@ -105,19 +99,17 @@ pub trait Domain: Clone + PartialEq + Debug {
 }
 
 /// A helper structure for displaying domain elements.
-pub struct Format<'a, DOM, ELEM>
+pub struct Format<'a, DOM>
 where
     DOM: Domain,
-    ELEM: Slice<'a, Item = bool>,
 {
     domain: &'a DOM,
-    elem: ELEM,
+    elem: BitSlice<'a>,
 }
 
-impl<'a, DOM, ELEM> std::fmt::Display for Format<'a, DOM, ELEM>
+impl<'a, DOM> std::fmt::Display for Format<'a, DOM>
 where
     DOM: Domain,
-    ELEM: Slice<'a, Item = bool>,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.domain.display_elem(f, self.elem)
@@ -133,9 +125,7 @@ pub trait Countable: Domain {
     fn elem(&self, index: usize) -> BitVec;
 
     /// Returns the index of the given element.
-    fn index<'a, ELEM>(&self, elem: ELEM) -> usize
-    where
-        ELEM: Slice<'a, Item = bool>;
+    fn index(&self, elem: BitSlice<'_>) -> usize;
 }
 
 /// A domain that has a rank and is part of a family of similar domains.
@@ -169,17 +159,25 @@ pub trait RankedDomain: Domain {
 pub trait PartialOrder: Domain {
     /// Returns true if the first element is less than or equal to the
     /// second one in the partial order.
-    fn leq<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
+    fn leq<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Elem
     where
-        LOGIC: BooleanLogic,
-        ELEM: Slice<'a, Item = LOGIC::Elem>;
+        LOGIC: BooleanLogic;
 
     /// Returns true if the first element is strictly less than the
     /// second one.
-    fn less_than<'a, LOGIC, ELEM>(&self, alg: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
+    fn less_than<LOGIC>(
+        &self,
+        alg: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         let test0 = self.leq(alg, elem0, elem1);
         let test1 = self.leq(alg, elem1, elem0);
@@ -189,10 +187,14 @@ pub trait PartialOrder: Domain {
 
     /// Returns true if one of the elements is less than or equal to
     /// the other.
-    fn comparable<'a, LOGIC, ELEM>(&self, alg: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
+    fn comparable<LOGIC>(
+        &self,
+        alg: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         let test0 = self.leq(alg, elem0, elem1);
         let test1 = self.leq(alg, elem1, elem0);
@@ -213,27 +215,34 @@ pub trait BoundedOrder: PartialOrder {
 pub trait MeetSemilattice: PartialOrder {
     /// Calculates the meet (the largest lower bound) of
     /// a pair of elements
-    fn meet<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
+    fn meet<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Vector
     where
-        LOGIC: BooleanLogic,
-        ELEM: Slice<'a, Item = LOGIC::Elem>;
+        LOGIC: BooleanLogic;
 }
 
 pub trait Lattice: MeetSemilattice {
     /// Calculates the join (the smallest upper bound) of
     /// a pair of elements.
-    fn join<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
+    fn join<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Vector
     where
-        LOGIC: BooleanLogic,
-        ELEM: Slice<'a, Item = LOGIC::Elem>;
+        LOGIC: BooleanLogic;
 }
 
 pub trait BooleanLattice: Lattice + BoundedOrder {
     /// Calculates the complement of the given element.
-    fn complement<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> ELEM::Vec
+    fn complement<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
     where
-        LOGIC: BooleanLogic,
-        ELEM: Slice<'a, Item = LOGIC::Elem>;
+        LOGIC: BooleanLogic;
 }
 
 /// A binary relation between two domains
@@ -249,8 +258,12 @@ where
     fn codomain(&self) -> &DOM1;
 
     /// Returns true if the two elements are related.
-    fn related<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
+    fn related<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Elem
     where
-        LOGIC: BooleanLogic,
-        ELEM: Slice<'a, Item = LOGIC::Elem>;
+        LOGIC: BooleanLogic;
 }

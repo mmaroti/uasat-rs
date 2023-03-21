@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, Domain, Lattice,
+    BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, Domain, Lattice,
     MeetSemilattice, PartialOrder, RankedDomain, Slice, SmallSet, Vector,
 };
 
@@ -155,14 +155,11 @@ where
         valid
     }
 
-    fn display_elem<'a, ELEM>(
+    fn display_elem(
         &self,
         f: &mut std::fmt::Formatter<'_>,
-        elem: ELEM,
-    ) -> std::fmt::Result
-    where
-        ELEM: Slice<'a, Item = bool>,
-    {
+        elem: BitSlice<'_>,
+    ) -> std::fmt::Result {
         let mut first = true;
         write!(f, "[")?;
         for part in self.part_iter(elem) {
@@ -204,10 +201,7 @@ where
         result
     }
 
-    fn index<'a, ELEM>(&self, elem: ELEM) -> usize
-    where
-        ELEM: Slice<'a, Item = bool>,
-    {
+    fn index(&self, elem: BitSlice<'_>) -> usize {
         let mut index = 0;
         let base_size = self.base.size();
         let mut power = 1;
@@ -226,10 +220,14 @@ where
     BASE: PartialOrder,
     EXP: Countable,
 {
-    fn leq<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
+    fn leq<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         let mut valid = logic.bool_lift(true);
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
@@ -269,12 +267,16 @@ where
     BASE: MeetSemilattice,
     EXP: Countable,
 {
-    fn meet<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
+    fn meet<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
-        let mut elem: ELEM::Vec = Vector::with_capacity(self.num_bits());
+        let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
             elem.extend(self.base.meet(logic, part0, part1));
         }
@@ -287,12 +289,16 @@ where
     BASE: Lattice,
     EXP: Countable,
 {
-    fn join<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> ELEM::Vec
+    fn join<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
-        let mut elem: ELEM::Vec = Vector::with_capacity(self.num_bits());
+        let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
             elem.extend(self.base.join(logic, part0, part1));
         }
@@ -305,12 +311,11 @@ where
     BASE: BooleanLattice,
     EXP: Countable,
 {
-    fn complement<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> ELEM::Vec
+    fn complement<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
-        let mut result: ELEM::Vec = Vector::with_capacity(self.num_bits());
+        let mut result: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         for part in self.part_iter(elem) {
             result.extend(self.base.complement(logic, part));
         }

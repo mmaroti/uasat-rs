@@ -22,12 +22,18 @@
 use std::iter;
 
 use super::{create_solver, Literal, SatInterface};
-use crate::genvec::{BitVec, Vector};
+use crate::genvec::{BitSlice, BitVec, Slice, Vector};
 
 /// A boolean algebra supporting boolean calculation.
 pub trait BooleanLogic {
     /// The element type of this bool algebra.
     type Elem: Copy;
+
+    /// The type of vector holding the elements.
+    type Vector: Vector<Item = Self::Elem>;
+
+    /// The type of slices for the element vectors.
+    type Slice<'a>: Slice<'a, Item = Self::Elem>;
 
     /// Returns the logical true (top) element of the algebra.
     fn bool_unit(&self) -> Self::Elem {
@@ -219,6 +225,10 @@ pub struct Logic();
 impl BooleanLogic for Logic {
     type Elem = bool;
 
+    type Vector = BitVec;
+
+    type Slice<'a> = BitSlice<'a>;
+
     fn bool_lift(&self, elem: bool) -> Self::Elem {
         elem
     }
@@ -273,6 +283,10 @@ impl Solver {
 
 impl BooleanLogic for Solver {
     type Elem = Literal;
+
+    type Vector = Vec<Literal>;
+
+    type Slice<'a> = &'a [Literal];
 
     fn bool_lift(&self, elem: bool) -> Self::Elem {
         if elem {

@@ -139,10 +139,16 @@ where
         valid
     }
 
-    fn equals<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
+    fn equals<'a, 'b, LOGIC, ELEM0, ELEM1>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: ELEM0,
+        elem1: ELEM1,
+    ) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<'a, Item = LOGIC::Elem>,
+        ELEM0: Slice<'a, Item = LOGIC::Elem>,
+        ELEM1: Slice<'b, Item = LOGIC::Elem>,
     {
         let mut valid = logic.bool_lift(true);
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {

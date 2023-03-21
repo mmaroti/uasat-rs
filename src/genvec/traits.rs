@@ -161,7 +161,7 @@ where
     type Iter: Iterator<Item = Self::Item> + FusedIterator + ExactSizeIterator + DoubleEndedIterator;
 
     /// A type of vector than can hold elements.
-    type Vec: Vector<Item = Self::Item, Slice<'a> = Self> + 'a;
+    type Vec: Vector<Item = Self::Item>;
 
     /// Returns the number of elements in the slice.
     fn len(self) -> usize;

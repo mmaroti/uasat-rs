@@ -60,10 +60,16 @@ impl Domain for SmallSet {
         logic.bool_fold_one(elem.copy_iter())
     }
 
-    fn equals<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
+    fn equals<'a, 'b, LOGIC, ELEM0, ELEM1>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: ELEM0,
+        elem1: ELEM1,
+    ) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<'a, Item = LOGIC::Elem>,
+        ELEM0: Slice<'a, Item = LOGIC::Elem>,
+        ELEM1: Slice<'b, Item = LOGIC::Elem>,
     {
         assert_eq!(elem0.len(), self.size);
         assert_eq!(elem1.len(), self.size);

@@ -25,12 +25,11 @@ pub trait Domain: Clone + PartialEq + Debug {
     /// domain.
     fn num_bits(&self) -> usize;
 
-    fn lift<LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: BitSlice) -> ELEM
+    fn lift<LOGIC>(&self, logic: &mut LOGIC, elem: BitSlice) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
-        ELEM: Vector<Item = LOGIC::Elem>,
     {
-        let mut result: ELEM = Vector::with_capacity(elem.len());
+        let mut result: LOGIC::Vector = Vector::with_capacity(elem.len());
         for a in elem.copy_iter() {
             result.push(logic.bool_lift(a));
         }
@@ -47,10 +46,16 @@ pub trait Domain: Clone + PartialEq + Debug {
     /// Checks if the two bit vectors are exactly the same. This offers a
     /// faster implementation than bitwise comparison, since it has to work
     /// only for valid bit patterns that encode elements.
-    fn equals<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
+    fn equals<'a, 'b, LOGIC, ELEM0, ELEM1>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: ELEM0,
+        elem1: ELEM1,
+    ) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<'a, Item = LOGIC::Elem>;
+        ELEM0: Slice<'a, Item = LOGIC::Elem>,
+        ELEM1: Slice<'b, Item = LOGIC::Elem>;
 
     /// Adds a new variable to the given solver, which is just a list of
     /// fresh literals. It also enforces that the returned variable

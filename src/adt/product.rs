@@ -90,10 +90,16 @@ where
         logic.bool_and(valid0, valid1)
     }
 
-    fn equals<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem0: ELEM, elem1: ELEM) -> LOGIC::Elem
+    fn equals<'a, 'b, LOGIC, ELEM0, ELEM1>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: ELEM0,
+        elem1: ELEM1,
+    ) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<'a, Item = LOGIC::Elem>,
+        ELEM0: Slice<'a, Item = LOGIC::Elem>,
+        ELEM1: Slice<'b, Item = LOGIC::Elem>,
     {
         let bits0 = self.dom0.num_bits();
         let test0 = self

@@ -52,6 +52,47 @@ where
             }
         }
 
+        debug_assert_eq!(result.len(), power);
         result
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::{BitVec, Domain, Logic, Solver, Vector, BOOLEAN};
+    use super::*;
+
+    #[test]
+    fn graph() {
+        let dom = SmallSet::new(3);
+        let ops = Power::new(dom.clone(), Power::new(dom.clone(), SmallSet::new(1)));
+        let rel = Power::new(BOOLEAN, Power::new(dom.clone(), SmallSet::new(2)));
+
+        let mut logic = Logic();
+        let elem1: BitVec = vec![true, false, false, false, false, true, false, true, false]
+            .into_iter()
+            .collect();
+        assert!(ops.contains(&mut logic, elem1.slice()));
+
+        let graph1 = ops.graph(&mut logic, elem1.slice());
+        assert!(rel.contains(&mut logic, graph1.slice()));
+        assert_eq!(elem1, graph1);
+
+        let mut solver = Solver::new("");
+        let elem2 = ops.add_variable(&mut solver);
+        let graph2 = ops.graph(&mut solver, elem2.slice());
+        assert_eq!(elem2, graph2);
+
+        let dom = BOOLEAN;
+        let ops = Power::new(dom.clone(), Power::new(dom.clone(), SmallSet::new(1)));
+
+        let elem3 = ops.add_variable(&mut solver);
+        let graph3 = ops.graph(&mut solver, elem3.slice());
+        assert_eq!(elem3.len(), 2);
+        assert_eq!(graph3.len(), 4);
+        assert_eq!(graph3.get(0), solver.bool_not(elem3.get(0)));
+        assert_eq!(graph3.get(1), elem3.get(0));
+        assert_eq!(graph3.get(2), solver.bool_not(elem3.get(1)));
+        assert_eq!(graph3.get(3), elem3.get(1));
     }
 }

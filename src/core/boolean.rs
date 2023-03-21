@@ -276,8 +276,19 @@ impl Solver {
         Solver { solver, unit, zero }
     }
 
+    /// Returns the name of the solver
     pub fn get_name(&self) -> &'static str {
         self.solver.get_name()
+    }
+
+    /// Returns the number of variables in the solver.
+    pub fn num_variables(&self) -> u32 {
+        self.solver.num_variables() - 1
+    }
+
+    /// Returns the number of clauses in the solver.
+    pub fn num_clauses(&self) -> usize {
+        self.solver.num_clauses() - 1
     }
 }
 

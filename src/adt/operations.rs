@@ -20,7 +20,7 @@ use super::{BooleanLogic, Countable, Domain, Power, RankedDomain, Slice, SmallSe
 pub trait Operations: RankedDomain {
     /// Returns the graph of this operation, which is a relation
     /// of arity one larger than this operation.
-    fn graph<'a, LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'a>) -> LOGIC::Vector
+    fn graph<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic;
 }
@@ -29,7 +29,7 @@ impl<DOM> Operations for Power<DOM, Power<DOM, SmallSet>>
 where
     DOM: Countable,
 {
-    fn graph<'a, LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'a>) -> LOGIC::Vector
+    fn graph<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {

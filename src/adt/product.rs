@@ -79,10 +79,9 @@ where
         self.dom0.num_bits() + self.dom1.num_bits()
     }
 
-    fn contains<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> LOGIC::Elem
+    fn contains<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         let bits0 = self.dom0.num_bits();
         let valid0 = self.dom0.contains(logic, elem.head(bits0));
@@ -90,16 +89,14 @@ where
         logic.bool_and(valid0, valid1)
     }
 
-    fn equals<'a, 'b, LOGIC, ELEM0, ELEM1>(
+    fn equals<LOGIC>(
         &self,
         logic: &mut LOGIC,
-        elem0: ELEM0,
-        elem1: ELEM1,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
     ) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM0: Slice<'a, Item = LOGIC::Elem>,
-        ELEM1: Slice<'b, Item = LOGIC::Elem>,
     {
         let bits0 = self.dom0.num_bits();
         let test0 = self

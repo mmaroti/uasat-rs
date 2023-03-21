@@ -30,7 +30,7 @@ pub trait BooleanLogic {
     type Elem: Copy;
 
     /// The type of vector holding the elements.
-    type Vector: Vector<Item = Self::Elem>;
+    type Vector: for<'a> Vector<Item = Self::Elem, Slice<'a> = Self::Slice<'a>>;
 
     /// The type of slices for the element vectors.
     type Slice<'a>: Slice<'a, Item = Self::Elem>;

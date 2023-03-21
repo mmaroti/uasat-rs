@@ -38,33 +38,30 @@ pub trait Domain: Clone + PartialEq + Debug {
 
     /// Verifies that the given bit vector is encoding a valid element of
     /// this domain.
-    fn contains<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> LOGIC::Elem
+    fn contains<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
-        LOGIC: BooleanLogic,
-        ELEM: Slice<'a, Item = LOGIC::Elem>;
+        LOGIC: BooleanLogic;
 
     /// Checks if the two bit vectors are exactly the same. This offers a
     /// faster implementation than bitwise comparison, since it has to work
     /// only for valid bit patterns that encode elements.
-    fn equals<'a, 'b, LOGIC, ELEM0, ELEM1>(
+    fn equals<LOGIC>(
         &self,
         logic: &mut LOGIC,
-        elem0: ELEM0,
-        elem1: ELEM1,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
     ) -> LOGIC::Elem
     where
-        LOGIC: BooleanLogic,
-        ELEM0: Slice<'a, Item = LOGIC::Elem>,
-        ELEM1: Slice<'b, Item = LOGIC::Elem>;
+        LOGIC: BooleanLogic;
 
     /// Adds a new variable to the given solver, which is just a list of
     /// fresh literals. It also enforces that the returned variable
     /// is contained in the domain, but adding the appropriate constraint.
-    fn add_variable<LOGIC>(&self, logic: &mut LOGIC) -> Vec<LOGIC::Elem>
+    fn add_variable<LOGIC>(&self, logic: &mut LOGIC) -> LOGIC::Vector
     where
         LOGIC: BooleanSolver,
     {
-        let mut elem: Vec<LOGIC::Elem> = Vec::with_capacity(self.num_bits());
+        let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         for _ in 0..self.num_bits() {
             elem.push(logic.bool_add_variable());
         }

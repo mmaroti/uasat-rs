@@ -125,10 +125,9 @@ where
         self.base.num_bits() * self.exponent.size()
     }
 
-    fn contains<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> LOGIC::Elem
+    fn contains<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         assert_eq!(elem.len(), self.num_bits());
         let mut valid = logic.bool_lift(true);
@@ -139,16 +138,14 @@ where
         valid
     }
 
-    fn equals<'a, 'b, LOGIC, ELEM0, ELEM1>(
+    fn equals<LOGIC>(
         &self,
         logic: &mut LOGIC,
-        elem0: ELEM0,
-        elem1: ELEM1,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
     ) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM0: Slice<'a, Item = LOGIC::Elem>,
-        ELEM1: Slice<'b, Item = LOGIC::Elem>,
     {
         let mut valid = logic.bool_lift(true);
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {

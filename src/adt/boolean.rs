@@ -30,25 +30,22 @@ impl Domain for Boolean {
         1
     }
 
-    fn contains<'a, LOGIC, ELEM>(&self, logic: &mut LOGIC, elem: ELEM) -> LOGIC::Elem
+    fn contains<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM: Slice<'a, Item = LOGIC::Elem>,
     {
         assert!(elem.len() == 1);
         logic.bool_lift(true)
     }
 
-    fn equals<'a, 'b, LOGIC, ELEM0, ELEM1>(
+    fn equals<LOGIC>(
         &self,
         logic: &mut LOGIC,
-        elem0: ELEM0,
-        elem1: ELEM1,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
     ) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
-        ELEM0: Slice<'a, Item = LOGIC::Elem>,
-        ELEM1: Slice<'b, Item = LOGIC::Elem>,
     {
         debug_assert!(elem0.len() == 1 && elem1.len() == 1);
         logic.bool_equ(elem0.get(0), elem1.get(0))

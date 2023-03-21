@@ -20,7 +20,7 @@
 #[macro_use]
 extern crate lazy_static;
 
-pub mod adt;
+pub mod alg;
 pub mod core;
 pub mod genvec;
 pub mod math;
@@ -29,5 +29,5 @@ pub fn main() {
     // math::validate();
     // math::extremeconn_test();
     // math::obstruction_test();
-    adt::test();
+    alg::test();
 }

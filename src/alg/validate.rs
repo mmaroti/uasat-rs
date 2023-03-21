@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BooleanLogic, BooleanSolver, BoundedOrder, Countable, Vector, Lattice, Logic,
-    MeetSemilattice, PartialOrder, Power, Product2, SmallSet, Solver, BOOLEAN,
+    BooleanLogic, BooleanSolver, BoundedOrder, Countable, Lattice, Logic, MeetSemilattice,
+    PartialOrder, Power, Product2, SmallSet, Solver, Vector, BOOLEAN,
 };
 
 pub fn validate_domain<DOM>(domain: DOM)
@@ -108,7 +108,7 @@ where
     // reflexive
     let mut logic = Solver::new("");
     let elem = domain.add_variable(&mut logic);
-    let test = domain.leq(&mut logic, elem.slice(), elem.slice());
+    let test = domain.is_edge(&mut logic, elem.slice(), elem.slice());
     logic.bool_add_clause1(logic.bool_not(test));
     assert!(!logic.bool_solvable());
 
@@ -116,9 +116,9 @@ where
     let mut logic = Solver::new("");
     let elem0 = domain.add_variable(&mut logic);
     let elem1 = domain.add_variable(&mut logic);
-    let test = domain.leq(&mut logic, elem0.slice(), elem1.slice());
+    let test = domain.is_edge(&mut logic, elem0.slice(), elem1.slice());
     logic.bool_add_clause1(test);
-    let test = domain.leq(&mut logic, elem1.slice(), elem0.slice());
+    let test = domain.is_edge(&mut logic, elem1.slice(), elem0.slice());
     logic.bool_add_clause1(test);
     let test = domain.equals(&mut logic, elem0.slice(), elem1.slice());
     logic.bool_add_clause1(logic.bool_not(test));
@@ -129,11 +129,11 @@ where
     let elem0 = domain.add_variable(&mut logic);
     let elem1 = domain.add_variable(&mut logic);
     let elem2 = domain.add_variable(&mut logic);
-    let test = domain.leq(&mut logic, elem0.slice(), elem1.slice());
+    let test = domain.is_edge(&mut logic, elem0.slice(), elem1.slice());
     logic.bool_add_clause1(test);
-    let test = domain.leq(&mut logic, elem1.slice(), elem2.slice());
+    let test = domain.is_edge(&mut logic, elem1.slice(), elem2.slice());
     logic.bool_add_clause1(test);
-    let test = domain.leq(&mut logic, elem0.slice(), elem2.slice());
+    let test = domain.is_edge(&mut logic, elem0.slice(), elem2.slice());
     logic.bool_add_clause1(logic.bool_not(test));
     assert!(!logic.bool_solvable());
 }
@@ -158,13 +158,13 @@ where
     // bottom is in domain
     let bottom = domain.bottom();
     assert!(domain.contains(&mut logic, bottom.slice()));
-    assert!(domain.leq(&mut logic, bottom.slice(), top.slice()));
+    assert!(domain.is_edge(&mut logic, bottom.slice(), top.slice()));
 
     // top is above everything
     let mut logic = Solver::new("");
     let top = logic.bool_lift_vec(top.copy_iter());
     let elem = domain.add_variable(&mut logic);
-    let test = domain.leq(&mut logic, elem.slice(), top.slice());
+    let test = domain.is_edge(&mut logic, elem.slice(), top.slice());
     logic.bool_add_clause1(logic.bool_not(test));
     assert!(!logic.bool_solvable());
 
@@ -172,7 +172,7 @@ where
     let mut logic = Solver::new("");
     let bottom = logic.bool_lift_vec(bottom.copy_iter());
     let elem = domain.add_variable(&mut logic);
-    let test = domain.leq(&mut logic, bottom.slice(), elem.slice());
+    let test = domain.is_edge(&mut logic, bottom.slice(), elem.slice());
     logic.bool_add_clause1(logic.bool_not(test));
     assert!(!logic.bool_solvable());
 }
@@ -203,8 +203,8 @@ where
     let elem0 = domain.add_variable(&mut logic);
     let elem1 = domain.add_variable(&mut logic);
     let elem2 = domain.meet(&mut logic, elem0.slice(), elem1.slice());
-    let test0 = domain.leq(&mut logic, elem2.slice(), elem0.slice());
-    let test1 = domain.leq(&mut logic, elem2.slice(), elem1.slice());
+    let test0 = domain.is_edge(&mut logic, elem2.slice(), elem0.slice());
+    let test1 = domain.is_edge(&mut logic, elem2.slice(), elem1.slice());
     logic.bool_add_clause2(logic.bool_not(test0), logic.bool_not(test1));
     assert!(!logic.bool_solvable());
 
@@ -213,12 +213,12 @@ where
     let elem0 = domain.add_variable(&mut logic);
     let elem1 = domain.add_variable(&mut logic);
     let elem2 = domain.add_variable(&mut logic);
-    let test = domain.leq(&mut logic, elem2.slice(), elem0.slice());
+    let test = domain.is_edge(&mut logic, elem2.slice(), elem0.slice());
     logic.bool_add_clause1(test);
-    let test = domain.leq(&mut logic, elem2.slice(), elem1.slice());
+    let test = domain.is_edge(&mut logic, elem2.slice(), elem1.slice());
     logic.bool_add_clause1(test);
     let elem3 = domain.meet(&mut logic, elem0.slice(), elem1.slice());
-    let test = domain.leq(&mut logic, elem2.slice(), elem3.slice());
+    let test = domain.is_edge(&mut logic, elem2.slice(), elem3.slice());
     logic.bool_add_clause1(logic.bool_not(test));
     assert!(!logic.bool_solvable());
 }
@@ -249,8 +249,8 @@ where
     let elem0 = domain.add_variable(&mut logic);
     let elem1 = domain.add_variable(&mut logic);
     let elem2 = domain.join(&mut logic, elem0.slice(), elem1.slice());
-    let test0 = domain.leq(&mut logic, elem0.slice(), elem2.slice());
-    let test1 = domain.leq(&mut logic, elem1.slice(), elem2.slice());
+    let test0 = domain.is_edge(&mut logic, elem0.slice(), elem2.slice());
+    let test1 = domain.is_edge(&mut logic, elem1.slice(), elem2.slice());
     logic.bool_add_clause2(logic.bool_not(test0), logic.bool_not(test1));
     assert!(!logic.bool_solvable());
 
@@ -259,12 +259,12 @@ where
     let elem0 = domain.add_variable(&mut logic);
     let elem1 = domain.add_variable(&mut logic);
     let elem2 = domain.add_variable(&mut logic);
-    let test = domain.leq(&mut logic, elem0.slice(), elem2.slice());
+    let test = domain.is_edge(&mut logic, elem0.slice(), elem2.slice());
     logic.bool_add_clause1(test);
-    let test = domain.leq(&mut logic, elem1.slice(), elem2.slice());
+    let test = domain.is_edge(&mut logic, elem1.slice(), elem2.slice());
     logic.bool_add_clause1(test);
     let elem3 = domain.join(&mut logic, elem0.slice(), elem1.slice());
-    let test = domain.leq(&mut logic, elem3.slice(), elem2.slice());
+    let test = domain.is_edge(&mut logic, elem3.slice(), elem2.slice());
     logic.bool_add_clause1(logic.bool_not(test));
     assert!(!logic.bool_solvable());
 }

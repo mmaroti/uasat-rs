@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BitSlice, BitVec, BooleanLogic, BoundedOrder, Countable, Domain, Lattice, MeetSemilattice,
-    PartialOrder, Slice, Vector,
+    BitSlice, BitVec, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain, Lattice,
+    MeetSemilattice, PartialOrder, Slice, Vector,
 };
 
 /// A small set encoded as a one-hot vector of booleans representing
@@ -115,8 +115,8 @@ impl Countable for SmallSet {
     }
 }
 
-impl PartialOrder for SmallSet {
-    fn leq<LOGIC>(
+impl DirectedGraph for SmallSet {
+    fn is_edge<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
@@ -129,6 +129,8 @@ impl PartialOrder for SmallSet {
         logic.bool_cmp_leq(elem0.copy_iter().zip(elem1.copy_iter()))
     }
 }
+
+impl PartialOrder for SmallSet {}
 
 impl BoundedOrder for SmallSet {
     fn bottom(&self) -> BitVec {

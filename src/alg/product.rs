@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, Domain, Lattice,
-    MeetSemilattice, PartialOrder, Slice, Vector,
+    BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
+    Lattice, MeetSemilattice, PartialOrder, Slice, Vector,
 };
 
 /// The product of two domains.
@@ -150,12 +150,12 @@ where
     }
 }
 
-impl<DOM0, DOM1> PartialOrder for Product2<DOM0, DOM1>
+impl<DOM0, DOM1> DirectedGraph for Product2<DOM0, DOM1>
 where
     DOM0: PartialOrder,
     DOM1: PartialOrder,
 {
-    fn leq<LOGIC>(
+    fn is_edge<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
@@ -165,10 +165,17 @@ where
         LOGIC: BooleanLogic,
     {
         let bits0 = self.dom0.num_bits();
-        let test0 = self.dom0.leq(logic, elem0.head(bits0), elem1.head(bits0));
-        let test1 = self.dom1.leq(logic, elem0.tail(bits0), elem1.tail(bits0));
+        let test0 = self.dom0.is_edge(logic, elem0.head(bits0), elem1.head(bits0));
+        let test1 = self.dom1.is_edge(logic, elem0.tail(bits0), elem1.tail(bits0));
         logic.bool_and(test0, test1)
     }
+}
+
+impl<DOM0, DOM1> PartialOrder for Product2<DOM0, DOM1>
+where
+    DOM0: PartialOrder,
+    DOM1: PartialOrder,
+{
 }
 
 impl<DOM0, DOM1> BoundedOrder for Product2<DOM0, DOM1>

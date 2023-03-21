@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, Domain, Lattice,
-    MeetSemilattice, PartialOrder, RankedDomain, Slice, SmallSet, Vector,
+    BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
+    Lattice, MeetSemilattice, PartialOrder, RankedDomain, Slice, SmallSet, Vector,
 };
 
 use std::iter::{ExactSizeIterator, Extend, FusedIterator};
@@ -215,12 +215,12 @@ where
     }
 }
 
-impl<BASE, EXP> PartialOrder for Power<BASE, EXP>
+impl<BASE, EXP> DirectedGraph for Power<BASE, EXP>
 where
     BASE: PartialOrder,
     EXP: Countable,
 {
-    fn leq<LOGIC>(
+    fn is_edge<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
@@ -231,11 +231,18 @@ where
     {
         let mut valid = logic.bool_lift(true);
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
-            let v = self.base.leq(logic, part0, part1);
+            let v = self.base.is_edge(logic, part0, part1);
             valid = logic.bool_and(valid, v);
         }
         valid
     }
+}
+
+impl<BASE, EXP> PartialOrder for Power<BASE, EXP>
+where
+    BASE: PartialOrder,
+    EXP: Countable,
+{
 }
 
 impl<BASE, EXP> BoundedOrder for Power<BASE, EXP>
@@ -332,7 +339,7 @@ where
         self.exponent().exponent().size()
     }
 
-    fn new_arity(&self, arity: usize) -> Self {
+    fn other(&self, arity: usize) -> Self {
         Power::new(
             self.base.clone(),
             Power::new(self.exponent.base.clone(), SmallSet::new(arity)),

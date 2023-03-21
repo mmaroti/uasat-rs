@@ -135,7 +135,7 @@ pub trait RankedDomain: Domain {
 
     /// Returns the domain in this family of ranked domains
     /// with the given arity (rank).
-    fn new_arity(&self, arity: usize) -> Self;
+    fn other(&self, arity: usize) -> Self;
 
     /// Creates a new element of the given arity from an old element with
     /// permuted, identified and/or new dummy coordinates. The mapping is a
@@ -155,11 +155,10 @@ pub trait RankedDomain: Domain {
     }
 }
 
-/// A domain with a reflexive, transitive and antisymmetric relation.
-pub trait PartialOrder: Domain {
-    /// Returns true if the first element is less than or equal to the
-    /// second one in the partial order.
-    fn leq<LOGIC>(
+/// A directed graph on a domain.
+pub trait DirectedGraph: Domain {
+    /// Returns true if there is an edge from the first element to the second.
+    fn is_edge<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
@@ -167,10 +166,13 @@ pub trait PartialOrder: Domain {
     ) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic;
+}
 
+/// A domain with a reflexive, transitive and antisymmetric relation.
+pub trait PartialOrder: DirectedGraph {
     /// Returns true if the first element is strictly less than the
     /// second one.
-    fn less_than<LOGIC>(
+    fn is_less<LOGIC>(
         &self,
         alg: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
@@ -179,8 +181,8 @@ pub trait PartialOrder: Domain {
     where
         LOGIC: BooleanLogic,
     {
-        let test0 = self.leq(alg, elem0, elem1);
-        let test1 = self.leq(alg, elem1, elem0);
+        let test0 = self.is_edge(alg, elem0, elem1);
+        let test1 = self.is_edge(alg, elem1, elem0);
         let test1 = alg.bool_not(test1);
         alg.bool_and(test0, test1)
     }
@@ -196,8 +198,8 @@ pub trait PartialOrder: Domain {
     where
         LOGIC: BooleanLogic,
     {
-        let test0 = self.leq(alg, elem0, elem1);
-        let test1 = self.leq(alg, elem1, elem0);
+        let test0 = self.is_edge(alg, elem0, elem1);
+        let test1 = self.is_edge(alg, elem1, elem0);
         alg.bool_or(test0, test1)
     }
 }
@@ -246,7 +248,7 @@ pub trait BooleanLattice: Lattice + BoundedOrder {
 }
 
 /// A binary relation between two domains
-pub trait BinaryRelation<DOM0, DOM1>: Clone
+pub trait BipartiteGraph<DOM0, DOM1>: Clone
 where
     DOM0: Domain,
     DOM1: Domain,
@@ -258,7 +260,7 @@ where
     fn codomain(&self) -> &DOM1;
 
     /// Returns true if the two elements are related.
-    fn related<LOGIC>(
+    fn edge<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,

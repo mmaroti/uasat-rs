@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, Domain, Lattice,
-    MeetSemilattice, PartialOrder, Slice, Vector,
+    BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
+    Lattice, MeetSemilattice, PartialOrder, Slice, Vector,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -70,8 +70,8 @@ impl Countable for Boolean {
     }
 }
 
-impl PartialOrder for Boolean {
-    fn leq<LOGIC>(
+impl DirectedGraph for Boolean {
+    fn is_edge<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
@@ -84,6 +84,8 @@ impl PartialOrder for Boolean {
         logic.bool_imp(elem0.get(0), elem1.get(0))
     }
 }
+
+impl PartialOrder for Boolean {}
 
 impl BoundedOrder for Boolean {
     fn top(&self) -> BitVec {

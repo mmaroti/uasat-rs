@@ -17,7 +17,7 @@
 
 use super::{
     BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
-    Lattice, MeetSemilattice, PartialOrder, RankedDomain, Slice, SmallSet, Vector,
+    Lattice, MeetSemilattice, PartialOrder, Functions, Slice, SmallSet, Vector,
 };
 
 use std::iter::{ExactSizeIterator, Extend, FusedIterator};
@@ -353,7 +353,7 @@ where
     }
 }
 
-impl<DOM0, DOM1> RankedDomain for Power<DOM0, Power<DOM1, SmallSet>>
+impl<DOM0, DOM1> Functions for Power<DOM0, Power<DOM1, SmallSet>>
 where
     DOM0: Domain,
     DOM1: Countable,
@@ -362,7 +362,7 @@ where
         self.exponent().exponent().size()
     }
 
-    fn other(&self, arity: usize) -> Self {
+    fn change(&self, arity: usize) -> Self {
         Power::new(
             self.base.clone(),
             Power::new(self.exponent.base.clone(), SmallSet::new(arity)),

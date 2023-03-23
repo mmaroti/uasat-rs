@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BooleanLogic, BooleanSolver, BoundedOrder, Countable, Domain, Lattice, Logic, MeetSemilattice,
-    PartialOrder, Power, Product2, SmallSet, Solver, Vector, BOOLEAN,
+    BinaryRelations, BooleanLogic, BooleanSolver, BoundedOrder, Countable, Domain, Lattice, Logic,
+    MeetSemilattice, PartialOrder, Power, Product2, SmallSet, Solver, Vector, BOOLEAN,
 };
 
 pub fn validate_domain<DOM>(domain: DOM)
@@ -288,10 +288,18 @@ fn binary_relations() {
     assert_eq!(count, 3994);
 
     let mut logic = Solver::new("");
-    let domain = Power::new(BOOLEAN, Power::new(SmallSet::new(8), SmallSet::new(2)));
+    let domain = Power::new(BOOLEAN, Power::new(SmallSet::new(7), SmallSet::new(2)));
     let elem = domain.add_variable(&mut logic);
     let test = domain.is_equivalence(&mut logic, elem.slice());
     logic.bool_add_clause1(test);
     let count = logic.bool_find_num_models_method1(elem.copy_iter());
-    assert_eq!(count, 4140);
+    assert_eq!(count, 877);
+
+    let mut logic = Solver::new("");
+    let domain = Power::new(BOOLEAN, Power::new(SmallSet::new(5), SmallSet::new(2)));
+    let elem = domain.add_variable(&mut logic);
+    let test = domain.is_partial_order(&mut logic, elem.slice());
+    logic.bool_add_clause1(test);
+    let count = logic.bool_find_num_models_method1(elem.copy_iter());
+    assert_eq!(count, 4231);
 }

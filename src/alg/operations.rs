@@ -15,9 +15,9 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BooleanLogic, Countable, Domain, Power, RankedDomain, Slice, SmallSet, Vector};
+use super::{BooleanLogic, Countable, Domain, Power, Functions, Slice, SmallSet, Vector};
 
-pub trait Operations: RankedDomain {
+pub trait Operations: Functions {
     /// Returns the graph of this operation, which is a relation
     /// of arity one larger than this operation.
     fn graph<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector

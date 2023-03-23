@@ -45,7 +45,7 @@ impl Vector for BitVec {
     fn with_values(len: usize, elem: bool) -> Self {
         BitVec {
             len,
-            data: vec![if elem { 0xffffffff } else { 0x0 }; len],
+            data: vec![if elem { 0xffffffff } else { 0x0 }; (len + 31) / 32],
         }
     }
 

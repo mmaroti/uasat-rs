@@ -33,7 +33,7 @@ pub trait BooleanLogic {
     type Vector: for<'a> Vector<Item = Self::Elem, Slice<'a> = Self::Slice<'a>>;
 
     /// The type of slices for the element vectors.
-    type Slice<'a>: Slice<'a, Item = Self::Elem>;
+    type Slice<'a>: Slice<'a, Item = Self::Elem, Vec = Self::Vector>;
 
     /// Returns the logical true (top) element of the algebra.
     fn bool_unit(&self) -> Self::Elem {

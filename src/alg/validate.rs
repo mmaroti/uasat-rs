@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BooleanLogic, BooleanSolver, BoundedOrder, Countable, Lattice, Logic, MeetSemilattice,
+    BooleanLogic, BooleanSolver, BoundedOrder, Countable, Domain, Lattice, Logic, MeetSemilattice,
     PartialOrder, Power, Product2, SmallSet, Solver, Vector, BOOLEAN,
 };
 
@@ -275,4 +275,23 @@ fn lattice() {
     validate_lattice(SmallSet::new(7));
     validate_lattice(Power::new(BOOLEAN, SmallSet::new(3)));
     validate_lattice(Product2::new(BOOLEAN, Power::new(BOOLEAN, BOOLEAN)));
+}
+
+#[test]
+fn binary_relations() {
+    let mut logic = Solver::new("");
+    let domain = Power::new(BOOLEAN, Power::new(SmallSet::new(4), SmallSet::new(2)));
+    let elem = domain.add_variable(&mut logic);
+    let test = domain.is_transitive(&mut logic, elem.slice());
+    logic.bool_add_clause1(test);
+    let count = logic.bool_find_num_models_method1(elem.copy_iter());
+    assert_eq!(count, 3994);
+
+    let mut logic = Solver::new("");
+    let domain = Power::new(BOOLEAN, Power::new(SmallSet::new(8), SmallSet::new(2)));
+    let elem = domain.add_variable(&mut logic);
+    let test = domain.is_equivalence(&mut logic, elem.slice());
+    logic.bool_add_clause1(test);
+    let count = logic.bool_find_num_models_method1(elem.copy_iter());
+    assert_eq!(count, 4140);
 }

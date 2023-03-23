@@ -165,8 +165,12 @@ where
         LOGIC: BooleanLogic,
     {
         let bits0 = self.dom0.num_bits();
-        let test0 = self.dom0.is_edge(logic, elem0.head(bits0), elem1.head(bits0));
-        let test1 = self.dom1.is_edge(logic, elem0.tail(bits0), elem1.tail(bits0));
+        let test0 = self
+            .dom0
+            .is_edge(logic, elem0.head(bits0), elem1.head(bits0));
+        let test1 = self
+            .dom1
+            .is_edge(logic, elem0.tail(bits0), elem1.tail(bits0));
         logic.bool_and(test0, test1)
     }
 }
@@ -190,11 +194,31 @@ where
         elem
     }
 
+    fn is_top<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        let bits0 = self.dom0.num_bits();
+        let test0 = self.dom0.is_top(logic, elem.head(bits0));
+        let test1 = self.dom1.is_top(logic, elem.tail(bits0));
+        logic.bool_and(test0, test1)
+    }
+
     fn bottom(&self) -> BitVec {
         let mut elem: BitVec = Vector::with_capacity(self.num_bits());
         elem.append(&mut self.dom0.bottom());
         elem.append(&mut self.dom1.bottom());
         elem
+    }
+
+    fn is_bottom<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        let bits0 = self.dom0.num_bits();
+        let test0 = self.dom0.is_bottom(logic, elem.head(bits0));
+        let test1 = self.dom1.is_bottom(logic, elem.tail(bits0));
+        logic.bool_and(test0, test1)
     }
 }
 

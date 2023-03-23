@@ -35,7 +35,7 @@ impl Domain for Boolean {
         LOGIC: BooleanLogic,
     {
         assert!(elem.len() == 1);
-        logic.bool_lift(true)
+        logic.bool_unit()
     }
 
     fn equals<LOGIC>(
@@ -90,8 +90,24 @@ impl BoundedOrder for Boolean {
         Vector::from_elem(true)
     }
 
+    fn is_top<LOGIC>(&self, _logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        assert_eq!(elem.len(), 1);
+        elem.get(0)
+    }
+
     fn bottom(&self) -> BitVec {
         Vector::from_elem(false)
+    }
+
+    fn is_bottom<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        assert_eq!(elem.len(), 1);
+        logic.bool_not(elem.get(0))
     }
 }
 

@@ -190,15 +190,15 @@ where
     fn copy_iter(self) -> Self::Iter;
 
     /// Returns a slice containing the selected range of elements.
-    fn slice(self, start: usize, end: usize) -> Self;
+    fn range(self, start: usize, end: usize) -> Self;
 
     /// Returns a head slice of elements.
     fn head(self, end: usize) -> Self {
-        self.slice(0, end)
+        self.range(0, end)
     }
 
     /// Returns a tail slice of elements.
     fn tail(self, start: usize) -> Self {
-        self.slice(start, self.len())
+        self.range(start, self.len())
     }
 }

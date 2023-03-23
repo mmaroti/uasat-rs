@@ -27,18 +27,6 @@ pub struct SmallSet {
     size: usize,
 }
 
-pub const ZERO: SmallSet = SmallSet::new(0);
-pub const ONE: SmallSet = SmallSet::new(1);
-pub const TWO: SmallSet = SmallSet::new(2);
-pub const THREE: SmallSet = SmallSet::new(3);
-pub const FOUR: SmallSet = SmallSet::new(4);
-pub const FIVE: SmallSet = SmallSet::new(5);
-pub const SIX: SmallSet = SmallSet::new(6);
-pub const SEVEN: SmallSet = SmallSet::new(7);
-pub const EIGHT: SmallSet = SmallSet::new(8);
-pub const NINE: SmallSet = SmallSet::new(9);
-pub const TEN: SmallSet = SmallSet::new(10);
-
 impl SmallSet {
     /// Creates a new small set of the given size.
     pub const fn new(size: usize) -> Self {
@@ -70,7 +58,7 @@ impl Domain for SmallSet {
     {
         assert_eq!(elem0.len(), self.size);
         assert_eq!(elem1.len(), self.size);
-        let mut test = logic.bool_lift(false);
+        let mut test = logic.bool_zero();
         for (a, b) in elem0.copy_iter().zip(elem1.copy_iter()) {
             let v = logic.bool_and(a, b);
             test = logic.bool_or(test, v);
@@ -133,14 +121,30 @@ impl DirectedGraph for SmallSet {
 impl PartialOrder for SmallSet {}
 
 impl BoundedOrder for SmallSet {
+    fn top(&self) -> BitVec {
+        assert!(self.size != 0);
+        self.elem(self.size - 1)
+    }
+
+    fn is_top<LOGIC>(&self, _logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        assert!(self.size != 0);
+        elem.get(self.size - 1)
+    }
+
     fn bottom(&self) -> BitVec {
         assert!(self.size != 0);
         self.elem(0)
     }
 
-    fn top(&self) -> BitVec {
+    fn is_bottom<LOGIC>(&self, _logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
         assert!(self.size != 0);
-        self.elem(self.size - 1)
+        elem.get(0)
     }
 }
 
@@ -155,7 +159,7 @@ impl MeetSemilattice for SmallSet {
         LOGIC: BooleanLogic,
     {
         let mut result: LOGIC::Vector = Vector::with_capacity(self.num_bits());
-        let mut looking = logic.bool_lift(true);
+        let mut looking = logic.bool_unit();
         for (a, b) in elem0.copy_iter().zip(elem1.copy_iter()) {
             let found = logic.bool_or(a, b);
             result.push(logic.bool_and(looking, found));
@@ -176,7 +180,7 @@ impl Lattice for SmallSet {
         LOGIC: BooleanLogic,
     {
         let mut result: LOGIC::Vector = Vector::with_capacity(self.num_bits());
-        let mut looking = logic.bool_lift(false);
+        let mut looking = logic.bool_zero();
         for (a, b) in elem0.copy_iter().zip(elem1.copy_iter()) {
             result.push(logic.bool_maj(looking, a, b));
             looking = logic.bool_sum3(looking, a, b);

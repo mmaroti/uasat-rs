@@ -47,7 +47,7 @@ mod validate;
 
 pub fn test() {
     let alg = Product2::new(
-        Power::new(BOOLEAN, Power::new(SmallSet::new(4), TWO)),
+        Power::new(BOOLEAN, Power::new(SmallSet::new(4), SmallSet::new(2))),
         SmallSet::new(7),
     );
     let elem = alg.find_element().unwrap();

@@ -46,9 +46,8 @@ where
         let mut result: LOGIC::Vector = Vector::with_capacity(power);
         for part in self.part_iter(elem) {
             for index in 0..size {
-                let value = domain.elem(index);
-                let value = domain.lift(logic, Vector::slice(&value));
-                result.push(domain.equals(logic, part, Vector::slice(&value)));
+                let value = domain.lift(logic, domain.elem(index).slice());
+                result.push(domain.equals(logic, part, value.slice()));
             }
         }
 

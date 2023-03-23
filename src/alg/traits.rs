@@ -153,6 +153,15 @@ pub trait RankedDomain: Domain {
         assert!(self.arity() >= 1);
         self.polymer(elem, 1, &vec![0; self.arity()])
     }
+
+    /// Reverses all coordinates of the mapping.
+    fn converse<'a, ELEM>(&self, elem: ELEM) -> ELEM::Vec
+    where
+        ELEM: Slice<'a>,
+    {
+        let map: Vec<usize> = (0..self.arity()).rev().collect();
+        self.polymer(elem, map.len(), &map)
+    }
 }
 
 /// A directed graph on a domain.
@@ -174,33 +183,33 @@ pub trait PartialOrder: DirectedGraph {
     /// second one.
     fn is_less<LOGIC>(
         &self,
-        alg: &mut LOGIC,
+        logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
         elem1: LOGIC::Slice<'_>,
     ) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
     {
-        let test0 = self.is_edge(alg, elem0, elem1);
-        let test1 = self.is_edge(alg, elem1, elem0);
-        let test1 = alg.bool_not(test1);
-        alg.bool_and(test0, test1)
+        let test0 = self.is_edge(logic, elem0, elem1);
+        let test1 = self.is_edge(logic, elem1, elem0);
+        let test1 = logic.bool_not(test1);
+        logic.bool_and(test0, test1)
     }
 
     /// Returns true if one of the elements is less than or equal to
     /// the other.
     fn comparable<LOGIC>(
         &self,
-        alg: &mut LOGIC,
+        logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
         elem1: LOGIC::Slice<'_>,
     ) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
     {
-        let test0 = self.is_edge(alg, elem0, elem1);
-        let test1 = self.is_edge(alg, elem1, elem0);
-        alg.bool_or(test0, test1)
+        let test0 = self.is_edge(logic, elem0, elem1);
+        let test1 = self.is_edge(logic, elem1, elem0);
+        logic.bool_or(test0, test1)
     }
 }
 
@@ -209,8 +218,18 @@ pub trait BoundedOrder: PartialOrder {
     /// Returns the largest element of the partial order.
     fn top(&self) -> BitVec;
 
+    /// Returns true if the given element is the top one.
+    fn is_top<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic;
+
     /// Returns the smallest element of the partial order.
     fn bottom(&self) -> BitVec;
+
+    /// Returns true if the given element is the bottom one.
+    fn is_bottom<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic;
 }
 
 /// A semilattice with a meet operation.
@@ -245,6 +264,20 @@ pub trait BooleanLattice: Lattice + BoundedOrder {
     fn complement<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic;
+
+    /// Returns the logical implication between the two elements.
+    fn implies<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        let elem0 = self.complement(logic, elem0);
+        self.join(logic, elem0.slice(), elem1)
+    }
 }
 
 /// A binary relation between two domains

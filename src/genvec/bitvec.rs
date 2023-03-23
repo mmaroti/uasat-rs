@@ -279,7 +279,7 @@ impl<'a> Slice<'a> for BitSlice<'a> {
         self.vec.get_unchecked(index)
     }
 
-    fn slice(self, start: usize, end: usize) -> Self {
+    fn range(self, start: usize, end: usize) -> Self {
         let start = self.start + start;
         let end = self.start + end;
         assert!(start <= end && end <= self.end);

@@ -129,7 +129,7 @@ where
         *<[ELEM]>::get_unchecked(self, index)
     }
 
-    fn slice(self, start: usize, end: usize) -> Self {
+    fn range(self, start: usize, end: usize) -> Self {
         &self[start..end]
     }
 

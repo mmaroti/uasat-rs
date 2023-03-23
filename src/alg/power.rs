@@ -96,7 +96,7 @@ where
     where
         ELEM: Slice<'a>,
     {
-        debug_assert!(elem.len() == self.num_bits());
+        assert_eq!(elem.len(), self.num_bits());
         PartIter {
             elem,
             step: self.base.num_bits(),
@@ -109,10 +109,10 @@ where
     where
         ELEM: Slice<'a>,
     {
-        debug_assert!(elem.len() == self.num_bits());
+        assert_eq!(elem.len(), self.num_bits());
         let step = self.base().num_bits();
         let start = index * step;
-        elem.slice(start, start + step)
+        elem.range(start, start + step)
     }
 }
 
@@ -129,13 +129,12 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        assert_eq!(elem.len(), self.num_bits());
-        let mut valid = logic.bool_lift(true);
+        let mut result = logic.bool_unit();
         for part in self.part_iter(elem) {
             let v = self.base.contains(logic, part);
-            valid = logic.bool_and(valid, v);
+            result = logic.bool_and(result, v);
         }
-        valid
+        result
     }
 
     fn equals<LOGIC>(
@@ -147,12 +146,12 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        let mut valid = logic.bool_lift(true);
+        let mut result = logic.bool_unit();
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
             let v = self.base.equals(logic, part0, part1);
-            valid = logic.bool_and(valid, v);
+            result = logic.bool_and(result, v);
         }
-        valid
+        result
     }
 
     fn display_elem(
@@ -229,12 +228,12 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        let mut valid = logic.bool_lift(true);
+        let mut result = logic.bool_unit();
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
             let v = self.base.is_edge(logic, part0, part1);
-            valid = logic.bool_and(valid, v);
+            result = logic.bool_and(result, v);
         }
-        valid
+        result
     }
 }
 
@@ -259,6 +258,18 @@ where
         elem
     }
 
+    fn is_top<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        let mut result = logic.bool_unit();
+        for part in self.part_iter(elem) {
+            let v = self.base.is_top(logic, part);
+            result = logic.bool_and(result, v);
+        }
+        result
+    }
+
     fn bottom(&self) -> BitVec {
         let part = self.base.bottom();
         let mut elem: BitVec = Vector::with_capacity(self.num_bits());
@@ -266,6 +277,18 @@ where
             elem.extend(part.copy_iter());
         }
         elem
+    }
+
+    fn is_bottom<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        let mut result = logic.bool_unit();
+        for part in self.part_iter(elem) {
+            let v = self.base.is_bottom(logic, part);
+            result = logic.bool_and(result, v);
+        }
+        result
     }
 }
 
@@ -389,6 +412,26 @@ where
 
         debug_assert_eq!(result.len(), self.base.num_bits() * power);
         result
+    }
+}
+
+impl<DOM0, DOM1> Power<DOM0, Power<DOM1, SmallSet>>
+where
+    DOM0: Domain,
+    DOM1: Countable,
+{
+    /// Returns the part of an element at the given index.
+    pub fn fold_iter<'a, ELEM>(&self, elem: ELEM) -> PartIter<'a, ELEM>
+    where
+        ELEM: Slice<'a>,
+    {
+        assert!(self.arity() >= 1);
+        assert_eq!(elem.len(), self.num_bits());
+        PartIter {
+            elem,
+            step: self.base.num_bits() * self.exponent.base.size(),
+            phantom: Default::default(),
+        }
     }
 }
 

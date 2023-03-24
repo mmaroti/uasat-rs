@@ -42,6 +42,9 @@ pub use small_set::*;
 mod traits;
 pub use traits::*;
 
+mod wrap_elem;
+pub use wrap_elem::*;
+
 #[cfg(test)]
 mod validate;
 

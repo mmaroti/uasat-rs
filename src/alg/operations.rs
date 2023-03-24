@@ -15,24 +15,25 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BooleanLogic, Countable, Domain, Power, Functions, Slice, SmallSet, Vector};
+use super::{
+    BooleanLogic, Countable, Domain, Functions, Power, RankedDomain, Slice, SmallSet, Vector,
+};
 
-pub trait Operations: Functions {
+pub trait Operations<LOGIC>: Functions<LOGIC>
+where
+    LOGIC: BooleanLogic,
+{
     /// Returns the graph of this operation, which is a relation
     /// of arity one larger than this operation.
-    fn graph<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
-    where
-        LOGIC: BooleanLogic;
+    fn graph(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector;
 }
 
-impl<DOM> Operations for Power<DOM, Power<DOM, SmallSet>>
+impl<DOM, LOGIC> Operations<LOGIC> for Power<DOM, Power<DOM, SmallSet>>
 where
     DOM: Countable,
+    LOGIC: BooleanLogic,
 {
-    fn graph<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
-    where
-        LOGIC: BooleanLogic,
-    {
+    fn graph(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector {
         assert_eq!(elem.len(), self.num_bits());
         assert_eq!(self.base(), self.exponent().base());
         let domain = self.base();

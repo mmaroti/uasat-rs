@@ -103,7 +103,7 @@ fn countable() {
 
 pub fn validate_partial_order<DOM>(domain: DOM)
 where
-    DOM: PartialOrder,
+    DOM: PartialOrder<Solver>,
 {
     // reflexive
     let mut logic = Solver::new("");
@@ -148,15 +148,15 @@ fn partial_order() {
 
 pub fn validate_bounded_order<DOM>(domain: DOM)
 where
-    DOM: BoundedOrder,
+    DOM: BoundedOrder<Logic> + BoundedOrder<Solver>,
 {
     // top is in domain
     let mut logic = Logic();
-    let top = domain.top();
+    let top = domain.top(&logic);
     assert!(domain.contains(&mut logic, top.slice()));
 
     // bottom is in domain
-    let bottom = domain.bottom();
+    let bottom = domain.bottom(&logic);
     assert!(domain.contains(&mut logic, bottom.slice()));
     assert!(domain.is_edge(&mut logic, bottom.slice(), top.slice()));
 
@@ -187,7 +187,7 @@ fn bounded_order() {
 
 pub fn validate_meet_semilattice<DOM>(domain: DOM)
 where
-    DOM: MeetSemilattice,
+    DOM: MeetSemilattice<Solver>,
 {
     // meet is in domain
     let mut logic = Solver::new("");
@@ -233,7 +233,7 @@ fn meet_semilattice() {
 
 pub fn validate_lattice<DOM>(domain: DOM)
 where
-    DOM: Lattice,
+    DOM: Lattice<Solver>,
 {
     // join is in domain
     let mut logic = Solver::new("");

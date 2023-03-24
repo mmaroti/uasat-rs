@@ -150,20 +150,18 @@ where
     }
 }
 
-impl<DOM0, DOM1> DirectedGraph for Product2<DOM0, DOM1>
+impl<DOM0, DOM1, LOGIC> DirectedGraph<LOGIC> for Product2<DOM0, DOM1>
 where
-    DOM0: PartialOrder,
-    DOM1: PartialOrder,
+    DOM0: DirectedGraph<LOGIC>,
+    DOM1: DirectedGraph<LOGIC>,
+    LOGIC: BooleanLogic,
 {
-    fn is_edge<LOGIC>(
+    fn is_edge(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
         elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Elem
-    where
-        LOGIC: BooleanLogic,
-    {
+    ) -> LOGIC::Elem {
         let bits0 = self.dom0.num_bits();
         let test0 = self
             .dom0
@@ -175,46 +173,42 @@ where
     }
 }
 
-impl<DOM0, DOM1> PartialOrder for Product2<DOM0, DOM1>
+impl<DOM0, DOM1, LOGIC: BooleanLogic> PartialOrder<LOGIC> for Product2<DOM0, DOM1>
 where
-    DOM0: PartialOrder,
-    DOM1: PartialOrder,
+    DOM0: PartialOrder<LOGIC>,
+    DOM1: PartialOrder<LOGIC>,
+    LOGIC: BooleanLogic,
 {
 }
 
-impl<DOM0, DOM1> BoundedOrder for Product2<DOM0, DOM1>
+impl<DOM0, DOM1, LOGIC> BoundedOrder<LOGIC> for Product2<DOM0, DOM1>
 where
-    DOM0: BoundedOrder,
-    DOM1: BoundedOrder,
+    DOM0: BoundedOrder<LOGIC>,
+    DOM1: BoundedOrder<LOGIC>,
+    LOGIC: BooleanLogic,
 {
-    fn top(&self) -> BitVec {
-        let mut elem: BitVec = Vector::with_capacity(self.num_bits());
-        elem.append(&mut self.dom0.top());
-        elem.append(&mut self.dom1.top());
+    fn top(&self, logic: &LOGIC) -> LOGIC::Vector {
+        let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
+        elem.append(&mut self.dom0.top(logic));
+        elem.append(&mut self.dom1.top(logic));
         elem
     }
 
-    fn is_top<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
-    where
-        LOGIC: BooleanLogic,
-    {
+    fn is_top(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem {
         let bits0 = self.dom0.num_bits();
         let test0 = self.dom0.is_top(logic, elem.head(bits0));
         let test1 = self.dom1.is_top(logic, elem.tail(bits0));
         logic.bool_and(test0, test1)
     }
 
-    fn bottom(&self) -> BitVec {
-        let mut elem: BitVec = Vector::with_capacity(self.num_bits());
-        elem.append(&mut self.dom0.bottom());
-        elem.append(&mut self.dom1.bottom());
+    fn bottom(&self, logic: &LOGIC) -> LOGIC::Vector {
+        let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
+        elem.append(&mut self.dom0.bottom(logic));
+        elem.append(&mut self.dom1.bottom(logic));
         elem
     }
 
-    fn is_bottom<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
-    where
-        LOGIC: BooleanLogic,
-    {
+    fn is_bottom(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem {
         let bits0 = self.dom0.num_bits();
         let test0 = self.dom0.is_bottom(logic, elem.head(bits0));
         let test1 = self.dom1.is_bottom(logic, elem.tail(bits0));
@@ -222,20 +216,18 @@ where
     }
 }
 
-impl<DOM0, DOM1> MeetSemilattice for Product2<DOM0, DOM1>
+impl<DOM0, DOM1, LOGIC> MeetSemilattice<LOGIC> for Product2<DOM0, DOM1>
 where
-    DOM0: MeetSemilattice,
-    DOM1: MeetSemilattice,
+    DOM0: MeetSemilattice<LOGIC>,
+    DOM1: MeetSemilattice<LOGIC>,
+    LOGIC: BooleanLogic,
 {
-    fn meet<LOGIC>(
+    fn meet(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
         elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Vector
-    where
-        LOGIC: BooleanLogic,
-    {
+    ) -> LOGIC::Vector {
         let bits0 = self.dom0.num_bits();
         let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         elem.extend(self.dom0.meet(logic, elem0.head(bits0), elem1.head(bits0)));
@@ -244,20 +236,18 @@ where
     }
 }
 
-impl<DOM0, DOM1> Lattice for Product2<DOM0, DOM1>
+impl<DOM0, DOM1, LOGIC> Lattice<LOGIC> for Product2<DOM0, DOM1>
 where
-    DOM0: Lattice,
-    DOM1: Lattice,
+    DOM0: Lattice<LOGIC>,
+    DOM1: Lattice<LOGIC>,
+    LOGIC: BooleanLogic,
 {
-    fn join<LOGIC>(
+    fn join(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
         elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Vector
-    where
-        LOGIC: BooleanLogic,
-    {
+    ) -> LOGIC::Vector {
         let bits0 = self.dom0.num_bits();
         let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         elem.extend(self.dom0.join(logic, elem0.head(bits0), elem1.head(bits0)));
@@ -266,15 +256,13 @@ where
     }
 }
 
-impl<DOM0, DOM1> BooleanLattice for Product2<DOM0, DOM1>
+impl<DOM0, DOM1, LOGIC> BooleanLattice<LOGIC> for Product2<DOM0, DOM1>
 where
-    DOM0: BooleanLattice,
-    DOM1: BooleanLattice,
+    DOM0: BooleanLattice<LOGIC>,
+    DOM1: BooleanLattice<LOGIC>,
+    LOGIC: BooleanLogic,
 {
-    fn complement<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
-    where
-        LOGIC: BooleanLogic,
-    {
+    fn complement(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector {
         let bits0 = self.dom0.num_bits();
         let mut result: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         result.extend(self.dom0.complement(logic, elem.head(bits0)));

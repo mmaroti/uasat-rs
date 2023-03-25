@@ -17,24 +17,20 @@
 
 use super::{
     BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
-    Lattice, MeetSemilattice, PartialOrder, Slice, Vector,
+    Base, Lattice, Logic, MeetSemilattice, PartialOrder, Slice, Vector,
 };
 
 /// The product of two domains.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Product2<DOM0, DOM1>
-where
-    DOM0: Domain,
-    DOM1: Domain,
-{
+pub struct Product2<DOM0, DOM1> {
     dom0: DOM0,
     dom1: DOM1,
 }
 
 impl<DOM0, DOM1> Product2<DOM0, DOM1>
 where
-    DOM0: Domain,
-    DOM1: Domain,
+    DOM0: Domain<Logic>,
+    DOM1: Domain<Logic>,
 {
     /// Creates the product of two domains.
     pub fn new(dom0: DOM0, dom1: DOM1) -> Self {
@@ -70,42 +66,13 @@ where
     }
 }
 
-impl<DOM0, DOM1> Domain for Product2<DOM0, DOM1>
+impl<DOM0, DOM1> Base for Product2<DOM0, DOM1>
 where
-    DOM0: Domain,
-    DOM1: Domain,
+    DOM0: Base,
+    DOM1: Base,
 {
     fn num_bits(&self) -> usize {
         self.dom0.num_bits() + self.dom1.num_bits()
-    }
-
-    fn contains<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
-    where
-        LOGIC: BooleanLogic,
-    {
-        let bits0 = self.dom0.num_bits();
-        let valid0 = self.dom0.contains(logic, elem.head(bits0));
-        let valid1 = self.dom1.contains(logic, elem.tail(bits0));
-        logic.bool_and(valid0, valid1)
-    }
-
-    fn equals<LOGIC>(
-        &self,
-        logic: &mut LOGIC,
-        elem0: LOGIC::Slice<'_>,
-        elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Elem
-    where
-        LOGIC: BooleanLogic,
-    {
-        let bits0 = self.dom0.num_bits();
-        let test0 = self
-            .dom0
-            .equals(logic, elem0.head(bits0), elem1.head(bits0));
-        let test1 = self
-            .dom1
-            .equals(logic, elem0.tail(bits0), elem1.tail(bits0));
-        logic.bool_and(test0, test1)
     }
 
     fn display_elem(
@@ -119,6 +86,36 @@ where
         write!(f, ",")?;
         self.dom1.display_elem(f, elem.tail(bits0))?;
         write!(f, ")")
+    }
+}
+
+impl<DOM0, DOM1, LOGIC> Domain<LOGIC> for Product2<DOM0, DOM1>
+where
+    DOM0: Domain<LOGIC>,
+    DOM1: Domain<LOGIC>,
+    LOGIC: BooleanLogic,
+{
+    fn contains(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem {
+        let bits0 = self.dom0.num_bits();
+        let valid0 = self.dom0.contains(logic, elem.head(bits0));
+        let valid1 = self.dom1.contains(logic, elem.tail(bits0));
+        logic.bool_and(valid0, valid1)
+    }
+
+    fn equals(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Elem {
+        let bits0 = self.dom0.num_bits();
+        let test0 = self
+            .dom0
+            .equals(logic, elem0.head(bits0), elem1.head(bits0));
+        let test1 = self
+            .dom1
+            .equals(logic, elem0.tail(bits0), elem1.tail(bits0));
+        logic.bool_and(test0, test1)
     }
 }
 

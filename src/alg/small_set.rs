@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BitSlice, BitVec, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain, Lattice,
-    MeetSemilattice, PartialOrder, Slice, Vector,
+    BitSlice, BitVec, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain, Base,
+    Lattice, MeetSemilattice, PartialOrder, Slice, Vector,
 };
 
 /// A small set encoded as a one-hot vector of booleans representing
@@ -34,36 +34,9 @@ impl SmallSet {
     }
 }
 
-impl Domain for SmallSet {
+impl Base for SmallSet {
     fn num_bits(&self) -> usize {
         self.size
-    }
-
-    fn contains<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
-    where
-        LOGIC: BooleanLogic,
-    {
-        assert_eq!(elem.len(), self.size);
-        logic.bool_fold_one(elem.copy_iter())
-    }
-
-    fn equals<LOGIC>(
-        &self,
-        logic: &mut LOGIC,
-        elem0: LOGIC::Slice<'_>,
-        elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Elem
-    where
-        LOGIC: BooleanLogic,
-    {
-        assert_eq!(elem0.len(), self.size);
-        assert_eq!(elem1.len(), self.size);
-        let mut test = logic.bool_zero();
-        for (a, b) in elem0.copy_iter().zip(elem1.copy_iter()) {
-            let v = logic.bool_and(a, b);
-            test = logic.bool_or(test, v);
-        }
-        test
     }
 
     fn display_elem(
@@ -72,6 +45,32 @@ impl Domain for SmallSet {
         elem: BitSlice<'_>,
     ) -> std::fmt::Result {
         write!(f, "{}", self.index(elem))
+    }
+}
+
+impl<LOGIC> Domain<LOGIC> for SmallSet
+where
+    LOGIC: BooleanLogic,
+{
+    fn contains(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem {
+        assert_eq!(elem.len(), self.size);
+        logic.bool_fold_one(elem.copy_iter())
+    }
+
+    fn equals(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Elem {
+        assert_eq!(elem0.len(), self.size);
+        assert_eq!(elem1.len(), self.size);
+        let mut test = logic.bool_zero();
+        for (a, b) in elem0.copy_iter().zip(elem1.copy_iter()) {
+            let v = logic.bool_and(a, b);
+            test = logic.bool_or(test, v);
+        }
+        test
     }
 }
 

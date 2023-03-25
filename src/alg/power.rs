@@ -17,7 +17,8 @@
 
 use super::{
     BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
-    Functions, Lattice, MeetSemilattice, PartialOrder, RankedDomain, Slice, SmallSet, Vector,
+    Base, Functions, Lattice, Logic, MeetSemilattice, PartialOrder, RankedDomain, Slice,
+    SmallSet, Vector,
 };
 
 use std::iter::{ExactSizeIterator, Extend, FusedIterator};
@@ -69,7 +70,7 @@ pub struct Power<BASE, EXP> {
 
 impl<BASE, EXP> Power<BASE, EXP>
 where
-    BASE: Domain,
+    BASE: Base,
     EXP: Countable,
 {
     /// Creates the product domain from the given list of domains.
@@ -112,42 +113,13 @@ where
     }
 }
 
-impl<BASE, EXP> Domain for Power<BASE, EXP>
+impl<BASE, EXP> Base for Power<BASE, EXP>
 where
-    BASE: Domain,
+    BASE: Base,
     EXP: Countable,
 {
     fn num_bits(&self) -> usize {
         self.base.num_bits() * self.exponent.size()
-    }
-
-    fn contains<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
-    where
-        LOGIC: BooleanLogic,
-    {
-        let mut result = logic.bool_unit();
-        for part in self.part_iter(elem) {
-            let v = self.base.contains(logic, part);
-            result = logic.bool_and(result, v);
-        }
-        result
-    }
-
-    fn equals<LOGIC>(
-        &self,
-        logic: &mut LOGIC,
-        elem0: LOGIC::Slice<'_>,
-        elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Elem
-    where
-        LOGIC: BooleanLogic,
-    {
-        let mut result = logic.bool_unit();
-        for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
-            let v = self.base.equals(logic, part0, part1);
-            result = logic.bool_and(result, v);
-        }
-        result
     }
 
     fn display_elem(
@@ -166,6 +138,36 @@ where
             self.base.display_elem(f, part)?;
         }
         write!(f, "]")
+    }
+}
+
+impl<BASE, EXP, LOGIC> Domain<LOGIC> for Power<BASE, EXP>
+where
+    BASE: Domain<LOGIC>,
+    EXP: Countable,
+    LOGIC: BooleanLogic,
+{
+    fn contains(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem {
+        let mut result = logic.bool_unit();
+        for part in self.part_iter(elem) {
+            let v = self.base.contains(logic, part);
+            result = logic.bool_and(result, v);
+        }
+        result
+    }
+
+    fn equals(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Elem {
+        let mut result = logic.bool_unit();
+        for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
+            let v = self.base.equals(logic, part0, part1);
+            result = logic.bool_and(result, v);
+        }
+        result
     }
 }
 
@@ -339,7 +341,7 @@ where
 
 impl<DOM0, DOM1> RankedDomain for Power<DOM0, Power<DOM1, SmallSet>>
 where
-    DOM0: Domain,
+    DOM0: Domain<Logic>,
     DOM1: Countable,
 {
     fn arity(&self) -> usize {
@@ -356,7 +358,7 @@ where
 
 impl<DOM0, DOM1, LOGIC> Functions<LOGIC> for Power<DOM0, Power<DOM1, SmallSet>>
 where
-    DOM0: Domain,
+    DOM0: Domain<LOGIC> + Domain<Logic>,
     DOM1: Countable,
     LOGIC: BooleanLogic,
 {
@@ -405,7 +407,7 @@ where
 
 impl<DOM0, DOM1> Power<DOM0, Power<DOM1, SmallSet>>
 where
-    DOM0: Domain,
+    DOM0: Domain<Logic>,
     DOM1: Countable,
 {
     /// Returns the part of an element at the given index.

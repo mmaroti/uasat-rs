@@ -53,6 +53,6 @@ pub fn test() {
         Power::new(BOOLEAN, Power::new(SmallSet::new(4), SmallSet::new(2))),
         SmallSet::new(7),
     );
-    let elem = alg.find_element().unwrap();
+    let elem = find_element(&alg).unwrap();
     println!("{}", alg.format(elem.slice()));
 }

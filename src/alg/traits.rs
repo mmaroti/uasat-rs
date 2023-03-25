@@ -17,62 +17,16 @@
 
 use std::fmt::Debug;
 
-use super::{BitSlice, BitVec, BooleanLogic, BooleanSolver, Slice, Solver, Vector};
+use super::{BitSlice, BitVec, BooleanLogic, BooleanSolver, Logic, Slice, Solver, Vector};
 
-/// An arbitrary set of elements that can be representable by bit vectors.
-pub trait Domain: Clone + PartialEq + Debug {
-    /// Returns the number of bits used to represent the elements of this
+pub trait Base: Clone + PartialEq + Debug {
+    /// Returns the number of bits used to represent the elements of the
     /// domain.
     fn num_bits(&self) -> usize;
 
-    fn lift<LOGIC>(&self, logic: &LOGIC, elem: BitSlice) -> LOGIC::Vector
-    where
-        LOGIC: BooleanLogic,
-    {
-        let mut result: LOGIC::Vector = Vector::with_capacity(elem.len());
-        for a in elem.copy_iter() {
-            result.push(logic.bool_lift(a));
-        }
-        result
-    }
-
-    /// Verifies that the given bit vector is encoding a valid element of
-    /// this domain.
-    fn contains<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
-    where
-        LOGIC: BooleanLogic;
-
-    /// Checks if the two bit vectors are exactly the same. This offers a
-    /// faster implementation than bitwise comparison, since it has to work
-    /// only for valid bit patterns that encode elements.
-    fn equals<LOGIC>(
-        &self,
-        logic: &mut LOGIC,
-        elem0: LOGIC::Slice<'_>,
-        elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Elem
-    where
-        LOGIC: BooleanLogic;
-
-    /// Adds a new variable to the given solver, which is just a list of
-    /// fresh literals. It also enforces that the returned variable
-    /// is contained in the domain, but adding the appropriate constraint.
-    fn add_variable<LOGIC>(&self, logic: &mut LOGIC) -> LOGIC::Vector
-    where
-        LOGIC: BooleanSolver,
-    {
-        let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
-        for _ in 0..self.num_bits() {
-            elem.push(logic.bool_add_variable());
-        }
-        let test = self.contains(logic, elem.slice());
-        logic.bool_add_clause1(test);
-        elem
-    }
-
     /// Returns an object for formatting the given element.
     fn format<'a>(&'a self, elem: BitSlice<'a>) -> Format<'a, Self> {
-        Format { domain: self, elem }
+        Format { base: self, elem }
     }
 
     /// Formats the given element using the provided formatter.
@@ -87,37 +41,83 @@ pub trait Domain: Clone + PartialEq + Debug {
         }
         Ok(())
     }
+}
 
-    /// Finds an element of this domain if it has one.
-    fn find_element(&self) -> Option<BitVec> {
-        let mut solver = Solver::new("");
-        let elem = self.add_variable(&mut solver);
-        let test = self.contains(&mut solver, elem.slice());
-        solver.bool_add_clause(&[test]);
-        solver.bool_find_one_model(&[], elem.copy_iter())
+/// An arbitrary set of elements that can be representable by bit vectors.
+pub trait Domain<LOGIC>: Base
+where
+    LOGIC: BooleanLogic,
+{
+    fn lift(&self, logic: &LOGIC, elem: BitSlice) -> LOGIC::Vector {
+        let mut result: LOGIC::Vector = Vector::with_capacity(elem.len());
+        for a in elem.copy_iter() {
+            result.push(logic.bool_lift(a));
+        }
+        result
+    }
+
+    /// Verifies that the given bit vector is encoding a valid element of
+    /// this domain.
+    fn contains(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem;
+
+    /// Checks if the two bit vectors are exactly the same. This offers a
+    /// faster implementation than bitwise comparison, since it has to work
+    /// only for valid bit patterns that encode elements.
+    fn equals(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Elem;
+
+    /// Adds a new variable to the given solver, which is just a list of
+    /// fresh literals. It also enforces that the returned variable
+    /// is contained in the domain, but adding the appropriate constraint.
+    fn add_variable(&self, logic: &mut LOGIC) -> LOGIC::Vector
+    where
+        LOGIC: BooleanSolver,
+    {
+        let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
+        for _ in 0..self.num_bits() {
+            elem.push(logic.bool_add_variable());
+        }
+        let test = self.contains(logic, elem.slice());
+        logic.bool_add_clause1(test);
+        elem
     }
 }
 
-/// A helper structure for displaying domain elements.
-pub struct Format<'a, DOM>
+pub fn find_element<DOM>(domain: &DOM) -> Option<BitVec>
 where
-    DOM: Domain,
+    DOM: Domain<Solver>,
 {
-    domain: &'a DOM,
+    let mut solver = Solver::new("");
+    let elem = domain.add_variable(&mut solver);
+    let test = domain.contains(&mut solver, elem.slice());
+    solver.bool_add_clause(&[test]);
+    solver.bool_find_one_model(&[], elem.copy_iter())
+}
+
+/// A helper structure for displaying domain elements.
+pub struct Format<'a, BASE>
+where
+    BASE: Base,
+{
+    base: &'a BASE,
     elem: BitSlice<'a>,
 }
 
-impl<'a, DOM> std::fmt::Display for Format<'a, DOM>
+impl<'a, BASE> std::fmt::Display for Format<'a, BASE>
 where
-    DOM: Domain,
+    BASE: Base,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.domain.display_elem(f, self.elem)
+        self.base.display_elem(f, self.elem)
     }
 }
 
 /// A domain where the elements can be counted and indexed.
-pub trait Countable: Domain {
+pub trait Countable: Domain<Logic> {
     /// Returns the number of elements of the domain.
     fn size(&self) -> usize;
 
@@ -129,7 +129,7 @@ pub trait Countable: Domain {
 }
 
 /// A directed graph on a domain.
-pub trait DirectedGraph<LOGIC>: Domain
+pub trait DirectedGraph<LOGIC>: Domain<LOGIC>
 where
     LOGIC: BooleanLogic,
 {
@@ -244,8 +244,8 @@ where
 /// A binary relation between two domains
 pub trait BipartiteGraph<DOM0, DOM1, LOGIC>: Clone
 where
-    DOM0: Domain,
-    DOM1: Domain,
+    DOM0: Domain<LOGIC>,
+    DOM1: Domain<LOGIC>,
     LOGIC: BooleanLogic,
 {
     /// Returns the domain of the relation.
@@ -264,7 +264,7 @@ where
 }
 
 /// A ranked domain which is part of a domain family.
-pub trait RankedDomain: Domain {
+pub trait RankedDomain {
     /// Returns the arity (rank) of all functions in the domain.
     fn arity(&self) -> usize;
 
@@ -273,7 +273,7 @@ pub trait RankedDomain: Domain {
 }
 
 /// A domain of function from a fixed domain and codomain.
-pub trait Functions<LOGIC>: RankedDomain
+pub trait Functions<LOGIC>: RankedDomain + Domain<LOGIC>
 where
     LOGIC: BooleanLogic,
 {

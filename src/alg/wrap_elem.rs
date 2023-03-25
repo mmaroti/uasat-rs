@@ -21,7 +21,7 @@ use super::{BipartiteGraph, Boolean, BooleanLogic, Countable, Domain, Power, Pro
 
 pub struct WrapElem<DOM, LOGIC>
 where
-    DOM: Domain,
+    DOM: Domain<LOGIC>,
     LOGIC: BooleanLogic,
 {
     domain: DOM,
@@ -30,7 +30,7 @@ where
 
 impl<DOM, LOGIC> Clone for WrapElem<DOM, LOGIC>
 where
-    DOM: Domain,
+    DOM: Domain<LOGIC>,
     LOGIC: BooleanLogic,
 {
     fn clone(&self) -> Self {
@@ -44,8 +44,8 @@ where
 impl<DOM0, DOM1, LOGIC> BipartiteGraph<DOM0, DOM1, LOGIC>
     for WrapElem<Power<Boolean, Product2<DOM0, DOM1>>, LOGIC>
 where
-    DOM0: Countable + Countable,
-    DOM1: Countable + Countable,
+    DOM0: Domain<LOGIC> + Countable,
+    DOM1: Domain<LOGIC> + Countable,
     LOGIC: BooleanLogic,
 {
     fn domain(&self) -> &DOM0 {

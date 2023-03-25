@@ -22,7 +22,7 @@ use super::{
 
 pub fn validate_domain<DOM>(domain: DOM)
 where
-    DOM: Countable,
+    DOM: Domain<Solver>,
 {
     // containment
     let mut logic = Solver::new("");
@@ -58,9 +58,9 @@ fn domain() {
     validate_domain(Product2::new(BOOLEAN, SmallSet::new(3)));
 }
 
-pub fn validate_countable<DOM>(domain: DOM, size: usize)
+fn validate_countable<DOM>(domain: DOM, size: usize)
 where
-    DOM: Countable,
+    DOM: Domain<Solver> + Countable,
 {
     assert_eq!(domain.size(), size);
 

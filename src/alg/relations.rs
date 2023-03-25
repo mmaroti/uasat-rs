@@ -16,13 +16,13 @@
 */
 
 use super::{
-    BinaryRelations, BitSlice, Boolean, BooleanLogic, Countable, Domain, Power, RankedDomain,
-    Relations, Slice, SmallSet, Vector,
+    BinaryRelations, BitSlice, Boolean, BooleanLogic, Countable, Domain, Base, Power,
+    RankedDomain, Relations, Slice, SmallSet, Vector,
 };
 
 impl<DOM, LOGIC> Relations<LOGIC> for Power<Boolean, Power<DOM, SmallSet>>
 where
-    DOM: Countable,
+    DOM: Domain<LOGIC> + Countable,
     LOGIC: BooleanLogic,
 {
     fn get_diagonal(&self, logic: &LOGIC) -> LOGIC::Vector {
@@ -97,7 +97,7 @@ where
 
 impl<DOM, LOGIC> BinaryRelations<LOGIC> for Power<Boolean, Power<DOM, SmallSet>>
 where
-    DOM: Countable,
+    DOM: Domain<LOGIC> + Countable,
     LOGIC: BooleanLogic,
 {
 }

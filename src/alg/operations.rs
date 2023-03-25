@@ -16,7 +16,8 @@
 */
 
 use super::{
-    BooleanLogic, Countable, Domain, Functions, Power, RankedDomain, Slice, SmallSet, Vector,
+    BooleanLogic, Countable, Domain, Base, Functions, Power, RankedDomain, Slice, SmallSet,
+    Vector,
 };
 
 pub trait Operations<LOGIC>: Functions<LOGIC>
@@ -30,7 +31,7 @@ where
 
 impl<DOM, LOGIC> Operations<LOGIC> for Power<DOM, Power<DOM, SmallSet>>
 where
-    DOM: Countable,
+    DOM: Domain<LOGIC> + Countable,
     LOGIC: BooleanLogic,
 {
     fn graph(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector {

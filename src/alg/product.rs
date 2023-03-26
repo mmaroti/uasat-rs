@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
-    Base, Lattice, Logic, MeetSemilattice, PartialOrder, Slice, Vector,
+    Base, BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph,
+    Domain, Lattice, MeetSemilattice, PartialOrder, Slice, Vector,
 };
 
 /// The product of two domains.
@@ -29,8 +29,8 @@ pub struct Product2<DOM0, DOM1> {
 
 impl<DOM0, DOM1> Product2<DOM0, DOM1>
 where
-    DOM0: Domain<Logic>,
-    DOM1: Domain<Logic>,
+    DOM0: Base,
+    DOM1: Base,
 {
     /// Creates the product of two domains.
     pub fn new(dom0: DOM0, dom1: DOM1) -> Self {

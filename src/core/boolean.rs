@@ -48,6 +48,12 @@ pub trait BooleanLogic {
     /// Returns either the unit or zero element depending of the argument.
     fn bool_lift(&self, elem: bool) -> Self::Elem;
 
+    /// Returns true if the element is always true.
+    fn bool_is_unit(&self, elem: Self::Elem) -> bool;
+
+    /// Returns true if the element is always false.
+    fn bool_is_zero(&self, elem: Self::Elem) -> bool;
+
     /// Return the logical negation of the element.
     fn bool_not(&self, elem: Self::Elem) -> Self::Elem;
 
@@ -229,8 +235,24 @@ impl BooleanLogic for Logic {
 
     type Slice<'a> = BitSlice<'a>;
 
+    fn bool_unit(&self) -> Self::Elem {
+        true
+    }
+
+    fn bool_zero(&self) -> Self::Elem {
+        false
+    }
+
     fn bool_lift(&self, elem: bool) -> Self::Elem {
         elem
+    }
+
+    fn bool_is_unit(&self, elem: Self::Elem) -> bool {
+        elem
+    }
+
+    fn bool_is_zero(&self, elem: Self::Elem) -> bool {
+        !elem
     }
 
     fn bool_not(&self, elem: Self::Elem) -> Self::Elem {
@@ -299,12 +321,28 @@ impl BooleanLogic for Solver {
 
     type Slice<'a> = &'a [Literal];
 
+    fn bool_unit(&self) -> Self::Elem {
+        self.unit
+    }
+
+    fn bool_zero(&self) -> Self::Elem {
+        self.zero
+    }
+
     fn bool_lift(&self, elem: bool) -> Self::Elem {
         if elem {
             self.unit
         } else {
             self.zero
         }
+    }
+
+    fn bool_is_unit(&self, elem: Self::Elem) -> bool {
+        elem == self.unit
+    }
+
+    fn bool_is_zero(&self, elem: Self::Elem) -> bool {
+        elem == self.zero
     }
 
     fn bool_not(&self, elem: Self::Elem) -> Self::Elem {

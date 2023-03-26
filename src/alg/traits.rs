@@ -17,7 +17,7 @@
 
 use std::fmt::Debug;
 
-use super::{BitSlice, BitVec, BooleanLogic, BooleanSolver, Logic, Slice, Solver, Vector};
+use super::{BitSlice, BitVec, BooleanLogic, BooleanSolver, Slice, Solver, Vector};
 
 pub trait Base: Clone + PartialEq + Debug {
     /// Returns the number of bits used to represent the elements of the
@@ -40,6 +40,18 @@ pub trait Base: Clone + PartialEq + Debug {
             write!(f, "{}", if v { '1' } else { '0' })?;
         }
         Ok(())
+    }
+
+    /// Returns an element of the domain.
+    fn find_element(&self) -> Option<BitVec>
+    where
+        Self: Domain<Solver>,
+    {
+        let mut solver = Solver::new("");
+        let elem = self.add_variable(&mut solver);
+        let test = self.contains(&mut solver, elem.slice());
+        solver.bool_add_clause(&[test]);
+        solver.bool_find_one_model(&[], elem.copy_iter())
     }
 }
 
@@ -87,17 +99,6 @@ where
     }
 }
 
-pub fn find_element<DOM>(domain: &DOM) -> Option<BitVec>
-where
-    DOM: Domain<Solver>,
-{
-    let mut solver = Solver::new("");
-    let elem = domain.add_variable(&mut solver);
-    let test = domain.contains(&mut solver, elem.slice());
-    solver.bool_add_clause(&[test]);
-    solver.bool_find_one_model(&[], elem.copy_iter())
-}
-
 /// A helper structure for displaying domain elements.
 pub struct Format<'a, BASE>
 where
@@ -117,7 +118,7 @@ where
 }
 
 /// A domain where the elements can be counted and indexed.
-pub trait Countable: Domain<Logic> {
+pub trait Countable: Base {
     /// Returns the number of elements of the domain.
     fn size(&self) -> usize;
 

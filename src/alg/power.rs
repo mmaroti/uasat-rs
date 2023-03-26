@@ -16,9 +16,9 @@
 */
 
 use super::{
-    BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
-    Base, Functions, Lattice, Logic, MeetSemilattice, PartialOrder, RankedDomain, Slice,
-    SmallSet, Vector,
+    Base, BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph,
+    Domain, Functions, Lattice, MeetSemilattice, PartialOrder, RankedDomain, Slice, SmallSet,
+    Vector,
 };
 
 use std::iter::{ExactSizeIterator, Extend, FusedIterator};
@@ -341,7 +341,7 @@ where
 
 impl<DOM0, DOM1> RankedDomain for Power<DOM0, Power<DOM1, SmallSet>>
 where
-    DOM0: Domain<Logic>,
+    DOM0: Base,
     DOM1: Countable,
 {
     fn arity(&self) -> usize {
@@ -358,7 +358,7 @@ where
 
 impl<DOM0, DOM1, LOGIC> Functions<LOGIC> for Power<DOM0, Power<DOM1, SmallSet>>
 where
-    DOM0: Domain<LOGIC> + Domain<Logic>,
+    DOM0: Domain<LOGIC>,
     DOM1: Countable,
     LOGIC: BooleanLogic,
 {
@@ -407,7 +407,7 @@ where
 
 impl<DOM0, DOM1> Power<DOM0, Power<DOM1, SmallSet>>
 where
-    DOM0: Domain<Logic>,
+    DOM0: Base,
     DOM1: Countable,
 {
     /// Returns the part of an element at the given index.

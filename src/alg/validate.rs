@@ -60,7 +60,7 @@ fn domain() {
 
 fn validate_countable<DOM>(domain: DOM, size: usize)
 where
-    DOM: Domain<Solver> + Countable,
+    DOM: Domain<Solver> + Domain<Logic> + Countable,
 {
     assert_eq!(domain.size(), size);
 
@@ -148,21 +148,23 @@ fn partial_order() {
 
 pub fn validate_bounded_order<DOM>(domain: DOM)
 where
-    DOM: BoundedOrder<Logic> + BoundedOrder<Solver>,
+    DOM: BoundedOrder<Solver>,
 {
     // top is in domain
-    let mut logic = Logic();
+    let mut logic = Solver::new("");
     let top = domain.top(&logic);
-    assert!(domain.contains(&mut logic, top.slice()));
+    let test = domain.contains(&mut logic, top.slice());
+    assert!(logic.bool_is_unit(test));
 
     // bottom is in domain
     let bottom = domain.bottom(&logic);
-    assert!(domain.contains(&mut logic, bottom.slice()));
-    assert!(domain.is_edge(&mut logic, bottom.slice(), top.slice()));
+    let test = domain.contains(&mut logic, bottom.slice());
+    assert!(logic.bool_is_unit(test));
+    let test = domain.is_edge(&mut logic, bottom.slice(), top.slice());
+    assert!(logic.bool_is_unit(test));
 
     // top is above everything
     let mut logic = Solver::new("");
-    let top = logic.bool_lift_vec(top.copy_iter());
     let elem = domain.add_variable(&mut logic);
     let test = domain.is_edge(&mut logic, elem.slice(), top.slice());
     logic.bool_add_clause1(logic.bool_not(test));
@@ -170,7 +172,6 @@ where
 
     // bottom is below everything
     let mut logic = Solver::new("");
-    let bottom = logic.bool_lift_vec(bottom.copy_iter());
     let elem = domain.add_variable(&mut logic);
     let test = domain.is_edge(&mut logic, bottom.slice(), elem.slice());
     logic.bool_add_clause1(logic.bool_not(test));

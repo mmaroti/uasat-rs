@@ -16,8 +16,9 @@
 */
 
 use super::{
-    BinaryRelations, BooleanLogic, BooleanSolver, BoundedOrder, Countable, Domain, Lattice, Logic,
-    MeetSemilattice, PartialOrder, Power, Product2, SmallSet, Solver, Vector, BOOLEAN,
+    BinaryRelations, BooleanLogic, BooleanSolver, BoundedOrder, Countable, CountableBase, Domain,
+    Lattice, Logic, MeetSemilattice, PartialOrder, Power, Product2, SmallSet, Solver, Vector,
+    BOOLEAN,
 };
 
 pub fn validate_domain<DOM>(domain: DOM)
@@ -60,7 +61,7 @@ fn domain() {
 
 fn validate_countable<DOM>(domain: DOM, size: usize)
 where
-    DOM: Domain<Solver> + Domain<Logic> + Countable,
+    DOM: Domain<Solver> + Countable<Logic>,
 {
     assert_eq!(domain.size(), size);
 
@@ -89,6 +90,16 @@ where
             let elem1 = domain.elem(index1);
             assert!(!domain.equals(&mut logic, elem0.slice(), elem1.slice()));
         }
+    }
+
+    // onehot works
+    let small = SmallSet::new(domain.size());
+    let mut logic = Logic();
+    for index in 0..domain.size() {
+        let elem0 = domain.elem(index);
+        let elem0 = domain.onehot(&mut logic, elem0.slice());
+        let elem1 = small.elem(index);
+        assert!(small.equals(&mut logic, elem0.slice(), elem1.slice()));
     }
 }
 

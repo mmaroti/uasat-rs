@@ -16,9 +16,9 @@
 */
 
 use super::{
-    Base, BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph,
-    Domain, Functions, Lattice, MeetSemilattice, PartialOrder, RankedDomain, Slice, SmallSet,
-    Vector,
+    BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, CountableBase,
+    DirectedGraph, Domain, DomainBase, Functions, Lattice, MeetSemilattice, PartialOrder,
+    RankedDomain, Slice, SmallSet, Vector,
 };
 
 use std::iter::{ExactSizeIterator, Extend, FusedIterator};
@@ -70,8 +70,8 @@ pub struct Power<BASE, EXP> {
 
 impl<BASE, EXP> Power<BASE, EXP>
 where
-    BASE: Base,
-    EXP: Countable,
+    BASE: DomainBase,
+    EXP: CountableBase,
 {
     /// Creates the product domain from the given list of domains.
     pub fn new(base: BASE, exponent: EXP) -> Self {
@@ -113,10 +113,10 @@ where
     }
 }
 
-impl<BASE, EXP> Base for Power<BASE, EXP>
+impl<BASE, EXP> DomainBase for Power<BASE, EXP>
 where
-    BASE: Base,
-    EXP: Countable,
+    BASE: DomainBase,
+    EXP: CountableBase,
 {
     fn num_bits(&self) -> usize {
         self.base.num_bits() * self.exponent.size()
@@ -144,7 +144,7 @@ where
 impl<BASE, EXP, LOGIC> Domain<LOGIC> for Power<BASE, EXP>
 where
     BASE: Domain<LOGIC>,
-    EXP: Countable,
+    EXP: CountableBase,
     LOGIC: BooleanLogic,
 {
     fn contains(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem {
@@ -171,10 +171,10 @@ where
     }
 }
 
-impl<BASE, EXP> Countable for Power<BASE, EXP>
+impl<BASE, EXP> CountableBase for Power<BASE, EXP>
 where
-    BASE: Countable,
-    EXP: Countable,
+    BASE: CountableBase,
+    EXP: CountableBase,
 {
     fn size(&self) -> usize {
         let mut result = 1;
@@ -212,10 +212,39 @@ where
     }
 }
 
+impl<BASE, EXP, LOGIC> Countable<LOGIC> for Power<BASE, EXP>
+where
+    BASE: Countable<LOGIC>,
+    EXP: CountableBase,
+    LOGIC: BooleanLogic,
+{
+    fn onehot(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector {
+        let mut result: LOGIC::Vector = Vector::with_capacity(self.size());
+        let mut temp: LOGIC::Vector = Vector::new();
+
+        result.push(logic.bool_unit());
+        for part in self.part_iter(elem) {
+            temp.clear();
+            temp.append(&mut result);
+            debug_assert!(result.is_empty());
+
+            let part = self.base.onehot(logic, part);
+            for v1 in part.copy_iter() {
+                for v0 in temp.copy_iter() {
+                    result.push(logic.bool_and(v0, v1));
+                }
+            }
+        }
+
+        debug_assert_eq!(result.len(), self.size());
+        result
+    }
+}
+
 impl<BASE, EXP, LOGIC> DirectedGraph<LOGIC> for Power<BASE, EXP>
 where
     BASE: DirectedGraph<LOGIC>,
-    EXP: Countable,
+    EXP: CountableBase,
     LOGIC: BooleanLogic,
 {
     fn is_edge(
@@ -236,7 +265,7 @@ where
 impl<BASE, EXP, LOGIC> PartialOrder<LOGIC> for Power<BASE, EXP>
 where
     BASE: PartialOrder<LOGIC>,
-    EXP: Countable,
+    EXP: CountableBase,
     LOGIC: BooleanLogic,
 {
 }
@@ -244,7 +273,7 @@ where
 impl<BASE, EXP, LOGIC> BoundedOrder<LOGIC> for Power<BASE, EXP>
 where
     BASE: BoundedOrder<LOGIC>,
-    EXP: Countable,
+    EXP: CountableBase,
     LOGIC: BooleanLogic,
 {
     fn top(&self, logic: &LOGIC) -> LOGIC::Vector {
@@ -287,7 +316,7 @@ where
 impl<BASE, EXP, LOGIC> MeetSemilattice<LOGIC> for Power<BASE, EXP>
 where
     BASE: MeetSemilattice<LOGIC>,
-    EXP: Countable,
+    EXP: CountableBase,
     LOGIC: BooleanLogic,
 {
     fn meet(
@@ -307,7 +336,7 @@ where
 impl<BASE, EXP, LOGIC> Lattice<LOGIC> for Power<BASE, EXP>
 where
     BASE: Lattice<LOGIC>,
-    EXP: Countable,
+    EXP: CountableBase,
     LOGIC: BooleanLogic,
 {
     fn join(
@@ -327,7 +356,7 @@ where
 impl<BASE, EXP, LOGIC> BooleanLattice<LOGIC> for Power<BASE, EXP>
 where
     BASE: BooleanLattice<LOGIC>,
-    EXP: Countable,
+    EXP: CountableBase,
     LOGIC: BooleanLogic,
 {
     fn complement(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector {
@@ -341,8 +370,8 @@ where
 
 impl<DOM0, DOM1> RankedDomain for Power<DOM0, Power<DOM1, SmallSet>>
 where
-    DOM0: Base,
-    DOM1: Countable,
+    DOM0: DomainBase,
+    DOM1: CountableBase,
 {
     fn arity(&self) -> usize {
         self.exponent().exponent().size()
@@ -359,7 +388,7 @@ where
 impl<DOM0, DOM1, LOGIC> Functions<LOGIC> for Power<DOM0, Power<DOM1, SmallSet>>
 where
     DOM0: Domain<LOGIC>,
-    DOM1: Countable,
+    DOM1: CountableBase,
     LOGIC: BooleanLogic,
 {
     fn polymer(&self, elem: LOGIC::Slice<'_>, arity: usize, mapping: &[usize]) -> LOGIC::Vector {
@@ -407,8 +436,8 @@ where
 
 impl<DOM0, DOM1> Power<DOM0, Power<DOM1, SmallSet>>
 where
-    DOM0: Base,
-    DOM1: Countable,
+    DOM0: DomainBase,
+    DOM1: CountableBase,
 {
     /// Returns the part of an element at the given index.
     pub fn fold_iter<'a, ELEM>(&self, elem: ELEM) -> PartIter<'a, ELEM>

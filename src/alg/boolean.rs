@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
-    Base, Lattice, MeetSemilattice, PartialOrder, Slice, Vector,
+    BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, CountableBase, Countable,
+    DirectedGraph, DomainBase, Domain, Lattice, MeetSemilattice, PartialOrder, Slice, Vector,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -25,7 +25,7 @@ pub struct Boolean();
 
 pub const BOOLEAN: Boolean = Boolean();
 
-impl Base for Boolean {
+impl DomainBase for Boolean {
     fn num_bits(&self) -> usize {
         1
     }
@@ -51,7 +51,7 @@ where
     }
 }
 
-impl Countable for Boolean {
+impl CountableBase for Boolean {
     fn size(&self) -> usize {
         2
     }
@@ -64,6 +64,18 @@ impl Countable for Boolean {
     fn index(&self, elem: BitSlice<'_>) -> usize {
         assert!(elem.len() == 1);
         elem.get(0) as usize
+    }
+}
+
+impl<LOGIC> Countable<LOGIC> for Boolean
+where
+    LOGIC: BooleanLogic,
+{
+    fn onehot(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector {
+        let mut result: LOGIC::Vector = Vector::with_capacity(2);
+        result.push(logic.bool_not(elem.get(0)));
+        result.push(elem.get(0));
+        result
     }
 }
 

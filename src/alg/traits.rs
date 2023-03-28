@@ -19,7 +19,7 @@ use std::fmt::Debug;
 
 use super::{BitSlice, BitVec, BooleanLogic, BooleanSolver, Slice, Solver, Vector};
 
-pub trait Base: Clone + PartialEq + Debug {
+pub trait DomainBase: Clone + PartialEq + Debug {
     /// Returns the number of bits used to represent the elements of the
     /// domain.
     fn num_bits(&self) -> usize;
@@ -56,10 +56,11 @@ pub trait Base: Clone + PartialEq + Debug {
 }
 
 /// An arbitrary set of elements that can be representable by bit vectors.
-pub trait Domain<LOGIC>: Base
+pub trait Domain<LOGIC>: DomainBase
 where
     LOGIC: BooleanLogic,
 {
+    /// Lifts the given bool vector to the logic associated with the domain.
     fn lift(&self, logic: &LOGIC, elem: BitSlice) -> LOGIC::Vector {
         let mut result: LOGIC::Vector = Vector::with_capacity(elem.len());
         for a in elem.copy_iter() {
@@ -102,7 +103,7 @@ where
 /// A helper structure for displaying domain elements.
 pub struct Format<'a, BASE>
 where
-    BASE: Base,
+    BASE: DomainBase,
 {
     base: &'a BASE,
     elem: BitSlice<'a>,
@@ -110,7 +111,7 @@ where
 
 impl<'a, BASE> std::fmt::Display for Format<'a, BASE>
 where
-    BASE: Base,
+    BASE: DomainBase,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.base.display_elem(f, self.elem)
@@ -118,7 +119,7 @@ where
 }
 
 /// A domain where the elements can be counted and indexed.
-pub trait Countable: Base {
+pub trait CountableBase: DomainBase {
     /// Returns the number of elements of the domain.
     fn size(&self) -> usize;
 
@@ -127,6 +128,22 @@ pub trait Countable: Base {
 
     /// Returns the index of the given element.
     fn index(&self, elem: BitSlice<'_>) -> usize;
+}
+
+/// Logic based operations for countable domains.
+pub trait Countable<LOGIC>: Domain<LOGIC> + CountableBase
+where
+    LOGIC: BooleanLogic,
+{
+    /// Returns the one hot encoding of the given element.
+    fn onehot(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector {
+        let mut result: LOGIC::Vector = Vector::with_capacity(self.size());
+        for index in 0..self.size() {
+            let value = self.lift(logic, self.elem(index).slice());
+            result.push(self.equals(logic, elem, value.slice()));
+        }
+        result
+    }
 }
 
 /// A directed graph on a domain.

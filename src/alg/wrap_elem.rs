@@ -15,7 +15,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BipartiteGraph, Boolean, BooleanLogic, Countable, Domain, Power, Product2, Slice};
+use super::{BipartiteGraph, Boolean, BooleanLogic, CountableBase, Domain, Power, Product2, Slice};
 
 #[derive(Debug)]
 
@@ -26,6 +26,20 @@ where
 {
     domain: DOM,
     elem: LOGIC::Vector,
+}
+
+impl<DOM, LOGIC> WrapElem<DOM, LOGIC>
+where
+    DOM: Domain<LOGIC>,
+    LOGIC: BooleanLogic,
+{
+    /// Creates a new domain that wraps the given element.
+    pub fn new(domain: DOM, elem: LOGIC::Slice<'_>) -> Self {
+        Self {
+            domain,
+            elem: elem.copy_iter().collect(),
+        }
+    }
 }
 
 impl<DOM, LOGIC> Clone for WrapElem<DOM, LOGIC>
@@ -44,8 +58,8 @@ where
 impl<DOM0, DOM1, LOGIC> BipartiteGraph<DOM0, DOM1, LOGIC>
     for WrapElem<Power<Boolean, Product2<DOM0, DOM1>>, LOGIC>
 where
-    DOM0: Domain<LOGIC> + Countable,
-    DOM1: Domain<LOGIC> + Countable,
+    DOM0: Domain<LOGIC> + CountableBase,
+    DOM1: Domain<LOGIC> + CountableBase,
     LOGIC: BooleanLogic,
 {
     fn domain(&self) -> &DOM0 {

@@ -16,8 +16,8 @@
 */
 
 use super::{
-    Base, BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph,
-    Domain, Lattice, MeetSemilattice, PartialOrder, Slice, Vector,
+    BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, CountableBase,
+    DirectedGraph, Domain, DomainBase, Lattice, MeetSemilattice, PartialOrder, Slice, Vector,
 };
 
 /// The product of two domains.
@@ -29,8 +29,8 @@ pub struct Product2<DOM0, DOM1> {
 
 impl<DOM0, DOM1> Product2<DOM0, DOM1>
 where
-    DOM0: Base,
-    DOM1: Base,
+    DOM0: DomainBase,
+    DOM1: DomainBase,
 {
     /// Creates the product of two domains.
     pub fn new(dom0: DOM0, dom1: DOM1) -> Self {
@@ -66,10 +66,10 @@ where
     }
 }
 
-impl<DOM0, DOM1> Base for Product2<DOM0, DOM1>
+impl<DOM0, DOM1> DomainBase for Product2<DOM0, DOM1>
 where
-    DOM0: Base,
-    DOM1: Base,
+    DOM0: DomainBase,
+    DOM1: DomainBase,
 {
     fn num_bits(&self) -> usize {
         self.dom0.num_bits() + self.dom1.num_bits()
@@ -119,10 +119,10 @@ where
     }
 }
 
-impl<DOM0, DOM1> Countable for Product2<DOM0, DOM1>
+impl<DOM0, DOM1> CountableBase for Product2<DOM0, DOM1>
 where
-    DOM0: Countable,
-    DOM1: Countable,
+    DOM0: CountableBase,
+    DOM1: CountableBase,
 {
     fn size(&self) -> usize {
         self.dom0.size() * self.dom1.size()
@@ -144,6 +144,29 @@ where
 
         let size0 = self.dom0.size();
         part0 + size0 * self.dom1.index(elem.tail(bits0))
+    }
+}
+
+impl<DOM0, DOM1, LOGIC> Countable<LOGIC> for Product2<DOM0, DOM1>
+where
+    DOM0: Countable<LOGIC>,
+    DOM1: Countable<LOGIC>,
+    LOGIC: BooleanLogic,
+{
+    fn onehot(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector {
+        let bits0 = self.dom0.num_bits();
+        let part0 = self.dom0.onehot(logic, elem.head(bits0));
+        let part1 = self.dom1.onehot(logic, elem.tail(bits0));
+
+        let mut result: LOGIC::Vector = Vector::with_capacity(self.size());
+        for v1 in part1.copy_iter() {
+            for v0 in part0.copy_iter() {
+                result.push(logic.bool_and(v0, v1));
+            }
+        }
+
+        debug_assert_eq!(result.len(), self.size());
+        result
     }
 }
 

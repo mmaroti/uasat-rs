@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BitSlice, BitVec, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain, Base,
-    Lattice, MeetSemilattice, PartialOrder, Slice, Vector,
+    BitSlice, BitVec, BooleanLogic, BoundedOrder, Countable, CountableBase, DirectedGraph, Domain,
+    DomainBase, Lattice, MeetSemilattice, PartialOrder, Slice, Vector,
 };
 
 /// A small set encoded as a one-hot vector of booleans representing
@@ -34,7 +34,7 @@ impl SmallSet {
     }
 }
 
-impl Base for SmallSet {
+impl DomainBase for SmallSet {
     fn num_bits(&self) -> usize {
         self.size
     }
@@ -74,7 +74,7 @@ where
     }
 }
 
-impl Countable for SmallSet {
+impl CountableBase for SmallSet {
     fn size(&self) -> usize {
         self.size
     }
@@ -99,6 +99,15 @@ impl Countable for SmallSet {
         }
         assert!(index < self.size);
         index
+    }
+}
+
+impl<LOGIC> Countable<LOGIC> for SmallSet
+where
+    LOGIC: BooleanLogic,
+{
+    fn onehot(&self, _logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector {
+        elem.copy_iter().collect()
     }
 }
 

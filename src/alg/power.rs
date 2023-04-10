@@ -16,9 +16,8 @@
 */
 
 use super::{
-    BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, CountableBase,
-    DirectedGraph, Domain, DomainBase, Functions, Lattice, MeetSemilattice, PartialOrder,
-    RankedDomain, Slice, SmallSet, Vector,
+    BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
+    Functions, Lattice, MeetSemilattice, PartialOrder, RankedDomain, Slice, SmallSet, Vector,
 };
 
 use std::iter::{ExactSizeIterator, Extend, FusedIterator};
@@ -70,8 +69,8 @@ pub struct Power<BASE, EXP> {
 
 impl<BASE, EXP> Power<BASE, EXP>
 where
-    BASE: DomainBase,
-    EXP: CountableBase,
+    BASE: Domain,
+    EXP: Countable,
 {
     /// Creates the product domain from the given list of domains.
     pub fn new(base: BASE, exponent: EXP) -> Self {
@@ -113,10 +112,10 @@ where
     }
 }
 
-impl<BASE, EXP> DomainBase for Power<BASE, EXP>
+impl<BASE, EXP> Domain for Power<BASE, EXP>
 where
-    BASE: DomainBase,
-    EXP: CountableBase,
+    BASE: Domain,
+    EXP: Countable,
 {
     fn num_bits(&self) -> usize {
         self.base.num_bits() * self.exponent.size()
@@ -139,15 +138,11 @@ where
         }
         write!(f, "]")
     }
-}
 
-impl<BASE, EXP, LOGIC> Domain<LOGIC> for Power<BASE, EXP>
-where
-    BASE: Domain<LOGIC>,
-    EXP: CountableBase,
-    LOGIC: BooleanLogic,
-{
-    fn contains(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem {
+    fn contains<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
         let mut result = logic.bool_unit();
         for part in self.part_iter(elem) {
             let v = self.base.contains(logic, part);
@@ -156,12 +151,15 @@ where
         result
     }
 
-    fn equals(
+    fn equals<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
         elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Elem {
+    ) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
         let mut result = logic.bool_unit();
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
             let v = self.base.equals(logic, part0, part1);
@@ -171,10 +169,10 @@ where
     }
 }
 
-impl<BASE, EXP> CountableBase for Power<BASE, EXP>
+impl<BASE, EXP> Countable for Power<BASE, EXP>
 where
-    BASE: CountableBase,
-    EXP: CountableBase,
+    BASE: Countable,
+    EXP: Countable,
 {
     fn size(&self) -> usize {
         let mut result = 1;
@@ -210,15 +208,11 @@ where
 
         index
     }
-}
 
-impl<BASE, EXP, LOGIC> Countable<LOGIC> for Power<BASE, EXP>
-where
-    BASE: Countable<LOGIC>,
-    EXP: CountableBase,
-    LOGIC: BooleanLogic,
-{
-    fn onehot(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector {
+    fn onehot<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         let mut result: LOGIC::Vector = Vector::with_capacity(self.size());
         let mut temp: LOGIC::Vector = Vector::new();
 
@@ -241,18 +235,20 @@ where
     }
 }
 
-impl<BASE, EXP, LOGIC> DirectedGraph<LOGIC> for Power<BASE, EXP>
+impl<BASE, EXP> DirectedGraph for Power<BASE, EXP>
 where
-    BASE: DirectedGraph<LOGIC>,
-    EXP: CountableBase,
-    LOGIC: BooleanLogic,
+    BASE: DirectedGraph,
+    EXP: Countable,
 {
-    fn is_edge(
+    fn is_edge<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
         elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Elem {
+    ) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
         let mut result = logic.bool_unit();
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
             let v = self.base.is_edge(logic, part0, part1);
@@ -262,21 +258,22 @@ where
     }
 }
 
-impl<BASE, EXP, LOGIC> PartialOrder<LOGIC> for Power<BASE, EXP>
+impl<BASE, EXP> PartialOrder for Power<BASE, EXP>
 where
-    BASE: PartialOrder<LOGIC>,
-    EXP: CountableBase,
-    LOGIC: BooleanLogic,
+    BASE: PartialOrder,
+    EXP: Countable,
 {
 }
 
-impl<BASE, EXP, LOGIC> BoundedOrder<LOGIC> for Power<BASE, EXP>
+impl<BASE, EXP> BoundedOrder for Power<BASE, EXP>
 where
-    BASE: BoundedOrder<LOGIC>,
-    EXP: CountableBase,
-    LOGIC: BooleanLogic,
+    BASE: BoundedOrder,
+    EXP: Countable,
 {
-    fn top(&self, logic: &LOGIC) -> LOGIC::Vector {
+    fn top<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         let part = self.base.top(logic);
         let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         for _ in 0..self.exponent.size() {
@@ -285,7 +282,10 @@ where
         elem
     }
 
-    fn is_top(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem {
+    fn is_top<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
         let mut result = logic.bool_unit();
         for part in self.part_iter(elem) {
             let v = self.base.is_top(logic, part);
@@ -294,7 +294,10 @@ where
         result
     }
 
-    fn bottom(&self, logic: &LOGIC) -> LOGIC::Vector {
+    fn bottom<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         let part = self.base.bottom(logic);
         let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         for _ in 0..self.exponent.size() {
@@ -303,7 +306,10 @@ where
         elem
     }
 
-    fn is_bottom(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem {
+    fn is_bottom<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
         let mut result = logic.bool_unit();
         for part in self.part_iter(elem) {
             let v = self.base.is_bottom(logic, part);
@@ -313,18 +319,20 @@ where
     }
 }
 
-impl<BASE, EXP, LOGIC> MeetSemilattice<LOGIC> for Power<BASE, EXP>
+impl<BASE, EXP> MeetSemilattice for Power<BASE, EXP>
 where
-    BASE: MeetSemilattice<LOGIC>,
-    EXP: CountableBase,
-    LOGIC: BooleanLogic,
+    BASE: MeetSemilattice,
+    EXP: Countable,
 {
-    fn meet(
+    fn meet<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
         elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Vector {
+    ) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
             elem.extend(self.base.meet(logic, part0, part1));
@@ -333,18 +341,20 @@ where
     }
 }
 
-impl<BASE, EXP, LOGIC> Lattice<LOGIC> for Power<BASE, EXP>
+impl<BASE, EXP> Lattice for Power<BASE, EXP>
 where
-    BASE: Lattice<LOGIC>,
-    EXP: CountableBase,
-    LOGIC: BooleanLogic,
+    BASE: Lattice,
+    EXP: Countable,
 {
-    fn join(
+    fn join<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
         elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Vector {
+    ) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
             elem.extend(self.base.join(logic, part0, part1));
@@ -353,13 +363,15 @@ where
     }
 }
 
-impl<BASE, EXP, LOGIC> BooleanLattice<LOGIC> for Power<BASE, EXP>
+impl<BASE, EXP> BooleanLattice for Power<BASE, EXP>
 where
-    BASE: BooleanLattice<LOGIC>,
-    EXP: CountableBase,
-    LOGIC: BooleanLogic,
+    BASE: BooleanLattice,
+    EXP: Countable,
 {
-    fn complement(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector {
+    fn complement<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         let mut result: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         for part in self.part_iter(elem) {
             result.extend(self.base.complement(logic, part));
@@ -370,8 +382,8 @@ where
 
 impl<DOM0, DOM1> RankedDomain for Power<DOM0, Power<DOM1, SmallSet>>
 where
-    DOM0: DomainBase,
-    DOM1: CountableBase,
+    DOM0: Domain,
+    DOM1: Countable,
 {
     fn arity(&self) -> usize {
         self.exponent().exponent().size()
@@ -385,13 +397,15 @@ where
     }
 }
 
-impl<DOM0, DOM1, LOGIC> Functions<LOGIC> for Power<DOM0, Power<DOM1, SmallSet>>
+impl<DOM0, DOM1> Functions for Power<DOM0, Power<DOM1, SmallSet>>
 where
-    DOM0: Domain<LOGIC>,
-    DOM1: CountableBase,
-    LOGIC: BooleanLogic,
+    DOM0: Domain,
+    DOM1: Countable,
 {
-    fn polymer(&self, elem: LOGIC::Slice<'_>, arity: usize, mapping: &[usize]) -> LOGIC::Vector {
+    fn polymer<'a, SLICE>(&self, elem: SLICE, arity: usize, mapping: &[usize]) -> SLICE::Vector
+    where
+        SLICE: Slice<'a>,
+    {
         assert_eq!(elem.len(), self.num_bits());
         assert_eq!(mapping.len(), self.exponent().exponent().size());
 
@@ -410,7 +424,7 @@ where
             power *= size;
         }
 
-        let mut result: LOGIC::Vector = Vector::with_capacity(self.base.num_bits() * power);
+        let mut result: SLICE::Vector = Vector::with_capacity(self.base.num_bits() * power);
         let mut index = 0;
         'outer: loop {
             result.extend(self.part(elem, index).copy_iter());
@@ -436,8 +450,8 @@ where
 
 impl<DOM0, DOM1> Power<DOM0, Power<DOM1, SmallSet>>
 where
-    DOM0: DomainBase,
-    DOM1: CountableBase,
+    DOM0: Domain,
+    DOM1: Countable,
 {
     /// Returns the part of an element at the given index.
     pub fn fold_iter<'a, ELEM>(&self, elem: ELEM) -> PartIter<'a, ELEM>
@@ -492,10 +506,10 @@ mod tests {
         .collect();
         assert!(op1.contains(&mut logic, elem3.slice()));
 
-        let elem4 = <_ as Functions<Logic>>::polymer(&op1, elem2.slice(), 2, &[1, 0]);
+        let elem4 = <_ as Functions>::polymer(&op1, elem2.slice(), 2, &[1, 0]);
         assert_eq!(elem3, elem4);
 
-        let elem5 = <_ as Functions<Logic>>::polymer(&op1, elem2.slice(), 1, &[0, 0]);
+        let elem5 = <_ as Functions>::polymer(&op1, elem2.slice(), 1, &[0, 0]);
         assert_eq!(elem1, elem5);
     }
 }

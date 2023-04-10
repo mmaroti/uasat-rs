@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, CountableBase,
-    DirectedGraph, Domain, DomainBase, Lattice, MeetSemilattice, PartialOrder, Slice, Vector,
+    BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
+    Lattice, MeetSemilattice, PartialOrder, Slice, Vector,
 };
 
 /// The product of two domains.
@@ -29,8 +29,8 @@ pub struct Product2<DOM0, DOM1> {
 
 impl<DOM0, DOM1> Product2<DOM0, DOM1>
 where
-    DOM0: DomainBase,
-    DOM1: DomainBase,
+    DOM0: Domain,
+    DOM1: Domain,
 {
     /// Creates the product of two domains.
     pub fn new(dom0: DOM0, dom1: DOM1) -> Self {
@@ -66,10 +66,10 @@ where
     }
 }
 
-impl<DOM0, DOM1> DomainBase for Product2<DOM0, DOM1>
+impl<DOM0, DOM1> Domain for Product2<DOM0, DOM1>
 where
-    DOM0: DomainBase,
-    DOM1: DomainBase,
+    DOM0: Domain,
+    DOM1: Domain,
 {
     fn num_bits(&self) -> usize {
         self.dom0.num_bits() + self.dom1.num_bits()
@@ -87,27 +87,26 @@ where
         self.dom1.display_elem(f, elem.tail(bits0))?;
         write!(f, ")")
     }
-}
 
-impl<DOM0, DOM1, LOGIC> Domain<LOGIC> for Product2<DOM0, DOM1>
-where
-    DOM0: Domain<LOGIC>,
-    DOM1: Domain<LOGIC>,
-    LOGIC: BooleanLogic,
-{
-    fn contains(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem {
+    fn contains<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
         let bits0 = self.dom0.num_bits();
         let valid0 = self.dom0.contains(logic, elem.head(bits0));
         let valid1 = self.dom1.contains(logic, elem.tail(bits0));
         logic.bool_and(valid0, valid1)
     }
 
-    fn equals(
+    fn equals<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
         elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Elem {
+    ) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
         let bits0 = self.dom0.num_bits();
         let test0 = self
             .dom0
@@ -119,10 +118,10 @@ where
     }
 }
 
-impl<DOM0, DOM1> CountableBase for Product2<DOM0, DOM1>
+impl<DOM0, DOM1> Countable for Product2<DOM0, DOM1>
 where
-    DOM0: CountableBase,
-    DOM1: CountableBase,
+    DOM0: Countable,
+    DOM1: Countable,
 {
     fn size(&self) -> usize {
         self.dom0.size() * self.dom1.size()
@@ -145,15 +144,11 @@ where
         let size0 = self.dom0.size();
         part0 + size0 * self.dom1.index(elem.tail(bits0))
     }
-}
 
-impl<DOM0, DOM1, LOGIC> Countable<LOGIC> for Product2<DOM0, DOM1>
-where
-    DOM0: Countable<LOGIC>,
-    DOM1: Countable<LOGIC>,
-    LOGIC: BooleanLogic,
-{
-    fn onehot(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector {
+    fn onehot<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         let bits0 = self.dom0.num_bits();
         let part0 = self.dom0.onehot(logic, elem.head(bits0));
         let part1 = self.dom1.onehot(logic, elem.tail(bits0));
@@ -170,18 +165,20 @@ where
     }
 }
 
-impl<DOM0, DOM1, LOGIC> DirectedGraph<LOGIC> for Product2<DOM0, DOM1>
+impl<DOM0, DOM1> DirectedGraph for Product2<DOM0, DOM1>
 where
-    DOM0: DirectedGraph<LOGIC>,
-    DOM1: DirectedGraph<LOGIC>,
-    LOGIC: BooleanLogic,
+    DOM0: DirectedGraph,
+    DOM1: DirectedGraph,
 {
-    fn is_edge(
+    fn is_edge<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
         elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Elem {
+    ) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
         let bits0 = self.dom0.num_bits();
         let test0 = self
             .dom0
@@ -193,42 +190,52 @@ where
     }
 }
 
-impl<DOM0, DOM1, LOGIC: BooleanLogic> PartialOrder<LOGIC> for Product2<DOM0, DOM1>
+impl<DOM0, DOM1> PartialOrder for Product2<DOM0, DOM1>
 where
-    DOM0: PartialOrder<LOGIC>,
-    DOM1: PartialOrder<LOGIC>,
-    LOGIC: BooleanLogic,
+    DOM0: PartialOrder,
+    DOM1: PartialOrder,
 {
 }
 
-impl<DOM0, DOM1, LOGIC> BoundedOrder<LOGIC> for Product2<DOM0, DOM1>
+impl<DOM0, DOM1> BoundedOrder for Product2<DOM0, DOM1>
 where
-    DOM0: BoundedOrder<LOGIC>,
-    DOM1: BoundedOrder<LOGIC>,
-    LOGIC: BooleanLogic,
+    DOM0: BoundedOrder,
+    DOM1: BoundedOrder,
 {
-    fn top(&self, logic: &LOGIC) -> LOGIC::Vector {
+    fn top<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         elem.append(&mut self.dom0.top(logic));
         elem.append(&mut self.dom1.top(logic));
         elem
     }
 
-    fn is_top(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem {
+    fn is_top<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
         let bits0 = self.dom0.num_bits();
         let test0 = self.dom0.is_top(logic, elem.head(bits0));
         let test1 = self.dom1.is_top(logic, elem.tail(bits0));
         logic.bool_and(test0, test1)
     }
 
-    fn bottom(&self, logic: &LOGIC) -> LOGIC::Vector {
+    fn bottom<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         elem.append(&mut self.dom0.bottom(logic));
         elem.append(&mut self.dom1.bottom(logic));
         elem
     }
 
-    fn is_bottom(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem {
+    fn is_bottom<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
         let bits0 = self.dom0.num_bits();
         let test0 = self.dom0.is_bottom(logic, elem.head(bits0));
         let test1 = self.dom1.is_bottom(logic, elem.tail(bits0));
@@ -236,18 +243,20 @@ where
     }
 }
 
-impl<DOM0, DOM1, LOGIC> MeetSemilattice<LOGIC> for Product2<DOM0, DOM1>
+impl<DOM0, DOM1> MeetSemilattice for Product2<DOM0, DOM1>
 where
-    DOM0: MeetSemilattice<LOGIC>,
-    DOM1: MeetSemilattice<LOGIC>,
-    LOGIC: BooleanLogic,
+    DOM0: MeetSemilattice,
+    DOM1: MeetSemilattice,
 {
-    fn meet(
+    fn meet<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
         elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Vector {
+    ) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         let bits0 = self.dom0.num_bits();
         let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         elem.extend(self.dom0.meet(logic, elem0.head(bits0), elem1.head(bits0)));
@@ -256,18 +265,20 @@ where
     }
 }
 
-impl<DOM0, DOM1, LOGIC> Lattice<LOGIC> for Product2<DOM0, DOM1>
+impl<DOM0, DOM1> Lattice for Product2<DOM0, DOM1>
 where
-    DOM0: Lattice<LOGIC>,
-    DOM1: Lattice<LOGIC>,
-    LOGIC: BooleanLogic,
+    DOM0: Lattice,
+    DOM1: Lattice,
 {
-    fn join(
+    fn join<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
         elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Vector {
+    ) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         let bits0 = self.dom0.num_bits();
         let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         elem.extend(self.dom0.join(logic, elem0.head(bits0), elem1.head(bits0)));
@@ -276,13 +287,15 @@ where
     }
 }
 
-impl<DOM0, DOM1, LOGIC> BooleanLattice<LOGIC> for Product2<DOM0, DOM1>
+impl<DOM0, DOM1> BooleanLattice for Product2<DOM0, DOM1>
 where
-    DOM0: BooleanLattice<LOGIC>,
-    DOM1: BooleanLattice<LOGIC>,
-    LOGIC: BooleanLogic,
+    DOM0: BooleanLattice,
+    DOM1: BooleanLattice,
 {
-    fn complement(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector {
+    fn complement<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         let bits0 = self.dom0.num_bits();
         let mut result: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         result.extend(self.dom0.complement(logic, elem.head(bits0)));

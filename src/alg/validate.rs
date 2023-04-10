@@ -16,14 +16,13 @@
 */
 
 use super::{
-    BinaryRelations, BooleanLogic, BooleanSolver, BoundedOrder, Countable, CountableBase, Domain,
-    Lattice, Logic, MeetSemilattice, PartialOrder, Power, Product2, SmallSet, Solver, Vector,
-    BOOLEAN,
+    BinaryRelations, BooleanLogic, BooleanSolver, BoundedOrder, Countable, Domain, Lattice, Logic,
+    MeetSemilattice, PartialOrder, Power, Product2, SmallSet, Solver, Vector, BOOLEAN,
 };
 
 pub fn validate_domain<DOM>(domain: DOM)
 where
-    DOM: Domain<Solver>,
+    DOM: Domain,
 {
     // containment
     let mut logic = Solver::new("");
@@ -61,7 +60,7 @@ fn domain() {
 
 fn validate_countable<DOM>(domain: DOM, size: usize)
 where
-    DOM: Domain<Solver> + Countable<Logic>,
+    DOM: Countable,
 {
     assert_eq!(domain.size(), size);
 
@@ -114,7 +113,7 @@ fn countable() {
 
 pub fn validate_partial_order<DOM>(domain: DOM)
 where
-    DOM: PartialOrder<Solver>,
+    DOM: PartialOrder,
 {
     // reflexive
     let mut logic = Solver::new("");
@@ -159,23 +158,24 @@ fn partial_order() {
 
 pub fn validate_bounded_order<DOM>(domain: DOM)
 where
-    DOM: BoundedOrder<Solver>,
+    DOM: BoundedOrder,
 {
     // top is in domain
-    let mut logic = Solver::new("");
+    let mut logic = Logic();
     let top = domain.top(&logic);
     let test = domain.contains(&mut logic, top.slice());
-    assert!(logic.bool_is_unit(test));
+    assert!(test);
 
     // bottom is in domain
     let bottom = domain.bottom(&logic);
     let test = domain.contains(&mut logic, bottom.slice());
-    assert!(logic.bool_is_unit(test));
+    assert!(test);
     let test = domain.is_edge(&mut logic, bottom.slice(), top.slice());
-    assert!(logic.bool_is_unit(test));
+    assert!(test);
 
     // top is above everything
     let mut logic = Solver::new("");
+    let top = domain.lift(&logic, top.slice());
     let elem = domain.add_variable(&mut logic);
     let test = domain.is_edge(&mut logic, elem.slice(), top.slice());
     logic.bool_add_clause1(logic.bool_not(test));
@@ -183,6 +183,7 @@ where
 
     // bottom is below everything
     let mut logic = Solver::new("");
+    let bottom = domain.lift(&logic, bottom.slice());
     let elem = domain.add_variable(&mut logic);
     let test = domain.is_edge(&mut logic, bottom.slice(), elem.slice());
     logic.bool_add_clause1(logic.bool_not(test));
@@ -199,7 +200,7 @@ fn bounded_order() {
 
 pub fn validate_meet_semilattice<DOM>(domain: DOM)
 where
-    DOM: MeetSemilattice<Solver>,
+    DOM: MeetSemilattice,
 {
     // meet is in domain
     let mut logic = Solver::new("");
@@ -245,7 +246,7 @@ fn meet_semilattice() {
 
 pub fn validate_lattice<DOM>(domain: DOM)
 where
-    DOM: Lattice<Solver>,
+    DOM: Lattice,
 {
     // join is in domain
     let mut logic = Solver::new("");

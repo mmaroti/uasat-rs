@@ -19,7 +19,8 @@ use std::fmt::Debug;
 
 use super::{BitSlice, BitVec, BooleanLogic, BooleanSolver, Slice, Solver, Vector};
 
-pub trait DomainBase: Clone + PartialEq + Debug {
+/// An arbitrary set of elements that can be representable by bit vectors.
+pub trait Domain: Clone + PartialEq + Debug {
     /// Returns the number of bits used to represent the elements of the
     /// domain.
     fn num_bits(&self) -> usize;
@@ -43,25 +44,19 @@ pub trait DomainBase: Clone + PartialEq + Debug {
     }
 
     /// Returns an element of the domain.
-    fn find_element(&self) -> Option<BitVec>
-    where
-        Self: Domain<Solver>,
-    {
+    fn find_element(&self) -> Option<BitVec> {
         let mut solver = Solver::new("");
         let elem = self.add_variable(&mut solver);
         let test = self.contains(&mut solver, elem.slice());
         solver.bool_add_clause(&[test]);
         solver.bool_find_one_model(&[], elem.copy_iter())
     }
-}
 
-/// An arbitrary set of elements that can be representable by bit vectors.
-pub trait Domain<LOGIC>: DomainBase
-where
-    LOGIC: BooleanLogic,
-{
     /// Lifts the given bool vector to the logic associated with the domain.
-    fn lift(&self, logic: &LOGIC, elem: BitSlice) -> LOGIC::Vector {
+    fn lift<LOGIC>(&self, logic: &LOGIC, elem: BitSlice) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         let mut result: LOGIC::Vector = Vector::with_capacity(elem.len());
         for a in elem.copy_iter() {
             result.push(logic.bool_lift(a));
@@ -71,22 +66,26 @@ where
 
     /// Verifies that the given bit vector is encoding a valid element of
     /// this domain.
-    fn contains(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem;
+    fn contains<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic;
 
     /// Checks if the two bit vectors are exactly the same. This offers a
     /// faster implementation than bitwise comparison, since it has to work
     /// only for valid bit patterns that encode elements.
-    fn equals(
+    fn equals<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
         elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Elem;
+    ) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic;
 
     /// Adds a new variable to the given solver, which is just a list of
     /// fresh literals. It also enforces that the returned variable
     /// is contained in the domain, but adding the appropriate constraint.
-    fn add_variable(&self, logic: &mut LOGIC) -> LOGIC::Vector
+    fn add_variable<LOGIC>(&self, logic: &mut LOGIC) -> LOGIC::Vector
     where
         LOGIC: BooleanSolver,
     {
@@ -103,7 +102,7 @@ where
 /// A helper structure for displaying domain elements.
 pub struct Format<'a, BASE>
 where
-    BASE: DomainBase,
+    BASE: Domain,
 {
     base: &'a BASE,
     elem: BitSlice<'a>,
@@ -111,7 +110,7 @@ where
 
 impl<'a, BASE> std::fmt::Display for Format<'a, BASE>
 where
-    BASE: DomainBase,
+    BASE: Domain,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.base.display_elem(f, self.elem)
@@ -119,7 +118,7 @@ where
 }
 
 /// A domain where the elements can be counted and indexed.
-pub trait CountableBase: DomainBase {
+pub trait Countable: Domain {
     /// Returns the number of elements of the domain.
     fn size(&self) -> usize;
 
@@ -128,15 +127,12 @@ pub trait CountableBase: DomainBase {
 
     /// Returns the index of the given element.
     fn index(&self, elem: BitSlice<'_>) -> usize;
-}
 
-/// Logic based operations for countable domains.
-pub trait Countable<LOGIC>: Domain<LOGIC> + CountableBase
-where
-    LOGIC: BooleanLogic,
-{
     /// Returns the one hot encoding of the given element.
-    fn onehot(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector {
+    fn onehot<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         let mut result: LOGIC::Vector = Vector::with_capacity(self.size());
         for index in 0..self.size() {
             let value = self.lift(logic, self.elem(index).slice());
@@ -147,32 +143,31 @@ where
 }
 
 /// A directed graph on a domain.
-pub trait DirectedGraph<LOGIC>: Domain<LOGIC>
-where
-    LOGIC: BooleanLogic,
-{
+pub trait DirectedGraph: Domain {
     /// Returns true if there is an edge from the first element to the second.
-    fn is_edge(
+    fn is_edge<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
         elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Elem;
+    ) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic;
 }
 
 /// A domain with a reflexive, transitive and antisymmetric relation.
-pub trait PartialOrder<LOGIC>: DirectedGraph<LOGIC>
-where
-    LOGIC: BooleanLogic,
-{
+pub trait PartialOrder: DirectedGraph {
     /// Returns true if the first element is strictly less than the
     /// second one.
-    fn is_less(
+    fn is_less<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
         elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Elem {
+    ) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
         let test0 = self.is_edge(logic, elem0, elem1);
         let test1 = self.is_edge(logic, elem1, elem0);
         let test1 = logic.bool_not(test1);
@@ -181,12 +176,15 @@ where
 
     /// Returns true if one of the elements is less than or equal to
     /// the other.
-    fn comparable(
+    fn comparable<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
         elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Elem {
+    ) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
         let test0 = self.is_edge(logic, elem0, elem1);
         let test1 = self.is_edge(logic, elem1, elem0);
         logic.bool_or(test0, test1)
@@ -194,77 +192,81 @@ where
 }
 
 /// A partial order that has a largest and smallest element.
-pub trait BoundedOrder<LOGIC>: PartialOrder<LOGIC>
-where
-    LOGIC: BooleanLogic,
-{
+pub trait BoundedOrder: PartialOrder {
     /// Returns the largest element of the partial order.
-    fn top(&self, logic: &LOGIC) -> LOGIC::Vector;
+    fn top<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic;
 
     /// Returns true if the given element is the top one.
-    fn is_top(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem;
+    fn is_top<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic;
 
     /// Returns the smallest element of the partial order.
-    fn bottom(&self, logic: &LOGIC) -> LOGIC::Vector;
+    fn bottom<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic;
 
     /// Returns true if the given element is the bottom one.
-    fn is_bottom(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem;
+    fn is_bottom<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic;
 }
 
 /// A semilattice with a meet operation.
-pub trait MeetSemilattice<LOGIC>: PartialOrder<LOGIC>
-where
-    LOGIC: BooleanLogic,
-{
+pub trait MeetSemilattice: PartialOrder {
     /// Calculates the meet (the largest lower bound) of
     /// a pair of elements
-    fn meet(
+    fn meet<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
         elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Vector;
+    ) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic;
 }
 
-pub trait Lattice<LOGIC>: MeetSemilattice<LOGIC>
-where
-    LOGIC: BooleanLogic,
-{
+pub trait Lattice: MeetSemilattice {
     /// Calculates the join (the smallest upper bound) of
     /// a pair of elements.
-    fn join(
+    fn join<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
         elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Vector;
+    ) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic;
 }
 
-pub trait BooleanLattice<LOGIC>: Lattice<LOGIC> + BoundedOrder<LOGIC>
-where
-    LOGIC: BooleanLogic,
-{
+pub trait BooleanLattice: Lattice + BoundedOrder {
     /// Calculates the complement of the given element.
-    fn complement(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector;
+    fn complement<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic;
 
     /// Returns the logical implication between the two elements.
-    fn implies(
+    fn implies<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
         elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Vector {
+    ) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         let elem0 = self.complement(logic, elem0);
         self.join(logic, elem0.slice(), elem1)
     }
 }
 
 /// A binary relation between two domains
-pub trait BipartiteGraph<DOM0, DOM1, LOGIC>: Clone
+pub trait BipartiteGraph<DOM0, DOM1>: Clone
 where
-    DOM0: Domain<LOGIC>,
-    DOM1: Domain<LOGIC>,
-    LOGIC: BooleanLogic,
+    DOM0: Domain,
+    DOM1: Domain,
 {
     /// Returns the domain of the relation.
     fn domain(&self) -> &DOM0;
@@ -273,12 +275,14 @@ where
     fn codomain(&self) -> &DOM1;
 
     /// Returns true if the two elements are related.
-    fn is_edge(
+    fn is_edge<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
         elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Elem;
+    ) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic;
 }
 
 /// A ranked domain which is part of a domain family.
@@ -291,66 +295,80 @@ pub trait RankedDomain {
 }
 
 /// A domain of function from a fixed domain and codomain.
-pub trait Functions<LOGIC>: RankedDomain + Domain<LOGIC>
-where
-    LOGIC: BooleanLogic,
-{
+pub trait Functions: RankedDomain + Domain {
     /// Creates a new function of the given arity from an old function with
     /// permuted, identified and/or new dummy coordinates. The mapping is a
     /// vector of length of the arity of the original element with entries
     /// identifying the matching coordinates in the new function.
-    fn polymer(&self, elem: LOGIC::Slice<'_>, arity: usize, mapping: &[usize]) -> LOGIC::Vector;
+    fn polymer<'a, SLICE>(&self, elem: SLICE, arity: usize, mapping: &[usize]) -> SLICE::Vector
+    where
+        SLICE: Slice<'a>;
 
     /// Returns the unary function with all variables identified.
-    fn identify(&self, elem: LOGIC::Slice<'_>) -> LOGIC::Vector {
+    fn identify<'a, SLICE>(&self, elem: SLICE) -> SLICE::Vector
+    where
+        SLICE: Slice<'a>,
+    {
         assert!(self.arity() >= 1);
         self.polymer(elem, 1, &vec![0; self.arity()])
     }
 
     /// Reverses all coordinates of the function.
-    fn converse(&self, elem: LOGIC::Slice<'_>) -> LOGIC::Vector {
+    fn converse<'a, SLICE>(&self, elem: SLICE) -> SLICE::Vector
+    where
+        SLICE: Slice<'a>,
+    {
         let map: Vec<usize> = (0..self.arity()).rev().collect();
         self.polymer(elem, map.len(), &map)
     }
 }
 
 /// A domain of relations, which are functions to the BOOLEAN domain.
-pub trait Relations<LOGIC>: Functions<LOGIC> + BooleanLattice<LOGIC>
-where
-    LOGIC: BooleanLogic,
-{
+pub trait Relations: Functions + BooleanLattice {
     /// Returns the relation that is true if and only if all arguments are
     /// the same. This method panics if the arity is zero.
-    fn get_diagonal(&self, logic: &LOGIC) -> LOGIC::Vector;
+    fn get_diagonal<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic;
 
     /// Checks if the given relation is the diagonal relation (only the
     /// elements in the diagonal are set).
-    fn is_diagonal(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem;
+    fn is_diagonal<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic;
 
     /// Returns a unary relation containing only the given tuple. This
     /// method panics if the number of elements in the tuple does not
     /// match the arity of the domain.
-    fn get_singleton(&self, logic: &LOGIC, elem: &[BitSlice<'_>]) -> LOGIC::Vector;
+    fn get_singleton<LOGIC>(&self, logic: &LOGIC, elem: &[BitSlice<'_>]) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic;
 
     /// Checks if the given element is a singleton.
-    fn is_singleton(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem;
+    fn is_singleton<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic;
 
     /// Returns a new relation of arity one less where the first coordinate is
     /// removed and folded using the logical and operation.
-    fn fold_all(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector;
+    fn fold_all<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic;
 
     /// Returns a new relation of arity one less where the first coordinate is
     /// removed and folded using the logical or operation.
-    fn fold_any(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector;
+    fn fold_any<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic;
 }
 
 /// A domain of binary relations.
-pub trait BinaryRelations<LOGIC>: Relations<LOGIC>
-where
-    LOGIC: BooleanLogic,
-{
+pub trait BinaryRelations: Relations {
     /// Checks if the given binary relation is reflexive.
-    fn is_reflexive(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem {
+    fn is_reflexive<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
         assert_eq!(self.arity(), 2);
         let elem = self.identify(elem);
         let dom1 = self.change(1);
@@ -358,14 +376,20 @@ where
     }
 
     /// Returns true if the given binary relation is symmetric.
-    fn is_symmetric(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem {
+    fn is_symmetric<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
         let conv = self.polymer(elem, 2, &[1, 0]);
         let elem = self.implies(logic, elem, conv.slice());
         self.is_top(logic, elem.slice())
     }
 
     /// Checks if the given binary relation is antisymmetric.
-    fn is_antisymmetric(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem {
+    fn is_antisymmetric<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
         let conv = self.polymer(elem, 2, &[1, 0]);
         let elem = self.meet(logic, elem, conv.slice());
         let diag = self.get_diagonal(logic);
@@ -373,12 +397,15 @@ where
     }
 
     /// Returns the composition of the given binary relations.
-    fn compose(
+    fn compose<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
         elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Vector {
+    ) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         assert_eq!(self.arity(), 2);
         let dom3 = self.change(3);
         let elem0: LOGIC::Vector = self.polymer(elem0, 3, &[1, 0]);
@@ -388,14 +415,20 @@ where
     }
 
     /// Returns true if the given binary relation is transitive.
-    fn is_transitive(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem {
+    fn is_transitive<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
         let comp = self.compose(logic, elem, elem);
         let elem = self.implies(logic, comp.slice(), elem);
         self.is_top(logic, elem.slice())
     }
 
     /// Returns true if the given binary relation is an equivalence relation.
-    fn is_equivalence(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem {
+    fn is_equivalence<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
         let test0 = self.is_reflexive(logic, elem);
         let test1 = self.is_symmetric(logic, elem);
         let test2 = self.is_transitive(logic, elem);
@@ -404,7 +437,10 @@ where
     }
 
     /// Returns true if the given binary relation is a partial order relation.
-    fn is_partial_order(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem {
+    fn is_partial_order<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
         let test0 = self.is_reflexive(logic, elem);
         let test1 = self.is_antisymmetric(logic, elem);
         let test2 = self.is_transitive(logic, elem);

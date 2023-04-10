@@ -294,7 +294,7 @@ impl<'a> Slice<'a> for BitSlice<'a> {
 
     type Iter = Self;
 
-    type Vec = BitVec;
+    type Vector = BitVec;
 
     fn copy_iter(self) -> Self::Iter {
         self

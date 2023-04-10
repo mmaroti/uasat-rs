@@ -111,7 +111,7 @@ where
 
     type Iter = std::iter::Copied<std::slice::Iter<'a, ELEM>>;
 
-    type Vec = Vec<ELEM>;
+    type Vector = Vec<ELEM>;
 
     fn len(self) -> usize {
         <[ELEM]>::len(self)

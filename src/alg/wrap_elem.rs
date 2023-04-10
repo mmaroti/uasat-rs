@@ -15,52 +15,38 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BipartiteGraph, Boolean, BooleanLogic, CountableBase, Domain, Power, Product2, Slice};
+use super::{
+    BipartiteGraph, BitSlice, BitVec, Boolean, BooleanLogic, Countable, Domain, Power, Product2,
+    Slice,
+};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 
-pub struct WrapElem<DOM, LOGIC>
+pub struct WrapElem<DOM>
 where
-    DOM: Domain<LOGIC>,
-    LOGIC: BooleanLogic,
+    DOM: Domain,
 {
     domain: DOM,
-    elem: LOGIC::Vector,
+    _elem: BitVec,
 }
 
-impl<DOM, LOGIC> WrapElem<DOM, LOGIC>
+impl<DOM> WrapElem<DOM>
 where
-    DOM: Domain<LOGIC>,
-    LOGIC: BooleanLogic,
+    DOM: Domain,
 {
     /// Creates a new domain that wraps the given element.
-    pub fn new(domain: DOM, elem: LOGIC::Slice<'_>) -> Self {
+    pub fn new(domain: DOM, elem: BitSlice<'_>) -> Self {
         Self {
             domain,
-            elem: elem.copy_iter().collect(),
+            _elem: elem.copy_iter().collect(),
         }
     }
 }
 
-impl<DOM, LOGIC> Clone for WrapElem<DOM, LOGIC>
+impl<DOM0, DOM1> BipartiteGraph<DOM0, DOM1> for WrapElem<Power<Boolean, Product2<DOM0, DOM1>>>
 where
-    DOM: Domain<LOGIC>,
-    LOGIC: BooleanLogic,
-{
-    fn clone(&self) -> Self {
-        Self {
-            domain: self.domain.clone(),
-            elem: self.elem.clone(),
-        }
-    }
-}
-
-impl<DOM0, DOM1, LOGIC> BipartiteGraph<DOM0, DOM1, LOGIC>
-    for WrapElem<Power<Boolean, Product2<DOM0, DOM1>>, LOGIC>
-where
-    DOM0: Domain<LOGIC> + CountableBase,
-    DOM1: Domain<LOGIC> + CountableBase,
-    LOGIC: BooleanLogic,
+    DOM0: Countable,
+    DOM1: Countable,
 {
     fn domain(&self) -> &DOM0 {
         self.domain.exponent().dom0()
@@ -70,12 +56,15 @@ where
         self.domain.exponent().dom1()
     }
 
-    fn is_edge(
+    fn is_edge<LOGIC>(
         &self,
         _logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
         _elem1: LOGIC::Slice<'_>,
-    ) -> LOGIC::Elem {
+    ) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
         // TODO: implement this
         elem0.get(0)
     }

@@ -16,16 +16,18 @@
 */
 
 use super::{
-    BinaryRelations, BitSlice, Boolean, BooleanLogic, CountableBase, Domain, DomainBase, Power,
-    RankedDomain, Relations, Slice, SmallSet, Vector,
+    BinaryRelations, BitSlice, Boolean, BooleanLogic, Countable, Domain, Power, RankedDomain,
+    Relations, Slice, SmallSet, Vector,
 };
 
-impl<DOM, LOGIC> Relations<LOGIC> for Power<Boolean, Power<DOM, SmallSet>>
+impl<DOM> Relations for Power<Boolean, Power<DOM, SmallSet>>
 where
-    DOM: Domain<LOGIC> + CountableBase,
-    LOGIC: BooleanLogic,
+    DOM: Countable,
 {
-    fn get_diagonal(&self, logic: &LOGIC) -> LOGIC::Vector {
+    fn get_diagonal<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         assert!(self.arity() >= 1);
 
         let num_bits = self.num_bits();
@@ -49,12 +51,18 @@ where
         result
     }
 
-    fn is_diagonal(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem {
+    fn is_diagonal<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
         let diag = self.get_diagonal(logic);
         self.equals(logic, elem, diag.slice())
     }
 
-    fn get_singleton(&self, logic: &LOGIC, elem: &[BitSlice<'_>]) -> LOGIC::Vector {
+    fn get_singleton<LOGIC>(&self, logic: &LOGIC, elem: &[BitSlice<'_>]) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         assert!(self.arity() == elem.len());
 
         let domain = self.exponent().base();
@@ -71,12 +79,18 @@ where
         result
     }
 
-    fn is_singleton(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem {
+    fn is_singleton<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
         assert!(self.arity() == 1);
         logic.bool_fold_one(elem.copy_iter())
     }
 
-    fn fold_all(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector {
+    fn fold_all<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         let dom = self.change(self.arity() - 1);
         let mut result: LOGIC::Vector = Vector::with_capacity(dom.num_bits());
         for part in self.fold_iter(elem) {
@@ -85,7 +99,10 @@ where
         result
     }
 
-    fn fold_any(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector {
+    fn fold_any<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         let dom = self.change(self.arity() - 1);
         let mut result: LOGIC::Vector = Vector::with_capacity(dom.num_bits());
         for part in self.fold_iter(elem) {
@@ -95,9 +112,4 @@ where
     }
 }
 
-impl<DOM, LOGIC> BinaryRelations<LOGIC> for Power<Boolean, Power<DOM, SmallSet>>
-where
-    DOM: Domain<LOGIC> + CountableBase,
-    LOGIC: BooleanLogic,
-{
-}
+impl<DOM> BinaryRelations for Power<Boolean, Power<DOM, SmallSet>> where DOM: Countable {}

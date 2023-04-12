@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
+    BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
     Functions, Lattice, MeetSemilattice, PartialOrder, RankedDomain, Slice, SmallSet, Vector,
 };
 
@@ -183,12 +183,15 @@ where
         result
     }
 
-    fn elem(&self, index: usize) -> BitVec {
+    fn get_elem<LOGIC>(&self, logic: &LOGIC, index: usize) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         let mut index = index;
         let base_size = self.base.size();
-        let mut result: BitVec = Vector::with_capacity(self.num_bits());
+        let mut result: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         for _ in 0..self.exponent.size() {
-            let other = self.base.elem(index % base_size);
+            let other = self.base.get_elem(logic, index % base_size);
             result.extend(other);
             index /= base_size;
         }
@@ -196,13 +199,13 @@ where
         result
     }
 
-    fn index(&self, elem: BitSlice<'_>) -> usize {
+    fn get_index(&self, elem: BitSlice<'_>) -> usize {
         let mut index = 0;
         let base_size = self.base.size();
         let mut power = 1;
 
         for part in self.part_iter(elem) {
-            index += self.base.index(part) * power;
+            index += self.base.get_index(part) * power;
             power *= base_size;
         }
 
@@ -389,7 +392,7 @@ where
         self.exponent().exponent().size()
     }
 
-    fn change(&self, arity: usize) -> Self {
+    fn change_arity(&self, arity: usize) -> Self {
         Power::new(
             self.base.clone(),
             Power::new(self.exponent.base.clone(), SmallSet::new(arity)),

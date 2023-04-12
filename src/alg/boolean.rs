@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
+    BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
     Lattice, MeetSemilattice, PartialOrder, Slice, Vector,
 };
 
@@ -57,12 +57,16 @@ impl Countable for Boolean {
         2
     }
 
-    fn elem(&self, index: usize) -> BitVec {
+    fn get_elem<LOGIC>(&self, logic: &LOGIC, index: usize) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         assert!(index < 2);
-        Vector::from_elem(index != 0)
+        let value = logic.bool_lift(index != 0);
+        LOGIC::Vector::from_elem(value)
     }
 
-    fn index(&self, elem: BitSlice<'_>) -> usize {
+    fn get_index(&self, elem: BitSlice<'_>) -> usize {
         assert!(elem.len() == 1);
         elem.get(0) as usize
     }

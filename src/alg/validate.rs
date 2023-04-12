@@ -75,18 +75,18 @@ where
     // elem and index are inverses of each other
     let mut logic = Logic();
     for index in 0..domain.size() {
-        let elem = domain.elem(index);
+        let elem = domain.get_elem(&logic, index);
         assert!(domain.contains(&mut logic, elem.slice()));
-        assert_eq!(domain.index(elem.slice()), index);
+        assert_eq!(domain.get_index(elem.slice()), index);
     }
 
     // equality works
     let mut logic = Logic();
     for index0 in 0..domain.size() {
-        let elem0 = domain.elem(index0);
+        let elem0 = domain.get_elem(&logic, index0);
         assert!(domain.equals(&mut logic, elem0.slice(), elem0.slice()));
         for index1 in 0..index0 {
-            let elem1 = domain.elem(index1);
+            let elem1 = domain.get_elem(&logic, index1);
             assert!(!domain.equals(&mut logic, elem0.slice(), elem1.slice()));
         }
     }
@@ -95,9 +95,9 @@ where
     let small = SmallSet::new(domain.size());
     let mut logic = Logic();
     for index in 0..domain.size() {
-        let elem0 = domain.elem(index);
+        let elem0 = domain.get_elem(&logic, index);
         let elem0 = domain.onehot(&mut logic, elem0.slice());
-        let elem1 = small.elem(index);
+        let elem1 = small.get_elem(&logic, index);
         assert_eq!(elem0, elem1);
     }
 }

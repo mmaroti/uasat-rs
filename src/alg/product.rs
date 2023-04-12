@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BitSlice, BitVec, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
+    BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
     Lattice, MeetSemilattice, PartialOrder, Slice, Vector,
 };
 
@@ -127,22 +127,25 @@ where
         self.dom0.size() * self.dom1.size()
     }
 
-    fn elem(&self, index: usize) -> BitVec {
+    fn get_elem<LOGIC>(&self, logic: &LOGIC, index: usize) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         let size0 = self.dom0.size();
-        let mut result: BitVec = Vector::with_capacity(self.num_bits());
-        result.extend(self.dom0.elem(index % size0));
-        result.extend(self.dom1.elem(index / size0));
+        let mut result: LOGIC::Vector = Vector::with_capacity(self.num_bits());
+        result.extend(self.dom0.get_elem(logic, index % size0));
+        result.extend(self.dom1.get_elem(logic, index / size0));
         debug_assert!(result.len() == self.num_bits());
         result
     }
 
-    fn index(&self, elem: BitSlice<'_>) -> usize {
+    fn get_index(&self, elem: BitSlice<'_>) -> usize {
         debug_assert!(elem.len() == self.num_bits());
         let bits0 = self.dom0.num_bits();
-        let part0 = self.dom0.index(elem.head(bits0));
+        let part0 = self.dom0.get_index(elem.head(bits0));
 
         let size0 = self.dom0.size();
-        part0 + size0 * self.dom1.index(elem.tail(bits0))
+        part0 + size0 * self.dom1.get_index(elem.tail(bits0))
     }
 
     fn onehot<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector

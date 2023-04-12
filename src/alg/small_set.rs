@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BitSlice, BitVec, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain, Lattice,
+    BitSlice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain, Lattice,
     MeetSemilattice, PartialOrder, Slice, Vector,
 };
 
@@ -44,7 +44,7 @@ impl Domain for SmallSet {
         f: &mut std::fmt::Formatter<'_>,
         elem: BitSlice<'_>,
     ) -> std::fmt::Result {
-        write!(f, "{}", self.index(elem))
+        write!(f, "{}", self.get_index(elem))
     }
 
     fn contains<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
@@ -80,16 +80,19 @@ impl Countable for SmallSet {
         self.size
     }
 
-    fn elem(&self, index: usize) -> BitVec {
+    fn get_elem<LOGIC>(&self, logic: &LOGIC, index: usize) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         assert!(index < self.size);
-        let mut vec: BitVec = Vector::with_capacity(self.size);
+        let mut vec: LOGIC::Vector = Vector::with_capacity(self.size);
         for i in 0..self.size {
-            vec.push(i == index);
+            vec.push(logic.bool_lift(i == index));
         }
         vec
     }
 
-    fn index(&self, elem: BitSlice<'_>) -> usize {
+    fn get_index(&self, elem: BitSlice<'_>) -> usize {
         assert!(elem.len() == self.size);
         let mut index = self.size;
         for (i, v) in elem.copy_iter().enumerate() {
@@ -133,7 +136,7 @@ impl BoundedOrder for SmallSet {
         LOGIC: BooleanLogic,
     {
         assert!(self.size != 0);
-        self.lift(logic, self.elem(self.size - 1).slice())
+        self.get_elem(logic, self.size() - 1)
     }
 
     fn is_top<LOGIC>(&self, _logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
@@ -149,7 +152,7 @@ impl BoundedOrder for SmallSet {
         LOGIC: BooleanLogic,
     {
         assert!(self.size != 0);
-        self.lift(logic, self.elem(0).slice())
+        self.get_elem(logic, 0)
     }
 
     fn is_bottom<LOGIC>(&self, _logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem

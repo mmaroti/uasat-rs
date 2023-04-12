@@ -123,10 +123,12 @@ pub trait Countable: Domain {
     fn size(&self) -> usize;
 
     /// Returns the given element of the domain.
-    fn elem(&self, index: usize) -> BitVec;
+    fn get_elem<LOGIC>(&self, logic: &LOGIC, index: usize) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic;
 
     /// Returns the index of the given element.
-    fn index(&self, elem: BitSlice<'_>) -> usize;
+    fn get_index(&self, elem: BitSlice<'_>) -> usize;
 
     /// Returns the one hot encoding of the given element.
     fn onehot<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
@@ -135,7 +137,7 @@ pub trait Countable: Domain {
     {
         let mut result: LOGIC::Vector = Vector::with_capacity(self.size());
         for index in 0..self.size() {
-            let value = self.lift(logic, self.elem(index).slice());
+            let value = self.get_elem(logic, index);
             result.push(self.equals(logic, elem, value.slice()));
         }
         result
@@ -340,24 +342,20 @@ pub trait BooleanLattice: Lattice + BoundedOrder {
     }
 }
 
-pub trait DomainPair<DOM0, DOM1>
-where
-    DOM0: Domain,
-    DOM1: Domain,
-{
+/// A binary relation between two domains
+pub trait BipartiteGraph {
+    /// The type of the first component
+    type Dom0: Domain;
+
+    /// The type of the second component
+    type Dom1: Domain;
+
     /// Returns the domain of this bipartite graph.
-    fn domain(&self) -> &DOM0;
+    fn dom0(&self) -> &Self::Dom0;
 
     /// Returns the codomain of this bipartite graph.
-    fn codomain(&self) -> &DOM1;
-}
+    fn dom1(&self) -> &Self::Dom1;
 
-/// A binary relation between two domains
-pub trait BipartiteGraph<DOM0, DOM1>: DomainPair<DOM0, DOM1>
-where
-    DOM0: Domain,
-    DOM1: Domain,
-{
     /// Returns true if the two elements are related, the first
     /// from the domain, the second from the codomain.
     fn is_edge<LOGIC>(
@@ -376,7 +374,7 @@ pub trait RankedDomain {
     fn arity(&self) -> usize;
 
     /// Returns the domain of functions with the given arity.
-    fn change(&self, arity: usize) -> Self;
+    fn change_arity(&self, arity: usize) -> Self;
 }
 
 /// A domain of function from a fixed domain and codomain.
@@ -456,7 +454,7 @@ pub trait BinaryRelations: Relations {
     {
         assert_eq!(self.arity(), 2);
         let elem = self.identify(elem);
-        let dom1 = self.change(1);
+        let dom1 = self.change_arity(1);
         dom1.is_top(logic, elem.slice())
     }
 
@@ -492,7 +490,7 @@ pub trait BinaryRelations: Relations {
         LOGIC: BooleanLogic,
     {
         assert_eq!(self.arity(), 2);
-        let dom3 = self.change(3);
+        let dom3 = self.change_arity(3);
         let elem0: LOGIC::Vector = self.polymer(elem0, 3, &[1, 0]);
         let elem1: LOGIC::Vector = self.polymer(elem1, 3, &[0, 2]);
         let elem2 = dom3.meet(logic, elem0.slice(), elem1.slice());

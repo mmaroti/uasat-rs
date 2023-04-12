@@ -71,7 +71,7 @@ where
         let mut index = 0;
         for value in elem.iter().rev() {
             index *= size;
-            index += domain.index(*value);
+            index += domain.get_index(*value);
         }
 
         let mut result: LOGIC::Vector = Vector::with_values(self.num_bits(), logic.bool_zero());
@@ -91,7 +91,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        let dom = self.change(self.arity() - 1);
+        let dom = self.change_arity(self.arity() - 1);
         let mut result: LOGIC::Vector = Vector::with_capacity(dom.num_bits());
         for part in self.fold_iter(elem) {
             result.push(logic.bool_fold_all(part.copy_iter()));
@@ -103,7 +103,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        let dom = self.change(self.arity() - 1);
+        let dom = self.change_arity(self.arity() - 1);
         let mut result: LOGIC::Vector = Vector::with_capacity(dom.num_bits());
         for part in self.fold_iter(elem) {
             result.push(logic.bool_fold_any(part.copy_iter()));

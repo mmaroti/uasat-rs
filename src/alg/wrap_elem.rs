@@ -16,8 +16,7 @@
 */
 
 use super::{
-    BipartiteGraph, BitVec, Boolean, BooleanLogic, Countable, Domain, DomainPair, Power, Product2,
-    Vector,
+    BipartiteGraph, BitVec, Boolean, BooleanLogic, Countable, Domain, Power, Product2, Vector,
 };
 
 #[derive(Debug, Clone)]
@@ -41,25 +40,23 @@ where
     }
 }
 
-impl<DOM0, DOM1> DomainPair<DOM0, DOM1> for WrapElem<Power<Boolean, Product2<DOM0, DOM1>>>
+impl<DOM0, DOM1> BipartiteGraph for WrapElem<Power<Boolean, Product2<DOM0, DOM1>>>
 where
     DOM0: Countable,
     DOM1: Countable,
 {
-    fn domain(&self) -> &DOM0 {
+    type Dom0 = DOM0;
+
+    type Dom1 = DOM1;
+
+    fn dom0(&self) -> &DOM0 {
         self.domain.exponent().dom0()
     }
 
-    fn codomain(&self) -> &DOM1 {
+    fn dom1(&self) -> &DOM1 {
         self.domain.exponent().dom1()
     }
-}
 
-impl<DOM0, DOM1> BipartiteGraph<DOM0, DOM1> for WrapElem<Power<Boolean, Product2<DOM0, DOM1>>>
-where
-    DOM0: Countable,
-    DOM1: Countable,
-{
     fn is_edge<LOGIC>(
         &self,
         logic: &mut LOGIC,
@@ -69,10 +66,10 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        let elem0 = self.domain().onehot(logic, elem0);
-        let elem1 = self.domain().onehot(logic, elem1);
-        debug_assert_eq!(elem0.len(), self.domain().size());
-        debug_assert_eq!(elem1.len(), self.codomain().size());
+        let elem0 = self.dom0().onehot(logic, elem0);
+        let elem1 = self.dom1().onehot(logic, elem1);
+        debug_assert_eq!(elem0.len(), self.dom0().size());
+        debug_assert_eq!(elem1.len(), self.dom1().size());
 
         let mut iter = self.elem.copy_iter();
         let mut result = logic.bool_zero();

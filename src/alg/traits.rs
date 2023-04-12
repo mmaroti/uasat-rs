@@ -43,7 +43,7 @@ pub trait Domain: Clone + PartialEq + Debug {
         Ok(())
     }
 
-    /// Returns an element of the domain.
+    /// Returns an element of the domain, if it has one.
     fn find_element(&self) -> Option<BitVec> {
         let mut solver = Solver::new("");
         let elem = self.add_variable(&mut solver);
@@ -153,6 +153,76 @@ pub trait DirectedGraph: Domain {
     ) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic;
+
+    /// Returns true if this directed graph is reflexive
+    /// by constructing a suitable SAT problem and solving it.
+    fn check_reflexive_relation(&self) -> bool {
+        let mut logic = Solver::new("");
+        let elem = self.add_variable(&mut logic);
+        let test = self.is_edge(&mut logic, elem.slice(), elem.slice());
+        logic.bool_add_clause1(logic.bool_not(test));
+        !logic.bool_solvable()
+    }
+
+    /// Returns true if this directed graph is symmertic
+    /// by constructing a suitable SAT problem and solving it.
+    fn check_symmetric_relation(&self) -> bool {
+        let mut logic = Solver::new("");
+        let elem0 = self.add_variable(&mut logic);
+        let elem1 = self.add_variable(&mut logic);
+        let test = self.is_edge(&mut logic, elem0.slice(), elem1.slice());
+        logic.bool_add_clause1(test);
+        let test = self.is_edge(&mut logic, elem1.slice(), elem0.slice());
+        logic.bool_add_clause1(logic.bool_not(test));
+        !logic.bool_solvable()
+    }
+
+    /// Returns true if this directed graph is antisymmertic
+    /// by constructing a suitable SAT problem and solving it.
+    fn check_antisymmetric_relation(&self) -> bool {
+        let mut logic = Solver::new("");
+        let elem0 = self.add_variable(&mut logic);
+        let elem1 = self.add_variable(&mut logic);
+        let test = self.is_edge(&mut logic, elem0.slice(), elem1.slice());
+        logic.bool_add_clause1(test);
+        let test = self.is_edge(&mut logic, elem1.slice(), elem0.slice());
+        logic.bool_add_clause1(test);
+        let test = self.equals(&mut logic, elem0.slice(), elem1.slice());
+        logic.bool_add_clause1(logic.bool_not(test));
+        !logic.bool_solvable()
+    }
+
+    /// Returns true if this directed graph is transitive
+    /// by constructing a suitable SAT problem and solving it.
+    fn check_transitive_relation(&self) -> bool {
+        let mut logic = Solver::new("");
+        let elem0 = self.add_variable(&mut logic);
+        let elem1 = self.add_variable(&mut logic);
+        let elem2 = self.add_variable(&mut logic);
+        let test = self.is_edge(&mut logic, elem0.slice(), elem1.slice());
+        logic.bool_add_clause1(test);
+        let test = self.is_edge(&mut logic, elem1.slice(), elem2.slice());
+        logic.bool_add_clause1(test);
+        let test = self.is_edge(&mut logic, elem0.slice(), elem2.slice());
+        logic.bool_add_clause1(logic.bool_not(test));
+        !logic.bool_solvable()
+    }
+
+    /// Returns true if this directed graph is an equivalence relation
+    /// by constructing suitable SAT problems and solving them.
+    fn check_equivalence_relation(&self) -> bool {
+        self.check_reflexive_relation()
+            && self.check_symmetric_relation()
+            && self.check_transitive_relation()
+    }
+
+    /// Returns true if this directed graph is a partial order
+    /// by constructing suitable SAT problems and solving them.
+    fn check_partial_order(&self) -> bool {
+        self.check_reflexive_relation()
+            && self.check_antisymmetric_relation()
+            && self.check_transitive_relation()
+    }
 }
 
 /// A domain with a reflexive, transitive and antisymmetric relation.
@@ -194,24 +264,32 @@ pub trait PartialOrder: DirectedGraph {
 /// A partial order that has a largest and smallest element.
 pub trait BoundedOrder: PartialOrder {
     /// Returns the largest element of the partial order.
-    fn top<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    fn get_top<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic;
 
     /// Returns true if the given element is the top one.
     fn is_top<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
-        LOGIC: BooleanLogic;
+        LOGIC: BooleanLogic,
+    {
+        let top = self.get_top(logic);
+        self.equals(logic, elem, top.slice())
+    }
 
     /// Returns the smallest element of the partial order.
-    fn bottom<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    fn get_bottom<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic;
 
     /// Returns true if the given element is the bottom one.
     fn is_bottom<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
-        LOGIC: BooleanLogic;
+        LOGIC: BooleanLogic,
+    {
+        let bottom = self.get_bottom(logic);
+        self.equals(logic, elem, bottom.slice())
+    }
 }
 
 /// A semilattice with a meet operation.
@@ -262,19 +340,26 @@ pub trait BooleanLattice: Lattice + BoundedOrder {
     }
 }
 
-/// A binary relation between two domains
-pub trait BipartiteGraph<DOM0, DOM1>: Clone
+pub trait DomainPair<DOM0, DOM1>
 where
     DOM0: Domain,
     DOM1: Domain,
 {
-    /// Returns the domain of the relation.
+    /// Returns the domain of this bipartite graph.
     fn domain(&self) -> &DOM0;
 
-    /// Returns the co-domain of the relation.
+    /// Returns the codomain of this bipartite graph.
     fn codomain(&self) -> &DOM1;
+}
 
-    /// Returns true if the two elements are related.
+/// A binary relation between two domains
+pub trait BipartiteGraph<DOM0, DOM1>: DomainPair<DOM0, DOM1>
+where
+    DOM0: Domain,
+    DOM1: Domain,
+{
+    /// Returns true if the two elements are related, the first
+    /// from the domain, the second from the codomain.
     fn is_edge<LOGIC>(
         &self,
         logic: &mut LOGIC,

@@ -96,7 +96,7 @@ impl DirectedGraph for Boolean {
 impl PartialOrder for Boolean {}
 
 impl BoundedOrder for Boolean {
-    fn top<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    fn get_top<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
@@ -111,7 +111,7 @@ impl BoundedOrder for Boolean {
         elem.get(0)
     }
 
-    fn bottom<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    fn get_bottom<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {

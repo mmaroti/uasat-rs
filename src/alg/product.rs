@@ -202,13 +202,13 @@ where
     DOM0: BoundedOrder,
     DOM1: BoundedOrder,
 {
-    fn top<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    fn get_top<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
         let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
-        elem.append(&mut self.dom0.top(logic));
-        elem.append(&mut self.dom1.top(logic));
+        elem.append(&mut self.dom0.get_top(logic));
+        elem.append(&mut self.dom1.get_top(logic));
         elem
     }
 
@@ -222,13 +222,13 @@ where
         logic.bool_and(test0, test1)
     }
 
-    fn bottom<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    fn get_bottom<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
         let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
-        elem.append(&mut self.dom0.bottom(logic));
-        elem.append(&mut self.dom1.bottom(logic));
+        elem.append(&mut self.dom0.get_bottom(logic));
+        elem.append(&mut self.dom1.get_bottom(logic));
         elem
     }
 

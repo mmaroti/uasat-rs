@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BipartiteGraph, BitSlice, BitVec, Boolean, BooleanLogic, Countable, Domain, Power, Product2,
-    Slice,
+    BipartiteGraph, BitVec, Boolean, BooleanLogic, Countable, Domain, DomainPair, Power, Product2,
+    Vector,
 };
 
 #[derive(Debug, Clone)]
@@ -27,7 +27,7 @@ where
     DOM: Domain,
 {
     domain: DOM,
-    _elem: BitVec,
+    elem: BitVec,
 }
 
 impl<DOM> WrapElem<DOM>
@@ -35,15 +35,13 @@ where
     DOM: Domain,
 {
     /// Creates a new domain that wraps the given element.
-    pub fn new(domain: DOM, elem: BitSlice<'_>) -> Self {
-        Self {
-            domain,
-            _elem: elem.copy_iter().collect(),
-        }
+    pub fn new(domain: DOM, elem: BitVec) -> Self {
+        assert_eq!(elem.len(), domain.num_bits());
+        Self { domain, elem }
     }
 }
 
-impl<DOM0, DOM1> BipartiteGraph<DOM0, DOM1> for WrapElem<Power<Boolean, Product2<DOM0, DOM1>>>
+impl<DOM0, DOM1> DomainPair<DOM0, DOM1> for WrapElem<Power<Boolean, Product2<DOM0, DOM1>>>
 where
     DOM0: Countable,
     DOM1: Countable,
@@ -55,17 +53,41 @@ where
     fn codomain(&self) -> &DOM1 {
         self.domain.exponent().dom1()
     }
+}
 
+impl<DOM0, DOM1> BipartiteGraph<DOM0, DOM1> for WrapElem<Power<Boolean, Product2<DOM0, DOM1>>>
+where
+    DOM0: Countable,
+    DOM1: Countable,
+{
     fn is_edge<LOGIC>(
         &self,
-        _logic: &mut LOGIC,
+        logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
-        _elem1: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
     ) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
     {
-        // TODO: implement this
-        elem0.get(0)
+        let elem0 = self.domain().onehot(logic, elem0);
+        let elem1 = self.domain().onehot(logic, elem1);
+        debug_assert_eq!(elem0.len(), self.domain().size());
+        debug_assert_eq!(elem1.len(), self.codomain().size());
+
+        let mut iter = self.elem.copy_iter();
+        let mut result = logic.bool_zero();
+        for e1 in elem1.copy_iter() {
+            for e0 in elem0.copy_iter() {
+                let val = iter.next().unwrap();
+                if !val {
+                    continue;
+                }
+                let val = logic.bool_and(e0, e1);
+                result = logic.bool_or(result, val);
+            }
+        }
+        debug_assert!(iter.next().is_none());
+
+        result
     }
 }

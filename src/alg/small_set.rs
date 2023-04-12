@@ -128,7 +128,7 @@ impl DirectedGraph for SmallSet {
 impl PartialOrder for SmallSet {}
 
 impl BoundedOrder for SmallSet {
-    fn top<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    fn get_top<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
@@ -144,7 +144,7 @@ impl BoundedOrder for SmallSet {
         elem.get(self.size - 1)
     }
 
-    fn bottom<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    fn get_bottom<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {

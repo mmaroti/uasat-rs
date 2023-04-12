@@ -270,11 +270,11 @@ where
     BASE: BoundedOrder,
     EXP: Countable,
 {
-    fn top<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    fn get_top<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
-        let part = self.base.top(logic);
+        let part = self.base.get_top(logic);
         let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         for _ in 0..self.exponent.size() {
             elem.extend(part.copy_iter());
@@ -294,11 +294,11 @@ where
         result
     }
 
-    fn bottom<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    fn get_bottom<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
-        let part = self.base.bottom(logic);
+        let part = self.base.get_bottom(logic);
         let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         for _ in 0..self.exponent.size() {
             elem.extend(part.copy_iter());

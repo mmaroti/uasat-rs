@@ -98,7 +98,7 @@ where
         let elem0 = domain.elem(index);
         let elem0 = domain.onehot(&mut logic, elem0.slice());
         let elem1 = small.elem(index);
-        assert!(small.equals(&mut logic, elem0.slice(), elem1.slice()));
+        assert_eq!(elem0, elem1);
     }
 }
 
@@ -115,37 +115,7 @@ pub fn validate_partial_order<DOM>(domain: DOM)
 where
     DOM: PartialOrder,
 {
-    // reflexive
-    let mut logic = Solver::new("");
-    let elem = domain.add_variable(&mut logic);
-    let test = domain.is_edge(&mut logic, elem.slice(), elem.slice());
-    logic.bool_add_clause1(logic.bool_not(test));
-    assert!(!logic.bool_solvable());
-
-    // antisymmetric
-    let mut logic = Solver::new("");
-    let elem0 = domain.add_variable(&mut logic);
-    let elem1 = domain.add_variable(&mut logic);
-    let test = domain.is_edge(&mut logic, elem0.slice(), elem1.slice());
-    logic.bool_add_clause1(test);
-    let test = domain.is_edge(&mut logic, elem1.slice(), elem0.slice());
-    logic.bool_add_clause1(test);
-    let test = domain.equals(&mut logic, elem0.slice(), elem1.slice());
-    logic.bool_add_clause1(logic.bool_not(test));
-    assert!(!logic.bool_solvable());
-
-    // transitive
-    let mut logic = Solver::new("");
-    let elem0 = domain.add_variable(&mut logic);
-    let elem1 = domain.add_variable(&mut logic);
-    let elem2 = domain.add_variable(&mut logic);
-    let test = domain.is_edge(&mut logic, elem0.slice(), elem1.slice());
-    logic.bool_add_clause1(test);
-    let test = domain.is_edge(&mut logic, elem1.slice(), elem2.slice());
-    logic.bool_add_clause1(test);
-    let test = domain.is_edge(&mut logic, elem0.slice(), elem2.slice());
-    logic.bool_add_clause1(logic.bool_not(test));
-    assert!(!logic.bool_solvable());
+    assert!(domain.check_partial_order());
 }
 
 #[test]
@@ -162,12 +132,12 @@ where
 {
     // top is in domain
     let mut logic = Logic();
-    let top = domain.top(&logic);
+    let top = domain.get_top(&logic);
     let test = domain.contains(&mut logic, top.slice());
     assert!(test);
 
     // bottom is in domain
-    let bottom = domain.bottom(&logic);
+    let bottom = domain.get_bottom(&logic);
     let test = domain.contains(&mut logic, bottom.slice());
     assert!(test);
     let test = domain.is_edge(&mut logic, bottom.slice(), top.slice());
@@ -175,7 +145,7 @@ where
 
     // top is above everything
     let mut logic = Solver::new("");
-    let top = domain.lift(&logic, top.slice());
+    let top = domain.get_top(&logic);
     let elem = domain.add_variable(&mut logic);
     let test = domain.is_edge(&mut logic, elem.slice(), top.slice());
     logic.bool_add_clause1(logic.bool_not(test));
@@ -183,7 +153,7 @@ where
 
     // bottom is below everything
     let mut logic = Solver::new("");
-    let bottom = domain.lift(&logic, bottom.slice());
+    let bottom = domain.get_bottom(&logic);
     let elem = domain.add_variable(&mut logic);
     let test = domain.is_edge(&mut logic, bottom.slice(), elem.slice());
     logic.bool_add_clause1(logic.bool_not(test));

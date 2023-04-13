@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BipartiteGraph, BitVec, Boolean, BooleanLogic, Countable, Domain, Power, Product2,
+    BipartiteGraph, BitVec, Boolean, BooleanLogic, Countable, Domain, Power, PowerDomain, Product2,
     ProductDomain, Vector,
 };
 

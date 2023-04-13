@@ -16,24 +16,20 @@
 */
 
 use super::{
-    BooleanLogic, Countable, Domain, Functions, Power, RankedDomain, Slice, SmallSet, Vector,
+    BooleanLogic, Countable, Domain, Functions, Power, PowerDomain, Slice, SmallSet, Vector,
 };
 
-pub trait Operations<LOGIC>: Functions
+pub trait Operations: Functions
 where
-    LOGIC: BooleanLogic,
+    Self::Exp: PowerDomain<Base = Self::Base>,
+    Self::Base: Countable,
 {
     /// Returns the graph of this operation, which is a relation
     /// of arity one larger than this operation.
-    fn graph(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector;
-}
-
-impl<DOM, LOGIC> Operations<LOGIC> for Power<DOM, Power<DOM, SmallSet>>
-where
-    DOM: Countable,
-    LOGIC: BooleanLogic,
-{
-    fn graph(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector {
+    fn graph<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
         assert_eq!(elem.len(), self.num_bits());
         assert_eq!(self.base(), self.exponent().base());
         let domain = self.base();
@@ -56,6 +52,8 @@ where
         result
     }
 }
+
+impl<DOM> Operations for Power<DOM, Power<DOM, SmallSet>> where DOM: Countable {}
 
 #[cfg(test)]
 mod tests {

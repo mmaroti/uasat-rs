@@ -17,7 +17,7 @@
 
 use super::{
     BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
-    Functions, Lattice, MeetSemilattice, PartialOrder, RankedDomain, Slice, SmallSet, Vector,
+    Lattice, MeetSemilattice, PartialOrder, Slice, Vector,
 };
 
 use std::iter::{ExactSizeIterator, Extend, FusedIterator};
@@ -30,6 +30,19 @@ where
     elem: ELEM,
     step: usize,
     phantom: std::marker::PhantomData<&'a ()>,
+}
+
+impl<'a, ELEM> PartIter<'a, ELEM>
+where
+    ELEM: Slice<'a>,
+{
+    pub fn new(elem: ELEM, step: usize) -> Self {
+        Self {
+            elem,
+            step,
+            phantom: Default::default(),
+        }
+    }
 }
 
 impl<'a, ELEM> Iterator for PartIter<'a, ELEM>
@@ -76,32 +89,33 @@ where
     pub fn new(base: BASE, exponent: EXP) -> Self {
         Self { base, exponent }
     }
+}
 
-    /// Returns the base domain of the power domain.
-    pub fn base(&self) -> &BASE {
-        &self.base
-    }
+/// A domain that is a power of two other domaims.
+pub trait PowerDomain: Domain {
+    /// The type of the base domain.
+    type Base: Domain;
 
-    /// Returns the base domain of the power domain.
-    pub fn exponent(&self) -> &EXP {
-        &self.exponent
-    }
+    /// The type of the exponent domain.
+    type Exp: Countable;
+
+    /// Returns the base domain of a power domain.
+    fn base(&self) -> &Self::Base;
+
+    /// Returns the base domain of a power domain.
+    fn exponent(&self) -> &Self::Exp;
 
     /// Returns the part of an element at the given index.
-    pub fn part_iter<'a, ELEM>(&self, elem: ELEM) -> PartIter<'a, ELEM>
+    fn part_iter<'a, ELEM>(&self, elem: ELEM) -> PartIter<'a, ELEM>
     where
         ELEM: Slice<'a>,
     {
         assert_eq!(elem.len(), self.num_bits());
-        PartIter {
-            elem,
-            step: self.base.num_bits(),
-            phantom: Default::default(),
-        }
+        PartIter::new(elem, self.base().num_bits())
     }
 
     /// Returns the part of an element at the given index.
-    pub fn part<'a, ELEM>(&self, elem: ELEM, index: usize) -> ELEM
+    fn part<'a, ELEM>(&self, elem: ELEM, index: usize) -> ELEM
     where
         ELEM: Slice<'a>,
     {
@@ -109,6 +123,26 @@ where
         let step = self.base().num_bits();
         let start = index * step;
         elem.range(start, start + step)
+    }
+}
+
+impl<BASE, EXP> PowerDomain for Power<BASE, EXP>
+where
+    BASE: Domain,
+    EXP: Countable,
+{
+    type Base = BASE;
+
+    type Exp = EXP;
+
+    /// Returns the base domain of the power domain.
+    fn base(&self) -> &Self::Base {
+        &self.base
+    }
+
+    /// Returns the base domain of the power domain.
+    fn exponent(&self) -> &Self::Exp {
+        &self.exponent
     }
 }
 
@@ -380,139 +414,5 @@ where
             result.extend(self.base.complement(logic, part));
         }
         result
-    }
-}
-
-impl<DOM0, DOM1> RankedDomain for Power<DOM0, Power<DOM1, SmallSet>>
-where
-    DOM0: Domain,
-    DOM1: Countable,
-{
-    fn arity(&self) -> usize {
-        self.exponent().exponent().size()
-    }
-
-    fn change_arity(&self, arity: usize) -> Self {
-        Power::new(
-            self.base.clone(),
-            Power::new(self.exponent.base.clone(), SmallSet::new(arity)),
-        )
-    }
-}
-
-impl<DOM0, DOM1> Functions for Power<DOM0, Power<DOM1, SmallSet>>
-where
-    DOM0: Domain,
-    DOM1: Countable,
-{
-    fn polymer<'a, SLICE>(&self, elem: SLICE, arity: usize, mapping: &[usize]) -> SLICE::Vector
-    where
-        SLICE: Slice<'a>,
-    {
-        assert_eq!(elem.len(), self.num_bits());
-        assert_eq!(mapping.len(), self.exponent().exponent().size());
-
-        let mut strides: Vec<(usize, usize, usize)> = vec![(0, 0, 0); arity];
-        let size = self.exponent().base().size();
-        let mut power: usize = 1;
-        for &i in mapping {
-            assert!(i < arity);
-            strides[i].0 += power;
-            power *= size;
-        }
-
-        power = 1;
-        for s in strides.iter_mut() {
-            s.2 = size * s.0;
-            power *= size;
-        }
-
-        let mut result: SLICE::Vector = Vector::with_capacity(self.base.num_bits() * power);
-        let mut index = 0;
-        'outer: loop {
-            result.extend(self.part(elem, index).copy_iter());
-
-            for stride in strides.iter_mut() {
-                index += stride.0;
-                stride.1 += 1;
-                if stride.1 >= size {
-                    stride.1 = 0;
-                    index -= stride.2;
-                } else {
-                    continue 'outer;
-                }
-            }
-
-            break;
-        }
-
-        debug_assert_eq!(result.len(), self.base.num_bits() * power);
-        result
-    }
-}
-
-impl<DOM0, DOM1> Power<DOM0, Power<DOM1, SmallSet>>
-where
-    DOM0: Domain,
-    DOM1: Countable,
-{
-    /// Returns the part of an element at the given index.
-    pub fn fold_iter<'a, ELEM>(&self, elem: ELEM) -> PartIter<'a, ELEM>
-    where
-        ELEM: Slice<'a>,
-    {
-        assert!(self.arity() >= 1);
-        assert_eq!(elem.len(), self.num_bits());
-        PartIter {
-            elem,
-            step: self.base.num_bits() * self.exponent.base.size(),
-            phantom: Default::default(),
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::super::{BitVec, Domain, Functions, Logic, Vector};
-    use super::*;
-
-    #[test]
-    fn polymer() {
-        let dom0 = SmallSet::new(2);
-        let dom1 = SmallSet::new(3);
-        let op0 = Power::new(dom0.clone(), Power::new(dom1.clone(), SmallSet::new(1)));
-        let op1 = Power::new(dom0.clone(), Power::new(dom1.clone(), SmallSet::new(2)));
-
-        assert_eq!(op0.arity(), 1);
-        assert_eq!(op1.arity(), 2);
-
-        let mut logic = Logic();
-
-        let elem1: BitVec = vec![false, true, true, false, false, true]
-            .into_iter()
-            .collect();
-        assert!(op0.contains(&mut logic, elem1.slice()));
-
-        let elem2: BitVec = vec![
-            false, true, true, false, true, false, false, true, true, false, true, false, false,
-            true, false, true, false, true,
-        ]
-        .into_iter()
-        .collect();
-        assert!(op1.contains(&mut logic, elem2.slice()));
-
-        let elem3: BitVec = vec![
-            false, true, false, true, false, true, true, false, true, false, false, true, true,
-            false, true, false, false, true,
-        ]
-        .into_iter()
-        .collect();
-        assert!(op1.contains(&mut logic, elem3.slice()));
-
-        let elem4 = <_ as Functions>::polymer(&op1, elem2.slice(), 2, &[1, 0]);
-        assert_eq!(elem3, elem4);
-
-        let elem5 = <_ as Functions>::polymer(&op1, elem2.slice(), 1, &[0, 0]);
-        assert_eq!(elem1, elem5);
     }
 }

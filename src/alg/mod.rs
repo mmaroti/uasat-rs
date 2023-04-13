@@ -24,6 +24,9 @@ use super::genvec::{BitSlice, BitVec, Slice, Vector};
 mod boolean;
 pub use boolean::*;
 
+mod functions;
+pub use functions::*;
+
 mod operations;
 pub use operations::*;
 

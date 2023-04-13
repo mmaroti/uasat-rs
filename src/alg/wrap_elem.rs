@@ -16,10 +16,11 @@
 */
 
 use super::{
-    BipartiteGraph, BitVec, Boolean, BooleanLogic, Countable, Domain, Power, Product2, Vector,
+    BipartiteGraph, BitVec, Boolean, BooleanLogic, Countable, Domain, Power, Product2,
+    ProductDomain, Vector,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 
 pub struct WrapElem<DOM>
 where
@@ -40,7 +41,36 @@ where
     }
 }
 
-impl<DOM0, DOM1> BipartiteGraph for WrapElem<Power<Boolean, Product2<DOM0, DOM1>>>
+impl<DOM0, DOM1> Domain for WrapElem<Power<Boolean, Product2<DOM0, DOM1>>>
+where
+    DOM0: Countable,
+    DOM1: Countable,
+{
+    fn num_bits(&self) -> usize {
+        self.domain.exponent().num_bits()
+    }
+
+    fn contains<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.domain.exponent().contains(logic, elem)
+    }
+
+    fn equals<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.domain.exponent().equals(logic, elem0, elem1)
+    }
+}
+
+impl<DOM0, DOM1> ProductDomain for WrapElem<Power<Boolean, Product2<DOM0, DOM1>>>
 where
     DOM0: Countable,
     DOM1: Countable,
@@ -56,7 +86,13 @@ where
     fn dom1(&self) -> &DOM1 {
         self.domain.exponent().dom1()
     }
+}
 
+impl<DOM0, DOM1> BipartiteGraph for WrapElem<Power<Boolean, Product2<DOM0, DOM1>>>
+where
+    DOM0: Countable,
+    DOM1: Countable,
+{
     fn is_edge<LOGIC>(
         &self,
         logic: &mut LOGIC,

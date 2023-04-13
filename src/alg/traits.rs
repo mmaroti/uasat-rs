@@ -342,20 +342,41 @@ pub trait BooleanLattice: Lattice + BoundedOrder {
     }
 }
 
-/// A binary relation between two domains
-pub trait BipartiteGraph {
+pub trait ProductDomain: Domain {
     /// The type of the first component
     type Dom0: Domain;
 
     /// The type of the second component
     type Dom1: Domain;
 
-    /// Returns the domain of this bipartite graph.
+    /// Returns the first component domain.
     fn dom0(&self) -> &Self::Dom0;
 
-    /// Returns the codomain of this bipartite graph.
+    /// Returns the second component domain.
     fn dom1(&self) -> &Self::Dom1;
 
+    /// Returns the first part of an element.
+    fn part0<'a, ELEM>(&self, elem: ELEM) -> ELEM
+    where
+        ELEM: Slice<'a>,
+    {
+        debug_assert_eq!(elem.len(), self.num_bits());
+        elem.head(self.dom0().num_bits())
+    }
+
+    /// Returns the second part of an element.
+    fn part1<'a, ELEM>(&self, elem: ELEM) -> ELEM
+    where
+        ELEM: Slice<'a>,
+    {
+        let result = elem.tail(self.dom0().num_bits());
+        debug_assert_eq!(result.len(), self.dom1().num_bits());
+        result
+    }
+}
+
+/// A binary relation between two domains
+pub trait BipartiteGraph: ProductDomain {
     /// Returns true if the two elements are related, the first
     /// from the domain, the second from the codomain.
     fn is_edge<LOGIC>(

@@ -17,7 +17,7 @@
 
 use super::{
     BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
-    Lattice, MeetSemilattice, PartialOrder, Slice, Vector,
+    Lattice, MeetSemilattice, PartialOrder, ProductDomain, Slice, Vector,
 };
 
 /// The product of two domains.
@@ -36,33 +36,23 @@ where
     pub fn new(dom0: DOM0, dom1: DOM1) -> Self {
         Self { dom0, dom1 }
     }
+}
 
-    /// Returns the first domain of this product.
-    pub fn dom0(&self) -> &DOM0 {
+impl<DOM0, DOM1> ProductDomain for Product2<DOM0, DOM1>
+where
+    DOM0: Domain,
+    DOM1: Domain,
+{
+    type Dom0 = DOM0;
+
+    type Dom1 = DOM1;
+
+    fn dom0(&self) -> &DOM0 {
         &self.dom0
     }
 
-    /// Returns the second domain of this product.
-    pub fn dom1(&self) -> &DOM1 {
+    fn dom1(&self) -> &DOM1 {
         &self.dom1
-    }
-
-    /// Returns the first part of an element.
-    pub fn part0<'a, ELEM>(&self, elem: ELEM) -> ELEM
-    where
-        ELEM: Slice<'a>,
-    {
-        debug_assert!(elem.len() == self.num_bits());
-        elem.head(self.dom0.num_bits())
-    }
-
-    /// Returns the second part of an element.
-    pub fn part1<'a, ELEM>(&self, elem: ELEM) -> ELEM
-    where
-        ELEM: Slice<'a>,
-    {
-        debug_assert!(elem.len() == self.num_bits());
-        elem.tail(self.dom0.num_bits())
     }
 }
 

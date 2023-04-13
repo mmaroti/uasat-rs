@@ -45,10 +45,10 @@ where
         SLICE: Slice<'a>,
     {
         assert_eq!(elem.len(), self.num_bits());
-        assert_eq!(mapping.len(), self.exponent().exponent().size());
+        assert_eq!(mapping.len(), self.arity());
 
         let mut strides: Vec<(usize, usize, usize)> = vec![(0, 0, 0); arity];
-        let size = self.exponent().base().size();
+        let size = self.domain().size();
         let mut power: usize = 1;
         for &i in mapping {
             assert!(i < arity);

@@ -31,7 +31,7 @@ where
         LOGIC: BooleanLogic,
     {
         assert_eq!(elem.len(), self.num_bits());
-        assert_eq!(self.base(), self.exponent().base());
+        assert_eq!(self.base(), self.domain());
         let domain = self.base();
 
         let size = domain.size();

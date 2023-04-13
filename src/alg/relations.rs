@@ -74,13 +74,12 @@ where
     {
         assert!(self.arity() == elem.len());
 
-        let domain = self.exponent().base();
-        let size = domain.size();
+        let size = self.domain().size();
 
         let mut index = 0;
         for value in elem.iter().rev() {
             index *= size;
-            index += domain.get_index(*value);
+            index += self.domain().get_index(*value);
         }
 
         let mut result: LOGIC::Vector = Vector::with_values(self.num_bits(), logic.bool_zero());

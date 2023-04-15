@@ -94,7 +94,7 @@ where
         self.polymer(elem, 1, &vec![0; self.arity()])
     }
 
-    /// Reverses all coordinates of the function.
+    /// Reverses the set of coordinates of the given function.
     fn converse<'a, SLICE>(&self, elem: SLICE) -> SLICE::Vector
     where
         SLICE: Slice<'a>,

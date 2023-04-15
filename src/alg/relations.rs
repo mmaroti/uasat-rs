@@ -137,8 +137,6 @@ where
 
 impl<DOM> Relations for Power<Boolean, Power<DOM, SmallSet>> where DOM: Countable {}
 
-impl<DOM> BinaryRelations for Power<Boolean, Power<DOM, SmallSet>> where DOM: Countable {}
-
 /// A domain of binary relations.
 pub trait BinaryRelations: Relations
 where
@@ -229,3 +227,5 @@ where
         logic.bool_and(test2, test3)
     }
 }
+
+impl<DOM> BinaryRelations for Power<Boolean, Power<DOM, SmallSet>> where DOM: Countable {}

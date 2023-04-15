@@ -16,18 +16,24 @@
 */
 
 use super::{
-    Boolean, BooleanLogic, BoundedOrder, Countable, Domain, Functions, Power, PowerDomain, Slice,
-    SmallSet, Vector,
+    Boolean, BooleanLogic, BoundedOrder, Countable, Domain, Functions, Power, Slice, Vector,
 };
 
-pub trait Operations: Functions
+/// A domain containing operations of a fixed arity.
+pub type Operations<DOM> = Functions<DOM, DOM>;
+
+impl<DOM> Operations<DOM>
 where
-    Self::Exp: PowerDomain<Base = Self::Base>,
-    Self::Base: Countable,
+    DOM: Countable,
 {
+    /// Creates a domain containing operationf of a fixed arity.
+    pub fn new_operations(dom: DOM, arity: usize) -> Self {
+        Functions::new_functions(dom.clone(), dom, arity)
+    }
+
     /// Returns the graph of the given operation, which is a relation
     /// of arity one larger than this operation.
-    fn graph<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    pub fn graph<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
@@ -54,7 +60,7 @@ where
     }
 
     /// Returns a unary relation containing the range of the given operation.
-    fn range<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    pub fn range<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
@@ -75,7 +81,7 @@ where
     }
 
     /// Returns true if the given element is a surjective operation.
-    fn is_surjective<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    pub fn is_surjective<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
     {
@@ -83,17 +89,9 @@ where
         let dom = Power::new(Boolean(), self.domain().clone());
         dom.is_top(logic, range.slice())
     }
-}
 
-impl<DOM> Operations for Power<DOM, Power<DOM, SmallSet>> where DOM: Countable {}
-
-pub trait UnaryOperations: Operations
-where
-    Self::Exp: PowerDomain<Base = Self::Base>,
-    Self::Base: Countable,
-{
-    /// Returns true if the given element is a permutation (surjective).
-    fn is_permutation<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    /// Returns true if the given element is a permutation (unary and surjective).
+    pub fn is_permutation<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
     {
@@ -102,11 +100,9 @@ where
     }
 }
 
-impl<DOM> UnaryOperations for Power<DOM, Power<DOM, SmallSet>> where DOM: Countable {}
-
 #[cfg(test)]
 mod tests {
-    use super::super::{BitVec, Domain, Logic, Solver, Vector, BOOLEAN};
+    use super::super::{BitVec, Domain, Logic, SmallSet, Solver, Vector, BOOLEAN};
     use super::*;
 
     #[test]

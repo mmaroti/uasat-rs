@@ -16,9 +16,8 @@
 */
 
 use super::{
-    BinaryRelations, BooleanLogic, BooleanSolver, BoundedOrder, Countable, Domain, Lattice, Logic,
-    MeetSemilattice, PartialOrder, Power, Product2, SmallSet, Solver, UnaryOperations, Vector,
-    BOOLEAN,
+    BooleanLogic, BooleanSolver, BoundedOrder, Countable, Domain, Lattice, Logic, MeetSemilattice,
+    PartialOrder, Power, Product2, Relations, SmallSet, Solver, Vector, BOOLEAN,
 };
 
 pub fn validate_domain<DOM>(domain: DOM)
@@ -264,7 +263,7 @@ fn lattice() {
 #[test]
 fn binary_relations() {
     let mut logic = Solver::new("");
-    let domain = Power::new(BOOLEAN, Power::new(SmallSet::new(4), SmallSet::new(2)));
+    let domain = Relations::new_relations(SmallSet::new(4), 2);
     let elem = domain.add_variable(&mut logic);
     let test = domain.is_transitive(&mut logic, elem.slice());
     logic.bool_add_clause1(test);

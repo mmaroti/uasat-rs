@@ -17,7 +17,7 @@
 
 use std::fmt::Debug;
 
-use super::{BitSlice, BitVec, BooleanLogic, BooleanSolver, ProductDomain, Slice, Solver, Vector};
+use super::{BitSlice, BitVec, BooleanLogic, BooleanSolver, Slice, Solver, Vector};
 
 /// An arbitrary set of elements that can be representable by bit vectors.
 pub trait Domain: Clone + PartialEq + Debug {
@@ -345,7 +345,19 @@ pub trait BooleanLattice: Lattice + BoundedOrder {
 }
 
 /// A binary relation between two domains
-pub trait BipartiteGraph: ProductDomain {
+pub trait BipartiteGraph {
+    /// The type of the first domain of the bipartite graph.
+    type Domain0: Domain;
+
+    /// The the type of the second domain of the bipartite graph.
+    type Domain1: Domain;
+
+    /// Returns the first domain of the bipartite graph.
+    fn dom0(&self) -> &Self::Domain0;
+
+    /// Returns the second domain of the bipartite graph.
+    fn dom1(&self) -> &Self::Domain1;
+
     /// Returns true if the two elements are related, the first
     /// from the domain, the second from the codomain.
     fn is_edge<LOGIC>(

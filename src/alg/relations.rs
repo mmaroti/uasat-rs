@@ -16,19 +16,28 @@
 */
 
 use super::{
-    BitSlice, Boolean, BooleanLattice, BooleanLogic, Countable, Domain, Functions, PartIter, Power,
-    PowerDomain, Slice, SmallSet, Vector,
+    BitSlice, Boolean, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph,
+    Domain, Functions, MeetSemilattice, PartIter, Slice, Vector,
 };
 
+/// A domain containing relations of a fixed arity.
+pub type Relations<DOM> = Functions<DOM, Boolean>;
+
 /// A domain of relations, which are functions to the BOOLEAN domain.
-pub trait Relations: Functions<Base = Boolean> + BooleanLattice
+
+impl<DOM> Relations<DOM>
 where
-    Self::Exp: PowerDomain,
-    <Self::Exp as PowerDomain>::Base: Countable,
+    DOM: Countable,
 {
+    /// Creates a new function domain from the given domain to
+    /// the target codomain.
+    pub fn new_relations(dom: DOM, arity: usize) -> Self {
+        Functions::new_functions(dom, Boolean(), arity)
+    }
+
     /// Returns the relation that is true if and only if all arguments are
     /// the same. This method panics if the arity is zero.
-    fn get_diagonal<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    pub fn get_diagonal<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
@@ -57,7 +66,7 @@ where
 
     /// Checks if the given relation is the diagonal relation (only the
     /// elements in the diagonal are set).
-    fn is_diagonal<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    pub fn is_diagonal<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
     {
@@ -68,7 +77,7 @@ where
     /// Returns a unary relation containing only the given tuple. This
     /// method panics if the number of elements in the tuple does not
     /// match the arity of the domain.
-    fn get_singleton<LOGIC>(&self, logic: &LOGIC, elem: &[BitSlice<'_>]) -> LOGIC::Vector
+    pub fn get_singleton<LOGIC>(&self, logic: &LOGIC, elem: &[BitSlice<'_>]) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
@@ -88,7 +97,7 @@ where
     }
 
     /// Checks if the given element is a singleton.
-    fn is_singleton<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    pub fn is_singleton<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
     {
@@ -108,7 +117,7 @@ where
 
     /// Returns a new relation of arity one less where the first coordinate is
     /// removed and folded using the logical and operation.
-    fn fold_all<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    pub fn fold_all<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
@@ -122,7 +131,7 @@ where
 
     /// Returns a new relation of arity one less where the first coordinate is
     /// removed and folded using the logical or operation.
-    fn fold_any<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    pub fn fold_any<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
@@ -133,18 +142,9 @@ where
         }
         result
     }
-}
 
-impl<DOM> Relations for Power<Boolean, Power<DOM, SmallSet>> where DOM: Countable {}
-
-/// A domain of binary relations.
-pub trait BinaryRelations: Relations
-where
-    Self::Exp: PowerDomain,
-    <Self::Exp as PowerDomain>::Base: Countable,
-{
     /// Checks if the given binary relation is reflexive.
-    fn is_reflexive<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    pub fn is_reflexive<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
     {
@@ -155,7 +155,7 @@ where
     }
 
     /// Returns true if the given binary relation is symmetric.
-    fn is_symmetric<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    pub fn is_symmetric<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
     {
@@ -165,7 +165,7 @@ where
     }
 
     /// Checks if the given binary relation is antisymmetric.
-    fn is_antisymmetric<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    pub fn is_antisymmetric<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
     {
@@ -176,7 +176,7 @@ where
     }
 
     /// Returns the composition of the given binary relations.
-    fn compose<LOGIC>(
+    pub fn compose<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
@@ -194,7 +194,7 @@ where
     }
 
     /// Returns true if the given binary relation is transitive.
-    fn is_transitive<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    pub fn is_transitive<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
     {
@@ -204,7 +204,7 @@ where
     }
 
     /// Returns true if the given binary relation is an equivalence relation.
-    fn is_equivalence<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    pub fn is_equivalence<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
     {
@@ -216,7 +216,7 @@ where
     }
 
     /// Returns true if the given binary relation is a partial order relation.
-    fn is_partial_order<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    pub fn is_partial_order<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
     {
@@ -227,5 +227,3 @@ where
         logic.bool_and(test2, test3)
     }
 }
-
-impl<DOM> BinaryRelations for Power<Boolean, Power<DOM, SmallSet>> where DOM: Countable {}

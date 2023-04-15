@@ -36,24 +36,17 @@ where
     pub fn new(dom0: DOM0, dom1: DOM1) -> Self {
         Self { dom0, dom1 }
     }
-}
 
-/// A domain that is the product of two other domains.
-pub trait ProductDomain: Domain {
-    /// The type of the first component
-    type Dom0: Domain;
+    pub fn dom0(&self) -> &DOM0 {
+        &self.dom0
+    }
 
-    /// The type of the second component
-    type Dom1: Domain;
-
-    /// Returns the first component domain.
-    fn dom0(&self) -> &Self::Dom0;
-
-    /// Returns the second component domain.
-    fn dom1(&self) -> &Self::Dom1;
+    pub fn dom1(&self) -> &DOM1 {
+        &self.dom1
+    }
 
     /// Returns the first part of an element.
-    fn part0<'a, ELEM>(&self, elem: ELEM) -> ELEM
+    pub fn part0<'a, ELEM>(&self, elem: ELEM) -> ELEM
     where
         ELEM: Slice<'a>,
     {
@@ -62,31 +55,13 @@ pub trait ProductDomain: Domain {
     }
 
     /// Returns the second part of an element.
-    fn part1<'a, ELEM>(&self, elem: ELEM) -> ELEM
+    pub fn part1<'a, ELEM>(&self, elem: ELEM) -> ELEM
     where
         ELEM: Slice<'a>,
     {
         let result = elem.tail(self.dom0().num_bits());
         debug_assert_eq!(result.len(), self.dom1().num_bits());
         result
-    }
-}
-
-impl<DOM0, DOM1> ProductDomain for Product2<DOM0, DOM1>
-where
-    DOM0: Domain,
-    DOM1: Domain,
-{
-    type Dom0 = DOM0;
-
-    type Dom1 = DOM1;
-
-    fn dom0(&self) -> &DOM0 {
-        &self.dom0
-    }
-
-    fn dom1(&self) -> &DOM1 {
-        &self.dom1
     }
 }
 

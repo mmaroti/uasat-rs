@@ -89,24 +89,19 @@ where
     pub fn new(base: BASE, exponent: EXP) -> Self {
         Self { base, exponent }
     }
-}
 
-/// A domain that is a power of two other domaims.
-pub trait PowerDomain: Domain {
-    /// The type of the base domain.
-    type Base: Domain;
+    /// Returns the base domain of the power domain.
+    pub fn base(&self) -> &BASE {
+        &self.base
+    }
 
-    /// The type of the exponent domain.
-    type Exp: Countable;
-
-    /// Returns the base domain of a power domain.
-    fn base(&self) -> &Self::Base;
-
-    /// Returns the base domain of a power domain.
-    fn exponent(&self) -> &Self::Exp;
+    /// Returns the base domain of the power domain.
+    pub fn exponent(&self) -> &EXP {
+        &self.exponent
+    }
 
     /// Returns the part of an element at the given index.
-    fn part_iter<'a, ELEM>(&self, elem: ELEM) -> PartIter<'a, ELEM>
+    pub fn part_iter<'a, ELEM>(&self, elem: ELEM) -> PartIter<'a, ELEM>
     where
         ELEM: Slice<'a>,
     {
@@ -115,7 +110,7 @@ pub trait PowerDomain: Domain {
     }
 
     /// Returns the part of an element at the given index.
-    fn part<'a, ELEM>(&self, elem: ELEM, index: usize) -> ELEM
+    pub fn part<'a, ELEM>(&self, elem: ELEM, index: usize) -> ELEM
     where
         ELEM: Slice<'a>,
     {
@@ -123,26 +118,6 @@ pub trait PowerDomain: Domain {
         let step = self.base().num_bits();
         let start = index * step;
         elem.range(start, start + step)
-    }
-}
-
-impl<BASE, EXP> PowerDomain for Power<BASE, EXP>
-where
-    BASE: Domain,
-    EXP: Countable,
-{
-    type Base = BASE;
-
-    type Exp = EXP;
-
-    /// Returns the base domain of the power domain.
-    fn base(&self) -> &Self::Base {
-        &self.base
-    }
-
-    /// Returns the base domain of the power domain.
-    fn exponent(&self) -> &Self::Exp {
-        &self.exponent
     }
 }
 

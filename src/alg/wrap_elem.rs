@@ -16,8 +16,7 @@
 */
 
 use super::{
-    BipartiteGraph, BitVec, Boolean, BooleanLogic, Countable, Domain, Power, PowerDomain, Product2,
-    ProductDomain, Vector,
+    BipartiteGraph, BitVec, Boolean, BooleanLogic, Countable, Domain, Power, Product2, Vector,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -70,29 +69,23 @@ where
     }
 }
 
-impl<DOM0, DOM1> ProductDomain for WrapElem<Power<Boolean, Product2<DOM0, DOM1>>>
-where
-    DOM0: Countable,
-    DOM1: Countable,
-{
-    type Dom0 = DOM0;
-
-    type Dom1 = DOM1;
-
-    fn dom0(&self) -> &DOM0 {
-        self.domain.exponent().dom0()
-    }
-
-    fn dom1(&self) -> &DOM1 {
-        self.domain.exponent().dom1()
-    }
-}
-
 impl<DOM0, DOM1> BipartiteGraph for WrapElem<Power<Boolean, Product2<DOM0, DOM1>>>
 where
     DOM0: Countable,
     DOM1: Countable,
 {
+    type Domain0 = DOM0;
+
+    type Domain1 = DOM1;
+
+    fn dom0(&self) -> &Self::Domain0 {
+        self.domain.exponent().dom0()
+    }
+
+    fn dom1(&self) -> &Self::Domain1 {
+        self.domain.exponent().dom1()
+    }
+
     fn is_edge<LOGIC>(
         &self,
         logic: &mut LOGIC,

@@ -15,32 +15,43 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{Countable, Domain, Power, PowerDomain, Slice, SmallSet, Vector};
+use super::{Countable, Domain, Power, Slice, SmallSet, Vector};
 
-/// A domain of function from a fixed domain and codomain.
-pub trait Functions: PowerDomain
+/// A domain containing functions of a fixed arity from a domain to a codomain.
+pub type Functions<DOM, COD> = Power<COD, Power<DOM, SmallSet>>;
+
+impl<DOM, COD> Functions<DOM, COD>
 where
-    Self::Exp: PowerDomain,
-    <Self::Exp as PowerDomain>::Base: Countable,
+    DOM: Countable,
+    COD: Domain,
 {
+    /// Creates a new function domain from the given domain to
+    /// the target codomain.
+    pub fn new_functions(dom: DOM, cod: COD, arity: usize) -> Self {
+        Power::new(cod, Power::new(dom, SmallSet::new(arity)))
+    }
+
     /// Returns the arity (rank) of all functions in the domain.
-    fn arity(&self) -> usize {
+    pub fn arity(&self) -> usize {
         self.exponent().exponent().size()
     }
 
     /// Returns the domain of the functions.
-    fn domain(&self) -> &<Self::Exp as PowerDomain>::Base {
+    pub fn domain(&self) -> &DOM {
         self.exponent().base()
     }
 
-    /// Returns the domain of functions with the given arity.
-    fn change_arity(&self, arity: usize) -> Self;
+    /// Returns another domain of functions with same domand and codomain
+    /// but with the new given arity.
+    pub fn change_arity(&self, arity: usize) -> Self {
+        Functions::new_functions(self.domain().clone(), self.base().clone(), arity)
+    }
 
     /// Creates a new function of the given arity from an old function with
     /// permuted, identified and/or new dummy coordinates. The mapping is a
     /// vector of length of the arity of the original element with entries
     /// identifying the matching coordinates in the new function.
-    fn polymer<'a, SLICE>(&self, elem: SLICE, arity: usize, mapping: &[usize]) -> SLICE::Vector
+    pub fn polymer<'a, SLICE>(&self, elem: SLICE, arity: usize, mapping: &[usize]) -> SLICE::Vector
     where
         SLICE: Slice<'a>,
     {
@@ -86,7 +97,7 @@ where
     }
 
     /// Returns the unary function with all variables identified.
-    fn identify<'a, SLICE>(&self, elem: SLICE) -> SLICE::Vector
+    pub fn identify<'a, SLICE>(&self, elem: SLICE) -> SLICE::Vector
     where
         SLICE: Slice<'a>,
     {
@@ -95,7 +106,7 @@ where
     }
 
     /// Reverses the set of coordinates of the given function.
-    fn converse<'a, SLICE>(&self, elem: SLICE) -> SLICE::Vector
+    pub fn converse<'a, SLICE>(&self, elem: SLICE) -> SLICE::Vector
     where
         SLICE: Slice<'a>,
     {
@@ -104,22 +115,9 @@ where
     }
 }
 
-impl<DOM0, DOM1> Functions for Power<DOM0, Power<DOM1, SmallSet>>
-where
-    DOM0: Domain,
-    DOM1: Countable,
-{
-    fn change_arity(&self, arity: usize) -> Self {
-        Power::new(
-            self.base().clone(),
-            Power::new(self.domain().clone(), SmallSet::new(arity)),
-        )
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::super::{BitVec, Domain, Functions, Logic, Vector};
+    use super::super::{BitVec, Domain, Logic, Vector};
     use super::*;
 
     #[test]
@@ -155,10 +153,10 @@ mod tests {
         .collect();
         assert!(op1.contains(&mut logic, elem3.slice()));
 
-        let elem4 = <_ as Functions>::polymer(&op1, elem2.slice(), 2, &[1, 0]);
+        let elem4 = op1.polymer(elem2.slice(), 2, &[1, 0]);
         assert_eq!(elem3, elem4);
 
-        let elem5 = <_ as Functions>::polymer(&op1, elem2.slice(), 1, &[0, 0]);
+        let elem5 = op1.polymer(elem2.slice(), 1, &[0, 0]);
         assert_eq!(elem1, elem5);
     }
 }

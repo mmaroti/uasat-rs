@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BinaryRelations, BooleanLogic, BooleanSolver, BoundedOrder, Countable, Domain, Lattice, Logic,
-    MeetSemilattice, PartialOrder, Permutations, Power, Product2, SmallSet, Solver,
+    BinaryRelations, BooleanLogic, BooleanSolver, BoundedOrder, Countable, Domain, FixedSet,
+    Lattice, Logic, MeetSemilattice, PartialOrder, Permutations, Power, Product2, SmallSet, Solver,
     UnaryOperations, Vector, BOOLEAN,
 };
 
@@ -54,6 +54,7 @@ where
 fn domain() {
     validate_domain(BOOLEAN);
     validate_domain(SmallSet::new(5));
+    validate_domain(FixedSet::<5>);
     validate_domain(Power::new(BOOLEAN, SmallSet::new(3)));
     validate_domain(Power::new(SmallSet::new(3), BOOLEAN));
     validate_domain(Product2::new(BOOLEAN, SmallSet::new(3)));
@@ -110,6 +111,7 @@ where
 fn countable() {
     validate_countable(BOOLEAN, 2);
     validate_countable(SmallSet::new(5), 5);
+    validate_countable(FixedSet::<5>, 5);
     validate_countable(Power::new(BOOLEAN, SmallSet::new(3)), 8);
     validate_countable(Power::new(SmallSet::new(3), BOOLEAN), 9);
     validate_countable(Product2::new(BOOLEAN, SmallSet::new(3)), 6);
@@ -128,6 +130,7 @@ where
 fn partial_order() {
     validate_partial_order(BOOLEAN);
     validate_partial_order(SmallSet::new(7));
+    validate_partial_order(FixedSet::<7>);
     validate_partial_order(Power::new(BOOLEAN, SmallSet::new(3)));
     validate_partial_order(Product2::new(BOOLEAN, BOOLEAN));
 }
@@ -170,6 +173,7 @@ where
 fn bounded_order() {
     validate_bounded_order(BOOLEAN);
     validate_bounded_order(SmallSet::new(7));
+    validate_bounded_order(FixedSet::<7>);
     validate_bounded_order(Power::new(BOOLEAN, SmallSet::new(3)));
     validate_bounded_order(Product2::new(BOOLEAN, BOOLEAN));
 }
@@ -216,6 +220,7 @@ where
 fn meet_semilattice() {
     validate_meet_semilattice(BOOLEAN);
     validate_meet_semilattice(SmallSet::new(7));
+    validate_meet_semilattice(FixedSet::<7>);
     validate_meet_semilattice(Power::new(BOOLEAN, SmallSet::new(3)));
     validate_meet_semilattice(Product2::new(BOOLEAN, Power::new(BOOLEAN, BOOLEAN)));
 }
@@ -262,6 +267,7 @@ where
 fn lattice() {
     validate_lattice(BOOLEAN);
     validate_lattice(SmallSet::new(7));
+    validate_lattice(FixedSet::<7>);
     validate_lattice(Power::new(BOOLEAN, SmallSet::new(3)));
     validate_lattice(Product2::new(BOOLEAN, Power::new(BOOLEAN, BOOLEAN)));
 }

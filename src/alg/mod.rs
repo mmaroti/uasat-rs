@@ -27,6 +27,9 @@ pub use binary_relations::*;
 mod boolean;
 pub use boolean::*;
 
+mod fixed_set;
+pub use fixed_set::*;
+
 mod functions;
 pub use functions::*;
 

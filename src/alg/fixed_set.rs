@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2022-2023, Miklos Maroti
+* Copyright (C) 2023, Miklos Maroti
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -19,24 +19,15 @@ use super::{
     BitSlice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain, Lattice,
     MeetSemilattice, PartialOrder, Slice, Vector,
 };
-
 /// A small set encoded as a one-hot vector of booleans representing
-/// the numbers `0..size` with the natural chain order.
+/// the numbers `0..size` with the natural chain order. The size of
+/// the domain is specified at compile time.
 #[derive(Clone, PartialEq, Debug)]
-pub struct SmallSet {
-    size: usize,
-}
+pub struct FixedSet<const SIZE: usize>;
 
-impl SmallSet {
-    /// Creates a new small set of the given size.
-    pub const fn new(size: usize) -> Self {
-        Self { size }
-    }
-}
-
-impl Domain for SmallSet {
+impl<const SIZE: usize> Domain for FixedSet<SIZE> {
     fn num_bits(&self) -> usize {
-        self.size
+        SIZE
     }
 
     fn display_elem(
@@ -51,7 +42,7 @@ impl Domain for SmallSet {
     where
         LOGIC: BooleanLogic,
     {
-        assert_eq!(elem.len(), self.size);
+        assert_eq!(elem.len(), SIZE);
         logic.bool_fold_one(elem.copy_iter())
     }
 
@@ -64,8 +55,8 @@ impl Domain for SmallSet {
     where
         LOGIC: BooleanLogic,
     {
-        debug_assert_eq!(elem0.len(), self.size);
-        debug_assert_eq!(elem1.len(), self.size);
+        debug_assert_eq!(elem0.len(), SIZE);
+        debug_assert_eq!(elem1.len(), SIZE);
         let mut test = logic.bool_zero();
         for (a, b) in elem0.copy_iter().zip(elem1.copy_iter()) {
             let v = logic.bool_and(a, b);
@@ -75,31 +66,31 @@ impl Domain for SmallSet {
     }
 }
 
-impl Countable for SmallSet {
+impl<const SIZE: usize> Countable for FixedSet<SIZE> {
     fn size(&self) -> usize {
-        self.size
+        SIZE
     }
 
     fn get_elem<LOGIC>(&self, logic: &LOGIC, index: usize) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
-        assert!(index < self.size);
-        let mut vec: LOGIC::Vector = Vector::with_values(self.size, logic.bool_zero());
+        assert!(index < SIZE);
+        let mut vec: LOGIC::Vector = Vector::with_values(SIZE, logic.bool_zero());
         vec.set(index, logic.bool_unit());
         vec
     }
 
     fn get_index(&self, elem: BitSlice<'_>) -> usize {
-        assert!(elem.len() == self.size);
-        let mut index = self.size;
+        assert!(elem.len() == SIZE);
+        let mut index = SIZE;
         for (i, v) in elem.copy_iter().enumerate() {
             if v {
-                debug_assert_eq!(index, self.size);
+                debug_assert_eq!(index, SIZE);
                 index = i;
             }
         }
-        assert!(index < self.size);
+        assert!(index < SIZE);
         index
     }
 
@@ -111,7 +102,7 @@ impl Countable for SmallSet {
     }
 }
 
-impl DirectedGraph for SmallSet {
+impl<const SIZE: usize> DirectedGraph for FixedSet<SIZE> {
     fn is_edge<LOGIC>(
         &self,
         logic: &mut LOGIC,
@@ -121,36 +112,36 @@ impl DirectedGraph for SmallSet {
     where
         LOGIC: BooleanLogic,
     {
-        debug_assert_eq!(elem0.len(), self.size);
-        debug_assert_eq!(elem1.len(), self.size);
+        debug_assert_eq!(elem0.len(), SIZE);
+        debug_assert_eq!(elem1.len(), SIZE);
         logic.bool_cmp_leq(elem0.copy_iter().zip(elem1.copy_iter()))
     }
 }
 
-impl PartialOrder for SmallSet {}
+impl<const SIZE: usize> PartialOrder for FixedSet<SIZE> {}
 
-impl BoundedOrder for SmallSet {
+impl<const SIZE: usize> BoundedOrder for FixedSet<SIZE> {
     fn get_top<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
-        assert!(self.size != 0);
-        self.get_elem(logic, self.size() - 1)
+        assert!(SIZE != 0);
+        self.get_elem(logic, SIZE - 1)
     }
 
     fn is_top<LOGIC>(&self, _logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
     {
-        assert!(self.size != 0);
-        elem.get(self.size - 1)
+        assert!(SIZE != 0);
+        elem.get(SIZE - 1)
     }
 
     fn get_bottom<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
-        assert!(self.size != 0);
+        assert!(SIZE != 0);
         self.get_elem(logic, 0)
     }
 
@@ -158,12 +149,12 @@ impl BoundedOrder for SmallSet {
     where
         LOGIC: BooleanLogic,
     {
-        assert!(self.size != 0);
+        assert!(SIZE != 0);
         elem.get(0)
     }
 }
 
-impl MeetSemilattice for SmallSet {
+impl<const SIZE: usize> MeetSemilattice for FixedSet<SIZE> {
     fn meet<LOGIC>(
         &self,
         logic: &mut LOGIC,
@@ -184,7 +175,7 @@ impl MeetSemilattice for SmallSet {
     }
 }
 
-impl Lattice for SmallSet {
+impl<const SIZE: usize> Lattice for FixedSet<SIZE> {
     fn join<LOGIC>(
         &self,
         logic: &mut LOGIC,

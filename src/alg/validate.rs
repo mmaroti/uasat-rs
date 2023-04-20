@@ -16,8 +16,9 @@
 */
 
 use super::{
-    BooleanLogic, BooleanSolver, BoundedOrder, Countable, Domain, Lattice, Logic, MeetSemilattice,
-    PartialOrder, Power, Product2, Relations, SmallSet, Solver, Vector, BOOLEAN,
+    BinaryRelations, BooleanLogic, BooleanSolver, BoundedOrder, Countable, Domain, Lattice, Logic,
+    MeetSemilattice, PartialOrder, Permutations, Power, Product2, SmallSet, Solver,
+    UnaryOperations, Vector, BOOLEAN,
 };
 
 pub fn validate_domain<DOM>(domain: DOM)
@@ -56,6 +57,9 @@ fn domain() {
     validate_domain(Power::new(BOOLEAN, SmallSet::new(3)));
     validate_domain(Power::new(SmallSet::new(3), BOOLEAN));
     validate_domain(Product2::new(BOOLEAN, SmallSet::new(3)));
+    validate_domain(BinaryRelations::new(SmallSet::new(3)));
+    validate_domain(UnaryOperations::new(SmallSet::new(3)));
+    validate_domain(Permutations::new(SmallSet::new(4)));
 }
 
 fn validate_countable<DOM>(domain: DOM, size: usize)
@@ -109,6 +113,8 @@ fn countable() {
     validate_countable(Power::new(BOOLEAN, SmallSet::new(3)), 8);
     validate_countable(Power::new(SmallSet::new(3), BOOLEAN), 9);
     validate_countable(Product2::new(BOOLEAN, SmallSet::new(3)), 6);
+    validate_countable(BinaryRelations::new(SmallSet::new(2)), 16);
+    validate_countable(UnaryOperations::new(SmallSet::new(3)), 27);
 }
 
 pub fn validate_partial_order<DOM>(domain: DOM)
@@ -263,7 +269,7 @@ fn lattice() {
 #[test]
 fn binary_relations() {
     let mut logic = Solver::new("");
-    let domain = Relations::new_relations(SmallSet::new(4), 2);
+    let domain = BinaryRelations::new(SmallSet::new(4));
     let elem = domain.add_variable(&mut logic);
     let test = domain.is_transitive(&mut logic, elem.slice());
     logic.bool_add_clause1(test);
@@ -271,7 +277,7 @@ fn binary_relations() {
     assert_eq!(count, 3994);
 
     let mut logic = Solver::new("");
-    let domain = Power::new(BOOLEAN, Power::new(SmallSet::new(7), SmallSet::new(2)));
+    let domain = BinaryRelations::new(SmallSet::new(7));
     let elem = domain.add_variable(&mut logic);
     let test = domain.is_equivalence(&mut logic, elem.slice());
     logic.bool_add_clause1(test);
@@ -279,7 +285,7 @@ fn binary_relations() {
     assert_eq!(count, 877);
 
     let mut logic = Solver::new("");
-    let domain = Power::new(BOOLEAN, Power::new(SmallSet::new(5), SmallSet::new(2)));
+    let domain = BinaryRelations::new(SmallSet::new(5));
     let elem = domain.add_variable(&mut logic);
     let test = domain.is_partial_order(&mut logic, elem.slice());
     logic.bool_add_clause1(test);

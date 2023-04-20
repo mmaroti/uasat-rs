@@ -16,7 +16,8 @@
 */
 
 use super::{
-    Boolean, BooleanLogic, BoundedOrder, Countable, Domain, Functions, Power, Slice, Vector,
+    Boolean, BooleanLogic, BoundedOrder, Countable, Domain, Functions, Power, Relations, Slice,
+    Vector,
 };
 
 /// A domain containing operations of a fixed arity.
@@ -33,7 +34,7 @@ where
 
     /// Returns the graph of the given operation, which is a relation
     /// of arity one larger than this operation.
-    pub fn graph<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    pub fn as_relation<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
@@ -49,10 +50,8 @@ where
 
         let mut result: LOGIC::Vector = Vector::with_capacity(power);
         for part in self.part_iter(elem) {
-            for index in 0..size {
-                let value = domain.get_elem(logic, index);
-                result.push(domain.equals(logic, part, value.slice()));
-            }
+            let mut value = domain.onehot(logic, part);
+            result.append(&mut value);
         }
 
         debug_assert_eq!(result.len(), power);
@@ -64,20 +63,9 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        assert_eq!(elem.len(), self.num_bits());
-        assert_eq!(self.base(), self.domain());
-
-        let mut result: LOGIC::Vector = Vector::with_values(self.base().size(), logic.bool_zero());
-
-        for part in self.part_iter(elem) {
-            let part = self.base().onehot(logic, part);
-            assert_eq!(part.len(), result.len());
-            for (idx, val) in part.copy_iter().enumerate() {
-                result.set(idx, logic.bool_or(result.get(idx), val));
-            }
-        }
-
-        result
+        let graph = self.as_relation(logic, elem);
+        let rels = Relations::new_relations(self.domain().clone(), self.arity() + 1);
+        rels.project(logic, graph.slice(), &[0])
     }
 
     /// Returns true if the given element is a surjective operation.
@@ -98,6 +86,33 @@ where
         assert_eq!(self.arity(), 1);
         self.is_surjective(logic, elem)
     }
+
+    /// Returns the unary identity operation.
+    pub fn get_identity<LOGIC>(&self, logic: &mut LOGIC) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        assert_eq!(self.arity(), 1);
+
+        let mut result: LOGIC::Vector = Vector::with_capacity(self.num_bits());
+        for index in 0..self.base().size() {
+            let mut value = self.base().get_elem(logic, index);
+            result.append(&mut value);
+        }
+
+        debug_assert_eq!(result.len(), self.num_bits());
+        result
+    }
+
+    /// Returns the unary identity operation.
+    pub fn get_projection<LOGIC>(&self, logic: &mut LOGIC, coord: usize) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        assert!(coord < self.arity());
+        let result = self.change_arity(1).get_identity(logic);
+        self.polymer(result.slice(), self.arity(), &[coord])
+    }
 }
 
 #[cfg(test)]
@@ -117,20 +132,20 @@ mod tests {
             .collect();
         assert!(ops.contains(&mut logic, elem1.slice()));
 
-        let graph1 = ops.graph(&mut logic, elem1.slice());
+        let graph1 = ops.as_relation(&mut logic, elem1.slice());
         assert!(rel.contains(&mut logic, graph1.slice()));
         assert_eq!(elem1, graph1);
 
         let mut solver = Solver::new("");
         let elem2 = ops.add_variable(&mut solver);
-        let graph2 = ops.graph(&mut solver, elem2.slice());
+        let graph2 = ops.as_relation(&mut solver, elem2.slice());
         assert_eq!(elem2, graph2);
 
         let dom = BOOLEAN;
         let ops = Power::new(dom.clone(), Power::new(dom.clone(), SmallSet::new(1)));
 
         let elem3 = ops.add_variable(&mut solver);
-        let graph3 = ops.graph(&mut solver, elem3.slice());
+        let graph3 = ops.as_relation(&mut solver, elem3.slice());
         assert_eq!(elem3.len(), 2);
         assert_eq!(graph3.len(), 4);
         assert_eq!(graph3.get(0), solver.bool_not(elem3.get(0)));

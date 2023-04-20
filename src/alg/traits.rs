@@ -344,6 +344,35 @@ pub trait BooleanLattice: Lattice + BoundedOrder {
     }
 }
 
+/// A domain with a associative binary operation.
+pub trait Semigroup: Domain {
+    /// Returns the product of the given two elements.
+    fn product<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic;
+}
+
+pub trait Monoid: Semigroup {
+    /// Returns the identity element of the monoid.
+    fn get_identity<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic;
+
+    /// Returns true if the given element is the bottom one.
+    fn is_identity<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        let unit = self.get_identity(logic);
+        self.equals(logic, elem, unit.slice())
+    }
+}
+
 /// A binary relation between two domains
 pub trait BipartiteGraph {
     /// The type of the first domain of the bipartite graph.

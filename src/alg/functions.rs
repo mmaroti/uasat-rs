@@ -49,7 +49,7 @@ where
 
     /// Creates a new function of the given arity from an old function with
     /// permuted, identified and/or new dummy coordinates. The mapping is a
-    /// vector of length of the arity of the original element with entries
+    /// vector of length of the arity of the original function with entries
     /// identifying the matching coordinates in the new function.
     pub fn polymer<'a, SLICE>(&self, elem: SLICE, arity: usize, mapping: &[usize]) -> SLICE::Vector
     where
@@ -111,6 +111,38 @@ where
         SLICE: Slice<'a>,
     {
         let map: Vec<usize> = (0..self.arity()).rev().collect();
+        self.polymer(elem, map.len(), &map)
+    }
+
+    /// Rotates the coordinate of the function to the right, such that
+    /// f(x,y,z) becomes f(z,x,y).
+    pub fn rotate_right<'a, SLICE>(&self, elem: SLICE) -> SLICE::Vector
+    where
+        SLICE: Slice<'a>,
+    {
+        assert!(self.arity() >= 1);
+        let map: Vec<usize> = if self.arity() <= 1 {
+            (0..self.arity()).collect()
+        } else {
+            (1..self.arity()).chain(std::iter::once(0)).collect()
+        };
+        self.polymer(elem, map.len(), &map)
+    }
+
+    /// Rotates the coordinate of the function to the left, such that
+    /// f(x,y,z) becomes f(y,z,x).
+    pub fn rotate_left<'a, SLICE>(&self, elem: SLICE) -> SLICE::Vector
+    where
+        SLICE: Slice<'a>,
+    {
+        assert!(self.arity() >= 1);
+        let map: Vec<usize> = if self.arity() <= 1 {
+            (0..self.arity()).collect()
+        } else {
+            std::iter::once(self.arity() - 1)
+                .chain(0..self.arity() - 1)
+                .collect()
+        };
         self.polymer(elem, map.len(), &map)
     }
 }

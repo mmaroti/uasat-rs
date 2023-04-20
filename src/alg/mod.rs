@@ -21,6 +21,9 @@
 use super::core::{BooleanLogic, BooleanSolver, Logic, Solver};
 use super::genvec::{BitSlice, BitVec, Slice, Vector};
 
+mod binary_relations;
+pub use binary_relations::*;
+
 mod boolean;
 pub use boolean::*;
 
@@ -29,6 +32,9 @@ pub use functions::*;
 
 mod operations;
 pub use operations::*;
+
+mod permutations;
+pub use permutations::*;
 
 mod power;
 pub use power::*;
@@ -44,6 +50,9 @@ pub use small_set::*;
 
 mod traits;
 pub use traits::*;
+
+mod unary_operations;
+pub use unary_operations::*;
 
 mod wrap_elem;
 pub use wrap_elem::*;

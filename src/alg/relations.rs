@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BitSlice, Boolean, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph,
-    Domain, Functions, MeetSemilattice, PartIter, Slice, Vector,
+    BitSlice, Boolean, BooleanLogic, BoundedOrder, Countable, Domain, Functions, PartIter, Slice,
+    Vector,
 };
 
 /// A domain containing relations of a fixed arity.
@@ -143,87 +143,76 @@ where
         result
     }
 
-    /// Checks if the given binary relation is reflexive.
-    pub fn is_reflexive<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    /// Returns a new relation of arity one less where the first coordinate is
+    /// removed and folded using the operation that is true when exavtly one
+    /// of the elements is true.
+    pub fn fold_one<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
-        assert_eq!(self.arity(), 2);
-        let elem = self.identify(elem);
-        let dom1 = self.change_arity(1);
-        dom1.is_top(logic, elem.slice())
+        let dom = self.change_arity(self.arity() - 1);
+        let mut result: LOGIC::Vector = Vector::with_capacity(dom.num_bits());
+        for part in self.fold_iter(elem) {
+            result.push(logic.bool_fold_one(part.copy_iter()));
+        }
+        result
     }
 
-    /// Returns true if the given binary relation is symmetric.
-    pub fn is_symmetric<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
-    where
-        LOGIC: BooleanLogic,
-    {
-        let conv = self.polymer(elem, 2, &[1, 0]);
-        let elem = self.implies(logic, elem, conv.slice());
-        self.is_top(logic, elem.slice())
-    }
-
-    /// Checks if the given binary relation is antisymmetric.
-    pub fn is_antisymmetric<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
-    where
-        LOGIC: BooleanLogic,
-    {
-        let conv = self.polymer(elem, 2, &[1, 0]);
-        let elem = self.meet(logic, elem, conv.slice());
-        let diag = self.get_diagonal(logic);
-        self.is_edge(logic, elem.slice(), diag.slice())
-    }
-
-    /// Returns the composition of the given binary relations.
-    pub fn compose<LOGIC>(
+    /// Returns the projection of the given relation to the given coordinates.
+    /// The set of coordinates mut be distinct. A tuple is in the new
+    /// relation there are elements for the missing coordinates such that
+    /// the extended tuple is in the old relation.
+    pub fn project<LOGIC>(
         &self,
         logic: &mut LOGIC,
-        elem0: LOGIC::Slice<'_>,
-        elem1: LOGIC::Slice<'_>,
+        elem: LOGIC::Slice<'_>,
+        coords: &[usize],
     ) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
+        assert!(coords.len() <= self.arity());
+        let start = self.arity() - coords.len();
+
+        let mut pos = start;
+        let mut map = vec![self.arity(); self.arity()];
+        for &i in coords {
+            assert!(map[i] == self.arity());
+            map[i] = pos;
+            pos += 1;
+        }
+
+        pos = 0;
+        for m in map.iter_mut() {
+            if *m == self.arity() {
+                *m = pos;
+                pos += 1;
+            }
+        }
+        debug_assert_eq!(pos, start);
+
+        let mut elem = self.polymer(elem, self.arity(), &map);
+        for _ in 0..start {
+            elem = self.fold_any(logic, elem.slice());
+        }
+
+        elem
+    }
+
+    /// Returns true if this binary relation encodes the graph of a permutation.
+    pub fn is_perm_graph<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
         assert_eq!(self.arity(), 2);
-        let dom3 = self.change_arity(3);
-        let elem0: LOGIC::Vector = self.polymer(elem0, 3, &[1, 0]);
-        let elem1: LOGIC::Vector = self.polymer(elem1, 3, &[0, 2]);
-        let elem2 = dom3.meet(logic, elem0.slice(), elem1.slice());
-        dom3.fold_any(logic, elem2.slice())
-    }
+        let rel1 = self.change_arity(1);
 
-    /// Returns true if the given binary relation is transitive.
-    pub fn is_transitive<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
-    where
-        LOGIC: BooleanLogic,
-    {
-        let comp = self.compose(logic, elem, elem);
-        let elem = self.implies(logic, comp.slice(), elem);
-        self.is_top(logic, elem.slice())
-    }
+        let test1 = self.fold_one(logic, elem);
+        let test1 = rel1.is_top(logic, test1.slice());
 
-    /// Returns true if the given binary relation is an equivalence relation.
-    pub fn is_equivalence<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
-    where
-        LOGIC: BooleanLogic,
-    {
-        let test0 = self.is_reflexive(logic, elem);
-        let test1 = self.is_symmetric(logic, elem);
-        let test2 = self.is_transitive(logic, elem);
-        let test3 = logic.bool_and(test0, test1);
-        logic.bool_and(test2, test3)
-    }
+        let test2 = self.fold_any(logic, self.converse(elem).slice());
+        let test2 = rel1.is_top(logic, test2.slice());
 
-    /// Returns true if the given binary relation is a partial order relation.
-    pub fn is_partial_order<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
-    where
-        LOGIC: BooleanLogic,
-    {
-        let test0 = self.is_reflexive(logic, elem);
-        let test1 = self.is_antisymmetric(logic, elem);
-        let test2 = self.is_transitive(logic, elem);
-        let test3 = logic.bool_and(test0, test1);
-        logic.bool_and(test2, test3)
+        logic.bool_and(test1, test2)
     }
 }

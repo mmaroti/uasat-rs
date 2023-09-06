@@ -302,10 +302,7 @@ fn binary_relations() {
 #[test]
 fn unary_operations() {
     let mut logic = Solver::new("");
-    let domain = Power::new(
-        SmallSet::new(6),
-        Power::new(SmallSet::new(6), SmallSet::new(1)),
-    );
+    let domain = UnaryOperations::new(SmallSet::new(6));
     let elem = domain.add_variable(&mut logic);
     let test = domain.is_permutation(&mut logic, elem.slice());
     logic.bool_add_clause1(test);

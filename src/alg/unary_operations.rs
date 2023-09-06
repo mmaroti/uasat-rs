@@ -37,6 +37,14 @@ where
     pub fn domain(&self) -> &DOM {
         self.0.domain()
     }
+
+    /// Returns true if the given element is a permutation (unary and surjective).
+    pub fn is_permutation<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.0.is_permutation(logic, elem)
+    }
 }
 
 impl<DOM> Domain for UnaryOperations<DOM>

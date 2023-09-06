@@ -120,6 +120,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
+        assert!(self.arity() >= 1);
         let dom = self.change_arity(self.arity() - 1);
         let mut result: LOGIC::Vector = Vector::with_capacity(dom.num_bits());
         for part in self.fold_iter(elem) {
@@ -134,6 +135,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
+        assert!(self.arity() >= 1);
         let dom = self.change_arity(self.arity() - 1);
         let mut result: LOGIC::Vector = Vector::with_capacity(dom.num_bits());
         for part in self.fold_iter(elem) {
@@ -149,6 +151,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
+        assert!(self.arity() >= 1);
         let dom = self.change_arity(self.arity() - 1);
         let mut result: LOGIC::Vector = Vector::with_capacity(dom.num_bits());
         for part in self.fold_iter(elem) {

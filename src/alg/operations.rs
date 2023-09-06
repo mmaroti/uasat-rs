@@ -16,20 +16,44 @@
 */
 
 use super::{
-    Boolean, BooleanLogic, BoundedOrder, Countable, Domain, Functions, Power, Relations, Slice,
-    Vector,
+    Boolean, BooleanLogic, BoundedOrder, Countable, Domain, Functions, Monoid, Power, Relations,
+    Slice, UnaryOperations, Vector,
 };
 
 /// A domain containing operations of a fixed arity.
-pub type Operations<DOM> = Functions<DOM, DOM>;
+#[derive(Debug, Clone, PartialEq)]
+pub struct Operations<DOM>(Functions<DOM, DOM>)
+where
+    DOM: Countable;
 
 impl<DOM> Operations<DOM>
 where
     DOM: Countable,
 {
     /// Creates a domain containing operationf of a fixed arity.
-    pub fn new_operations(dom: DOM, arity: usize) -> Self {
-        Functions::new_functions(dom.clone(), dom, arity)
+    pub fn new(dom: DOM, arity: usize) -> Self {
+        Operations(Functions::new_functions(dom.clone(), dom, arity))
+    }
+
+    /// Returns the arity (rank) of all operations in the domain.
+    pub fn arity(&self) -> usize {
+        self.0.arity()
+    }
+
+    /// Returns the domain of the operations.
+    pub fn domain(&self) -> &DOM {
+        self.0.domain()
+    }
+
+    /// Creates a new function of the given arity from an old function with
+    /// permuted, identified and/or new dummy coordinates. The mapping is a
+    /// vector of length of the arity of the original function with entries
+    /// identifying the matching coordinates in the new function.
+    pub fn polymer<'a, SLICE>(&self, elem: SLICE, arity: usize, mapping: &[usize]) -> SLICE::Vector
+    where
+        SLICE: Slice<'a>,
+    {
+        self.0.polymer(elem, arity, mapping)
     }
 
     /// Returns the graph of the given operation, which is a relation
@@ -39,8 +63,7 @@ where
         LOGIC: BooleanLogic,
     {
         assert_eq!(elem.len(), self.num_bits());
-        assert_eq!(self.base(), self.domain());
-        let domain = self.base();
+        let domain = self.domain();
 
         let size = domain.size();
         let mut power = size;
@@ -49,7 +72,7 @@ where
         }
 
         let mut result: LOGIC::Vector = Vector::with_capacity(power);
-        for part in self.part_iter(elem) {
+        for part in self.0.part_iter(elem) {
             let mut value = domain.onehot(logic, part);
             result.append(&mut value);
         }
@@ -78,40 +101,63 @@ where
         dom.is_top(logic, range.slice())
     }
 
-    /// Returns true if the given element is a permutation (unary and surjective).
-    pub fn is_permutation<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
-    where
-        LOGIC: BooleanLogic,
-    {
-        assert_eq!(self.arity(), 1);
-        self.is_surjective(logic, elem)
-    }
-
-    /// Returns the unary identity operation.
-    pub fn get_identity<LOGIC>(&self, logic: &mut LOGIC) -> LOGIC::Vector
-    where
-        LOGIC: BooleanLogic,
-    {
-        assert_eq!(self.arity(), 1);
-
-        let mut result: LOGIC::Vector = Vector::with_capacity(self.num_bits());
-        for index in 0..self.base().size() {
-            let mut value = self.base().get_elem(logic, index);
-            result.append(&mut value);
-        }
-
-        debug_assert_eq!(result.len(), self.num_bits());
-        result
-    }
-
     /// Returns the unary identity operation.
     pub fn get_projection<LOGIC>(&self, logic: &mut LOGIC, coord: usize) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
         assert!(coord < self.arity());
-        let result = self.change_arity(1).get_identity(logic);
+        let dom = UnaryOperations::new(self.domain().clone());
+        let result = dom.get_identity(logic);
         self.polymer(result.slice(), self.arity(), &[coord])
+    }
+}
+
+impl<DOM> Domain for Operations<DOM>
+where
+    DOM: Countable,
+{
+    fn num_bits(&self) -> usize {
+        self.0.num_bits()
+    }
+
+    fn contains<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.0.contains(logic, elem)
+    }
+
+    fn equals<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.0.equals(logic, elem0, elem1)
+    }
+}
+
+impl<DOM> Countable for Operations<DOM>
+where
+    DOM: Countable,
+{
+    fn size(&self) -> usize {
+        self.0.size()
+    }
+
+    fn get_elem<LOGIC>(&self, logic: &LOGIC, index: usize) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.0.get_elem(logic, index)
+    }
+
+    fn get_index(&self, elem: crate::genvec::BitSlice<'_>) -> usize {
+        self.0.get_index(elem)
     }
 }
 
@@ -123,7 +169,7 @@ mod tests {
     #[test]
     fn graph() {
         let dom = SmallSet::new(3);
-        let ops = Power::new(dom.clone(), Power::new(dom.clone(), SmallSet::new(1)));
+        let ops = Operations::new(dom.clone(), 1);
         let rel = Power::new(BOOLEAN, Power::new(dom.clone(), SmallSet::new(2)));
 
         let mut logic = Logic();
@@ -142,7 +188,7 @@ mod tests {
         assert_eq!(elem2, graph2);
 
         let dom = BOOLEAN;
-        let ops = Power::new(dom.clone(), Power::new(dom.clone(), SmallSet::new(1)));
+        let ops = Operations::new(dom.clone(), 1);
 
         let elem3 = ops.add_variable(&mut solver);
         let graph3 = ops.as_relation(&mut solver, elem3.slice());

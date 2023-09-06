@@ -32,7 +32,7 @@ where
     /// Creates domain of binary relations over the given domain.
     #[inline]
     pub fn new(dom: DOM) -> Self {
-        Self(Relations::new_relations(dom, 2))
+        Self(Relations::new(dom, 2))
     }
 
     /// Returns the underlying domain of this class of relations.
@@ -41,7 +41,7 @@ where
         self.0.domain()
     }
 
-    /// Reverses the converse of the given binary relation.
+    /// Reverses the coordinates of the given binary relation.
     #[inline]
     pub fn converse<'a, SLICE>(&self, elem: SLICE) -> SLICE::Vector
     where
@@ -56,7 +56,7 @@ where
         LOGIC: BooleanLogic,
     {
         let diag = self.0.polymer(elem, 1, &[0, 0]);
-        let rels = Relations::new_relations(self.domain().clone(), 1);
+        let rels = Relations::new(self.domain().clone(), 1);
         rels.is_top(logic, diag.slice())
     }
 
@@ -123,7 +123,7 @@ where
         LOGIC: BooleanLogic,
     {
         let elem = self.0.fold_one(logic, elem);
-        let rels = Relations::new_relations(self.domain().clone(), 1);
+        let rels = Relations::new(self.domain().clone(), 1);
         rels.is_top(logic, elem.slice())
     }
 
@@ -356,7 +356,7 @@ where
         let elem0: LOGIC::Vector = self.0.polymer(elem0, 3, &[1, 0]);
         let elem1: LOGIC::Vector = self.0.polymer(elem1, 3, &[0, 2]);
 
-        let rels = Relations::new_relations(self.domain().clone(), 3);
+        let rels = Relations::new(self.domain().clone(), 3);
         let elem2 = rels.meet(logic, elem0.slice(), elem1.slice());
         rels.fold_any(logic, elem2.slice())
     }

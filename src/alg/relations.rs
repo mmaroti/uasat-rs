@@ -17,12 +17,12 @@
 
 use super::{
     BitSlice, Boolean, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph,
-    Domain, Functions, Lattice, MeetSemilattice, PartIter, PartialOrder, Slice, Vector,
+    Domain, Lattice, MeetSemilattice, PartIter, PartialOrder, Power, Slice, SmallSet, Vector,
 };
 
 /// A domain containing relations of a fixed arity.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Relations<DOM>(Functions<DOM, Boolean>)
+pub struct Relations<DOM>(Power<Boolean, Power<DOM, SmallSet>>)
 where
     DOM: Countable;
 
@@ -34,24 +34,24 @@ where
 {
     /// Creates a new function domain from the given domain to
     /// the target codomain.
-    pub fn new_relations(dom: DOM, arity: usize) -> Self {
-        Relations(Functions::new(dom, Boolean(), arity))
+    pub fn new(dom: DOM, arity: usize) -> Self {
+        Relations(Power::new(Boolean(), Power::new(dom, SmallSet::new(arity))))
     }
 
     /// Returns the arity (rank) of all relations in the domain.
     pub fn arity(&self) -> usize {
-        self.0.arity()
+        self.0.exponent().exponent().size()
     }
 
     /// Returns the domain of the relations.
     pub fn domain(&self) -> &DOM {
-        self.0.domain()
+        self.0.exponent().base()
     }
 
     /// Returns another domain of relations with same domain but with the
     /// new given arity.
     pub fn change_arity(&self, arity: usize) -> Self {
-        Relations::new_relations(self.domain().clone(), arity)
+        Relations::new(self.domain().clone(), arity)
     }
 
     /// Creates a new relation of the given arity from an old relation with
@@ -62,7 +62,45 @@ where
     where
         SLICE: Slice<'a>,
     {
-        self.0.polymer(elem, arity, mapping)
+        assert_eq!(elem.len(), self.num_bits());
+        assert_eq!(mapping.len(), self.arity());
+
+        let mut strides: Vec<(usize, usize, usize)> = vec![(0, 0, 0); arity];
+        let size = self.domain().size();
+        let mut power: usize = 1;
+        for &i in mapping {
+            assert!(i < arity);
+            strides[i].0 += power;
+            power *= size;
+        }
+
+        power = 1;
+        for s in strides.iter_mut() {
+            s.2 = size * s.0;
+            power *= size;
+        }
+
+        let mut result: SLICE::Vector = Vector::with_capacity(power);
+        let mut index = 0;
+        'outer: loop {
+            result.push(elem.get(index));
+
+            for stride in strides.iter_mut() {
+                index += stride.0;
+                stride.1 += 1;
+                if stride.1 >= size {
+                    stride.1 = 0;
+                    index -= stride.2;
+                } else {
+                    continue 'outer;
+                }
+            }
+
+            break;
+        }
+
+        debug_assert_eq!(result.len(), power);
+        result
     }
 
     /// Returns the relation that is true if and only if all arguments are
@@ -224,7 +262,7 @@ where
         }
         debug_assert_eq!(pos, start);
 
-        let mut elem = self.0.polymer(elem, self.arity(), &map);
+        let mut elem = self.polymer(elem, self.arity(), &map);
         for _ in 0..start {
             elem = self.fold_any(logic, elem.slice());
         }
@@ -237,10 +275,12 @@ impl<DOM> Domain for Relations<DOM>
 where
     DOM: Countable,
 {
+    #[inline]
     fn num_bits(&self) -> usize {
         self.0.num_bits()
     }
 
+    #[inline]
     fn contains<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
@@ -248,6 +288,7 @@ where
         self.0.contains(logic, elem)
     }
 
+    #[inline]
     fn equals<LOGIC>(
         &self,
         logic: &mut LOGIC,
@@ -265,10 +306,12 @@ impl<DOM> Countable for Relations<DOM>
 where
     DOM: Countable,
 {
+    #[inline]
     fn size(&self) -> usize {
         self.0.size()
     }
 
+    #[inline]
     fn get_elem<LOGIC>(&self, logic: &LOGIC, index: usize) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
@@ -276,10 +319,12 @@ where
         self.0.get_elem(logic, index)
     }
 
+    #[inline]
     fn get_index(&self, elem: crate::genvec::BitSlice<'_>) -> usize {
         self.0.get_index(elem)
     }
 
+    #[inline]
     fn onehot<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
@@ -292,6 +337,7 @@ impl<DOM> DirectedGraph for Relations<DOM>
 where
     DOM: Countable,
 {
+    #[inline]
     fn is_edge<LOGIC>(
         &self,
         logic: &mut LOGIC,
@@ -301,7 +347,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.as_power().is_edge(logic, elem0, elem1)
+        self.0.is_edge(logic, elem0, elem1)
     }
 }
 
@@ -311,32 +357,36 @@ impl<DOM> BoundedOrder for Relations<DOM>
 where
     DOM: Countable,
 {
+    #[inline]
     fn get_top<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
-        self.0.as_power().get_top(logic)
+        self.0.get_top(logic)
     }
 
+    #[inline]
     fn is_top<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
     {
-        self.0.as_power().is_top(logic, elem)
+        self.0.is_top(logic, elem)
     }
 
+    #[inline]
     fn get_bottom<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
-        self.0.as_power().get_bottom(logic)
+        self.0.get_bottom(logic)
     }
 
+    #[inline]
     fn is_bottom<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
     {
-        self.0.as_power().is_bottom(logic, elem)
+        self.0.is_bottom(logic, elem)
     }
 }
 
@@ -344,6 +394,7 @@ impl<DOM> MeetSemilattice for Relations<DOM>
 where
     DOM: Countable,
 {
+    #[inline]
     fn meet<LOGIC>(
         &self,
         logic: &mut LOGIC,
@@ -353,7 +404,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.as_power().meet(logic, elem0, elem1)
+        self.0.meet(logic, elem0, elem1)
     }
 }
 
@@ -361,6 +412,7 @@ impl<DOM> Lattice for Relations<DOM>
 where
     DOM: Countable,
 {
+    #[inline]
     fn join<LOGIC>(
         &self,
         logic: &mut LOGIC,
@@ -370,7 +422,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.as_power().join(logic, elem0, elem1)
+        self.0.join(logic, elem0, elem1)
     }
 }
 
@@ -378,13 +430,15 @@ impl<DOM> BooleanLattice for Relations<DOM>
 where
     DOM: Countable,
 {
+    #[inline]
     fn complement<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
-        self.0.as_power().complement(logic, elem)
+        self.0.complement(logic, elem)
     }
 
+    #[inline]
     fn implies<LOGIC>(
         &self,
         logic: &mut LOGIC,
@@ -394,6 +448,6 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.as_power().implies(logic, elem0, elem1)
+        self.0.implies(logic, elem0, elem1)
     }
 }

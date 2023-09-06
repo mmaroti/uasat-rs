@@ -87,7 +87,7 @@ where
         LOGIC: BooleanLogic,
     {
         let graph = self.as_relation(logic, elem);
-        let rels = Relations::new_relations(self.domain().clone(), self.arity() + 1);
+        let rels = Relations::new(self.domain().clone(), self.arity() + 1);
         rels.project(logic, graph.slice(), &[0])
     }
 
@@ -117,10 +117,12 @@ impl<DOM> Domain for Operations<DOM>
 where
     DOM: Countable,
 {
+    #[inline]
     fn num_bits(&self) -> usize {
         self.0.num_bits()
     }
 
+    #[inline]
     fn contains<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
@@ -128,6 +130,7 @@ where
         self.0.contains(logic, elem)
     }
 
+    #[inline]
     fn equals<LOGIC>(
         &self,
         logic: &mut LOGIC,
@@ -145,10 +148,12 @@ impl<DOM> Countable for Operations<DOM>
 where
     DOM: Countable,
 {
+    #[inline]
     fn size(&self) -> usize {
         self.0.size()
     }
 
+    #[inline]
     fn get_elem<LOGIC>(&self, logic: &LOGIC, index: usize) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
@@ -156,10 +161,12 @@ where
         self.0.get_elem(logic, index)
     }
 
+    #[inline]
     fn get_index(&self, elem: crate::genvec::BitSlice<'_>) -> usize {
         self.0.get_index(elem)
     }
 
+    #[inline]
     fn onehot<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,

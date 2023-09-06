@@ -16,13 +16,13 @@
 */
 
 use super::{
-    Boolean, BooleanLogic, BoundedOrder, Countable, Domain, Functions, Monoid, Power, Relations,
-    Slice, UnaryOperations, Vector,
+    Boolean, BooleanLogic, BoundedOrder, Countable, Domain, Monoid, Power, Relations, Slice,
+    SmallSet, UnaryOperations, Vector,
 };
 
 /// A domain containing operations of a fixed arity.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Operations<DOM>(Functions<DOM, DOM>)
+pub struct Operations<DOM>(Power<DOM, Power<DOM, SmallSet>>)
 where
     DOM: Countable;
 
@@ -32,17 +32,20 @@ where
 {
     /// Creates a domain containing operationf of a fixed arity.
     pub fn new(dom: DOM, arity: usize) -> Self {
-        Operations(Functions::new(dom.clone(), dom, arity))
+        Operations(Power::new(
+            dom.clone(),
+            Power::new(dom, SmallSet::new(arity)),
+        ))
     }
 
     /// Returns the arity (rank) of all operations in the domain.
     pub fn arity(&self) -> usize {
-        self.0.arity()
+        self.0.exponent().exponent().size()
     }
 
     /// Returns the domain of the operations.
     pub fn domain(&self) -> &DOM {
-        self.0.domain()
+        self.0.exponent().base()
     }
 
     /// Creates a new operation of the given arity from an old operation with
@@ -53,7 +56,45 @@ where
     where
         SLICE: Slice<'a>,
     {
-        self.0.polymer(elem, arity, mapping)
+        assert_eq!(elem.len(), self.num_bits());
+        assert_eq!(mapping.len(), self.arity());
+
+        let mut strides: Vec<(usize, usize, usize)> = vec![(0, 0, 0); arity];
+        let size = self.domain().size();
+        let mut power: usize = 1;
+        for &i in mapping {
+            assert!(i < arity);
+            strides[i].0 += power;
+            power *= size;
+        }
+
+        power = 1;
+        for s in strides.iter_mut() {
+            s.2 = size * s.0;
+            power *= size;
+        }
+
+        let mut result: SLICE::Vector = Vector::with_capacity(self.domain().num_bits() * power);
+        let mut index = 0;
+        'outer: loop {
+            result.extend(self.0.part(elem, index).copy_iter());
+
+            for stride in strides.iter_mut() {
+                index += stride.0;
+                stride.1 += 1;
+                if stride.1 >= size {
+                    stride.1 = 0;
+                    index -= stride.2;
+                } else {
+                    continue 'outer;
+                }
+            }
+
+            break;
+        }
+
+        debug_assert_eq!(result.len(), self.domain().num_bits() * power);
+        result
     }
 
     /// Returns the graph of the given operation, which is a relation

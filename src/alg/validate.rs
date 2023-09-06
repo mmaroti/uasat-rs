@@ -17,8 +17,8 @@
 
 use super::{
     BinaryRelations, BooleanLogic, BooleanSolver, BoundedOrder, Countable, Domain, FixedSet,
-    Lattice, Logic, MeetSemilattice, PartialOrder, Permutations, Power, Product2, Relations,
-    SmallSet, Solver, UnaryOperations, Vector, BOOLEAN,
+    Lattice, Logic, MeetSemilattice, Operations, PartialOrder, Permutations, Power, Product2,
+    Relations, SmallSet, Solver, UnaryOperations, Vector, BOOLEAN,
 };
 
 pub fn validate_domain<DOM>(domain: DOM)
@@ -60,6 +60,7 @@ fn domain() {
     validate_domain(Product2::new(BOOLEAN, SmallSet::new(3)));
     validate_domain(Relations::new(SmallSet::new(3), 3));
     validate_domain(BinaryRelations::new(SmallSet::new(3)));
+    validate_domain(Operations::new(SmallSet::new(2), 2));
     validate_domain(UnaryOperations::new(SmallSet::new(3)));
     validate_domain(Permutations::new(SmallSet::new(4)));
 }
@@ -118,6 +119,7 @@ fn countable() {
     validate_countable(Product2::new(BOOLEAN, SmallSet::new(3)), 6);
     validate_countable(Relations::new(SmallSet::new(2), 3), 256);
     validate_countable(BinaryRelations::new(SmallSet::new(2)), 16);
+    validate_countable(Operations::new(SmallSet::new(2), 2), 16);
     validate_countable(UnaryOperations::new(SmallSet::new(3)), 27);
 }
 

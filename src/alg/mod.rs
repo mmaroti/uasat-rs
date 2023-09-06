@@ -30,9 +30,6 @@ pub use boolean::*;
 mod fixed_set;
 pub use fixed_set::*;
 
-mod functions;
-pub use functions::*;
-
 mod operations;
 pub use operations::*;
 

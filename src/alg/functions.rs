@@ -15,10 +15,14 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{Countable, Domain, Power, Slice, SmallSet, Vector};
+use super::{BooleanLogic, Countable, Domain, PartIter, Power, Slice, SmallSet, Vector};
 
 /// A domain containing functions of a fixed arity from a domain to a codomain.
-pub type Functions<DOM, COD> = Power<COD, Power<DOM, SmallSet>>;
+#[derive(Debug, Clone, PartialEq)]
+pub struct Functions<DOM, COD>(Power<COD, Power<DOM, SmallSet>>)
+where
+    DOM: Countable,
+    COD: Domain;
 
 impl<DOM, COD> Functions<DOM, COD>
 where
@@ -27,24 +31,49 @@ where
 {
     /// Creates a new function domain from the given domain to
     /// the target codomain.
-    pub fn new_functions(dom: DOM, cod: COD, arity: usize) -> Self {
-        Power::new(cod, Power::new(dom, SmallSet::new(arity)))
+    pub fn new(dom: DOM, cod: COD, arity: usize) -> Self {
+        Functions(Power::new(cod, Power::new(dom, SmallSet::new(arity))))
     }
 
     /// Returns the arity (rank) of all functions in the domain.
     pub fn arity(&self) -> usize {
-        self.exponent().exponent().size()
+        self.0.exponent().exponent().size()
     }
 
     /// Returns the domain of the functions.
     pub fn domain(&self) -> &DOM {
-        self.exponent().base()
+        self.0.exponent().base()
+    }
+
+    /// Returns the codomain of the functions.
+    pub fn codomain(&self) -> &COD {
+        self.0.base()
+    }
+
+    pub fn as_power(&self) -> &Power<COD, Power<DOM, SmallSet>> {
+        &self.0
+    }
+
+    /// Returns the part of an element at consequtive indices.
+    pub fn part_iter<'a, ELEM>(&self, elem: ELEM) -> PartIter<'a, ELEM>
+    where
+        ELEM: Slice<'a>,
+    {
+        self.0.part_iter(elem)
+    }
+
+    /// Returns the part of an element at the given index.
+    pub fn part<'a, ELEM>(&self, elem: ELEM, index: usize) -> ELEM
+    where
+        ELEM: Slice<'a>,
+    {
+        self.0.part(elem, index)
     }
 
     /// Returns another domain of functions with same domand and codomain
     /// but with the new given arity.
     pub fn change_arity(&self, arity: usize) -> Self {
-        Functions::new_functions(self.domain().clone(), self.base().clone(), arity)
+        Functions::new(self.domain().clone(), self.codomain().clone(), arity)
     }
 
     /// Creates a new function of the given arity from an old function with
@@ -73,10 +102,10 @@ where
             power *= size;
         }
 
-        let mut result: SLICE::Vector = Vector::with_capacity(self.base().num_bits() * power);
+        let mut result: SLICE::Vector = Vector::with_capacity(self.codomain().num_bits() * power);
         let mut index = 0;
         'outer: loop {
-            result.extend(self.part(elem, index).copy_iter());
+            result.extend(self.0.part(elem, index).copy_iter());
 
             for stride in strides.iter_mut() {
                 index += stride.0;
@@ -92,7 +121,7 @@ where
             break;
         }
 
-        debug_assert_eq!(result.len(), self.base().num_bits() * power);
+        debug_assert_eq!(result.len(), self.codomain().num_bits() * power);
         result
     }
 
@@ -147,6 +176,63 @@ where
     }
 }
 
+impl<DOM, COD> Domain for Functions<DOM, COD>
+where
+    DOM: Countable,
+    COD: Domain,
+{
+    fn num_bits(&self) -> usize {
+        self.0.num_bits()
+    }
+
+    fn contains<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.0.contains(logic, elem)
+    }
+
+    fn equals<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.0.equals(logic, elem0, elem1)
+    }
+}
+
+impl<DOM, COD> Countable for Functions<DOM, COD>
+where
+    DOM: Countable,
+    COD: Countable,
+{
+    fn size(&self) -> usize {
+        self.0.size()
+    }
+
+    fn get_elem<LOGIC>(&self, logic: &LOGIC, index: usize) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.0.get_elem(logic, index)
+    }
+
+    fn get_index(&self, elem: crate::genvec::BitSlice<'_>) -> usize {
+        self.0.get_index(elem)
+    }
+
+    fn onehot<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.0.onehot(logic, elem)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::{BitVec, Domain, Logic, Vector};
@@ -154,10 +240,8 @@ mod tests {
 
     #[test]
     fn polymer() {
-        let dom0 = SmallSet::new(2);
-        let dom1 = SmallSet::new(3);
-        let op0 = Power::new(dom0.clone(), Power::new(dom1.clone(), SmallSet::new(1)));
-        let op1 = Power::new(dom0.clone(), Power::new(dom1.clone(), SmallSet::new(2)));
+        let op0 = Functions::new(SmallSet::new(3), SmallSet::new(2), 1);
+        let op1 = Functions::new(SmallSet::new(3), SmallSet::new(2), 2);
 
         assert_eq!(op0.arity(), 1);
         assert_eq!(op1.arity(), 2);

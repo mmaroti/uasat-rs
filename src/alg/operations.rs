@@ -32,7 +32,7 @@ where
 {
     /// Creates a domain containing operationf of a fixed arity.
     pub fn new(dom: DOM, arity: usize) -> Self {
-        Operations(Functions::new_functions(dom.clone(), dom, arity))
+        Operations(Functions::new(dom.clone(), dom, arity))
     }
 
     /// Returns the arity (rank) of all operations in the domain.
@@ -158,6 +158,13 @@ where
 
     fn get_index(&self, elem: crate::genvec::BitSlice<'_>) -> usize {
         self.0.get_index(elem)
+    }
+
+    fn onehot<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.0.onehot(logic, elem)
     }
 }
 

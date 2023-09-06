@@ -100,7 +100,7 @@ where
         &self.exponent
     }
 
-    /// Returns the part of an element at the given index.
+    /// Returns the part of an element at consequtive indices.
     pub fn part_iter<'a, ELEM>(&self, elem: ELEM) -> PartIter<'a, ELEM>
     where
         ELEM: Slice<'a>,

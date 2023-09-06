@@ -16,7 +16,8 @@
 */
 
 use super::{
-    BitSlice, Boolean, BooleanLogic, Countable, Domain, Functions, PartIter, Slice, Vector,
+    BitSlice, Boolean, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph,
+    Domain, Functions, Lattice, MeetSemilattice, PartIter, PartialOrder, Slice, Vector,
 };
 
 /// A domain containing relations of a fixed arity.
@@ -31,7 +32,7 @@ where
     /// Creates a new function domain from the given domain to
     /// the target codomain.
     pub fn new_relations(dom: DOM, arity: usize) -> Self {
-        Functions::new_functions(dom, Boolean(), arity)
+        Functions::new(dom, Boolean(), arity)
     }
 
     /// Returns the relation that is true if and only if all arguments are
@@ -111,7 +112,7 @@ where
     {
         assert!(self.arity() >= 1);
         assert_eq!(elem.len(), self.num_bits());
-        PartIter::new(elem, self.base().num_bits() * self.domain().size())
+        PartIter::new(elem, self.domain().size())
     }
 
     /// Returns a new relation of arity one less where the first coordinate is
@@ -199,5 +200,115 @@ where
         }
 
         elem
+    }
+}
+
+impl<DOM> DirectedGraph for Relations<DOM>
+where
+    DOM: Countable,
+{
+    fn is_edge<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.as_power().is_edge(logic, elem0, elem1)
+    }
+}
+
+impl<DOM> PartialOrder for Relations<DOM> where DOM: Countable {}
+
+impl<DOM> BoundedOrder for Relations<DOM>
+where
+    DOM: Countable,
+{
+    fn get_top<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.as_power().get_top(logic)
+    }
+
+    fn is_top<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.as_power().is_top(logic, elem)
+    }
+
+    fn get_bottom<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.as_power().get_bottom(logic)
+    }
+
+    fn is_bottom<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.as_power().is_bottom(logic, elem)
+    }
+}
+
+impl<DOM> MeetSemilattice for Relations<DOM>
+where
+    DOM: Countable,
+{
+    fn meet<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.as_power().meet(logic, elem0, elem1)
+    }
+}
+
+impl<DOM> Lattice for Relations<DOM>
+where
+    DOM: Countable,
+{
+    fn join<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.as_power().join(logic, elem0, elem1)
+    }
+}
+
+impl<DOM> BooleanLattice for Relations<DOM>
+where
+    DOM: Countable,
+{
+    fn complement<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.as_power().complement(logic, elem)
+    }
+
+    fn implies<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.as_power().implies(logic, elem0, elem1)
     }
 }

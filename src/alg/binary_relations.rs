@@ -55,7 +55,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        let diag = self.0.identify(elem);
+        let diag = self.0.polymer(elem, 1, &[0, 0]);
         let rels = Relations::new_relations(self.domain().clone(), 1);
         rels.is_top(logic, diag.slice())
     }

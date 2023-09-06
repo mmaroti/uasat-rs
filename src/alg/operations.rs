@@ -45,7 +45,7 @@ where
         self.0.domain()
     }
 
-    /// Creates a new function of the given arity from an old function with
+    /// Creates a new operation of the given arity from an old operation with
     /// permuted, identified and/or new dummy coordinates. The mapping is a
     /// vector of length of the arity of the original function with entries
     /// identifying the matching coordinates in the new function.

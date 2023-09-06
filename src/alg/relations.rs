@@ -21,7 +21,10 @@ use super::{
 };
 
 /// A domain containing relations of a fixed arity.
-pub type Relations<DOM> = Functions<DOM, Boolean>;
+#[derive(Debug, Clone, PartialEq)]
+pub struct Relations<DOM>(Functions<DOM, Boolean>)
+where
+    DOM: Countable;
 
 /// A domain of relations, which are functions to the BOOLEAN domain.
 
@@ -32,7 +35,34 @@ where
     /// Creates a new function domain from the given domain to
     /// the target codomain.
     pub fn new_relations(dom: DOM, arity: usize) -> Self {
-        Functions::new(dom, Boolean(), arity)
+        Relations(Functions::new(dom, Boolean(), arity))
+    }
+
+    /// Returns the arity (rank) of all relations in the domain.
+    pub fn arity(&self) -> usize {
+        self.0.arity()
+    }
+
+    /// Returns the domain of the relations.
+    pub fn domain(&self) -> &DOM {
+        self.0.domain()
+    }
+
+    /// Returns another domain of relations with same domain but with the
+    /// new given arity.
+    pub fn change_arity(&self, arity: usize) -> Self {
+        Relations::new_relations(self.domain().clone(), arity)
+    }
+
+    /// Creates a new relation of the given arity from an old relation with
+    /// permuted, identified and/or new dummy coordinates. The mapping is a
+    /// vector of length of the arity of the original function with entries
+    /// identifying the matching coordinates in the new function.
+    pub fn polymer<'a, SLICE>(&self, elem: SLICE, arity: usize, mapping: &[usize]) -> SLICE::Vector
+    where
+        SLICE: Slice<'a>,
+    {
+        self.0.polymer(elem, arity, mapping)
     }
 
     /// Returns the relation that is true if and only if all arguments are
@@ -194,12 +224,67 @@ where
         }
         debug_assert_eq!(pos, start);
 
-        let mut elem = self.polymer(elem, self.arity(), &map);
+        let mut elem = self.0.polymer(elem, self.arity(), &map);
         for _ in 0..start {
             elem = self.fold_any(logic, elem.slice());
         }
 
         elem
+    }
+}
+
+impl<DOM> Domain for Relations<DOM>
+where
+    DOM: Countable,
+{
+    fn num_bits(&self) -> usize {
+        self.0.num_bits()
+    }
+
+    fn contains<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.0.contains(logic, elem)
+    }
+
+    fn equals<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.0.equals(logic, elem0, elem1)
+    }
+}
+
+impl<DOM> Countable for Relations<DOM>
+where
+    DOM: Countable,
+{
+    fn size(&self) -> usize {
+        self.0.size()
+    }
+
+    fn get_elem<LOGIC>(&self, logic: &LOGIC, index: usize) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.0.get_elem(logic, index)
+    }
+
+    fn get_index(&self, elem: crate::genvec::BitSlice<'_>) -> usize {
+        self.0.get_index(elem)
+    }
+
+    fn onehot<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.0.onehot(logic, elem)
     }
 }
 
@@ -216,7 +301,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.as_power().is_edge(logic, elem0, elem1)
+        self.0.as_power().is_edge(logic, elem0, elem1)
     }
 }
 
@@ -230,28 +315,28 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.as_power().get_top(logic)
+        self.0.as_power().get_top(logic)
     }
 
     fn is_top<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
     {
-        self.as_power().is_top(logic, elem)
+        self.0.as_power().is_top(logic, elem)
     }
 
     fn get_bottom<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
-        self.as_power().get_bottom(logic)
+        self.0.as_power().get_bottom(logic)
     }
 
     fn is_bottom<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
     {
-        self.as_power().is_bottom(logic, elem)
+        self.0.as_power().is_bottom(logic, elem)
     }
 }
 
@@ -268,7 +353,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.as_power().meet(logic, elem0, elem1)
+        self.0.as_power().meet(logic, elem0, elem1)
     }
 }
 
@@ -285,7 +370,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.as_power().join(logic, elem0, elem1)
+        self.0.as_power().join(logic, elem0, elem1)
     }
 }
 
@@ -297,7 +382,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.as_power().complement(logic, elem)
+        self.0.as_power().complement(logic, elem)
     }
 
     fn implies<LOGIC>(
@@ -309,6 +394,6 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.as_power().implies(logic, elem0, elem1)
+        self.0.as_power().implies(logic, elem0, elem1)
     }
 }

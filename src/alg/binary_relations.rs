@@ -126,6 +126,16 @@ where
         let rels = Relations::new_relations(self.domain().clone(), 1);
         rels.is_top(logic, elem.slice())
     }
+
+    /// Returns true if this binary relation encodes the graph of a permutation.
+    pub fn is_permutation<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        let test1 = self.is_operation(logic, elem);
+        let test2 = self.is_operation(logic, self.converse(elem).slice());
+        logic.bool_and(test1, test2)
+    }
 }
 
 impl<DOM> Domain for BinaryRelations<DOM>

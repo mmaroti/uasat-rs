@@ -16,8 +16,7 @@
 */
 
 use super::{
-    BitSlice, Boolean, BooleanLogic, BoundedOrder, Countable, Domain, Functions, PartIter, Slice,
-    Vector,
+    BitSlice, Boolean, BooleanLogic, Countable, Domain, Functions, PartIter, Slice, Vector,
 };
 
 /// A domain containing relations of a fixed arity.
@@ -197,22 +196,5 @@ where
         }
 
         elem
-    }
-
-    /// Returns true if this binary relation encodes the graph of a permutation.
-    pub fn is_perm_graph<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
-    where
-        LOGIC: BooleanLogic,
-    {
-        assert_eq!(self.arity(), 2);
-        let rel1 = self.change_arity(1);
-
-        let test1 = self.fold_one(logic, elem);
-        let test1 = rel1.is_top(logic, test1.slice());
-
-        let test2 = self.fold_any(logic, self.converse(elem).slice());
-        let test2 = rel1.is_top(logic, test2.slice());
-
-        logic.bool_and(test1, test2)
     }
 }

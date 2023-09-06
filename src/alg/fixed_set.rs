@@ -19,6 +19,7 @@ use super::{
     BitSlice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain, Lattice,
     MeetSemilattice, PartialOrder, Slice, Vector,
 };
+
 /// A small set encoded as a one-hot vector of booleans representing
 /// the numbers `0..size` with the natural chain order. The size of
 /// the domain is specified at compile time.

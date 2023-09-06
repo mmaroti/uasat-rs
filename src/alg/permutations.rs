@@ -15,10 +15,10 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BooleanLogic, Countable, Domain, Relations};
+use super::{BinaryRelations, BooleanLogic, Countable, Domain};
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Permutations<DOM>(Relations<DOM>)
+pub struct Permutations<DOM>(BinaryRelations<DOM>)
 where
     DOM: Countable;
 
@@ -28,7 +28,7 @@ where
 {
     /// Creates a class of permutations of the given domain.
     pub fn new(dom: DOM) -> Self {
-        let rels = Relations::new_relations(dom, 2);
+        let rels = BinaryRelations::new(dom);
         Self(rels)
     }
 
@@ -50,7 +50,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.is_perm_graph(logic, elem)
+        self.0.is_permutation(logic, elem)
     }
 
     fn equals<LOGIC>(

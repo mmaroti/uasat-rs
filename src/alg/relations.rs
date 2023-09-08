@@ -81,6 +81,10 @@ where
         }
 
         let mut result: SLICE::Vector = Vector::with_capacity(power);
+        if power == 0 {
+            return result;
+        }
+
         let mut index = 0;
         'outer: loop {
             result.push(elem.get(index));
@@ -320,7 +324,7 @@ where
     }
 
     #[inline]
-    fn get_index(&self, elem: crate::genvec::BitSlice<'_>) -> usize {
+    fn get_index(&self, elem: BitSlice<'_>) -> usize {
         self.0.get_index(elem)
     }
 

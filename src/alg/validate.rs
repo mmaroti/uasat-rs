@@ -121,6 +121,9 @@ fn countable() {
     validate_countable(BinaryRelations::new(SmallSet::new(2)), 16);
     validate_countable(Operations::new(SmallSet::new(2), 2), 16);
     validate_countable(UnaryOperations::new(SmallSet::new(3)), 27);
+    validate_countable(Permutations::new(SmallSet::new(0)), 1);
+    validate_countable(Permutations::new(SmallSet::new(1)), 1);
+    validate_countable(Permutations::new(SmallSet::new(4)), 24);
 }
 
 pub fn validate_partial_order<DOM>(domain: DOM)

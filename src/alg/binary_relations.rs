@@ -16,8 +16,8 @@
 */
 
 use super::{
-    BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain, Lattice,
-    MeetSemilattice, Monoid, PartialOrder, Relations, Semigroup, Slice, Vector,
+    BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
+    Lattice, MeetSemilattice, Monoid, PartialOrder, Relations, Semigroup, Slice, Vector,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -163,7 +163,7 @@ where
         elem1: LOGIC::Slice<'_>,
     ) -> LOGIC::Elem
     where
-        LOGIC: crate::core::BooleanLogic,
+        LOGIC: BooleanLogic,
     {
         self.0.equals(logic, elem0, elem1)
     }
@@ -187,7 +187,7 @@ where
     }
 
     #[inline]
-    fn get_index(&self, elem: crate::genvec::BitSlice<'_>) -> usize {
+    fn get_index(&self, elem: BitSlice<'_>) -> usize {
         self.0.get_index(elem)
     }
 }

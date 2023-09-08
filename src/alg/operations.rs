@@ -16,8 +16,8 @@
 */
 
 use super::{
-    Boolean, BooleanLogic, BoundedOrder, Countable, Domain, Monoid, Power, Relations, Slice,
-    SmallSet, UnaryOperations, Vector,
+    BitSlice, Boolean, BooleanLogic, BoundedOrder, Countable, Domain, Monoid, Power, Relations,
+    Slice, SmallSet, UnaryOperations, Vector,
 };
 
 /// A domain containing operations of a fixed arity.
@@ -75,6 +75,10 @@ where
         }
 
         let mut result: SLICE::Vector = Vector::with_capacity(self.domain().num_bits() * power);
+        if power == 0 {
+            return result;
+        }
+
         let mut index = 0;
         'outer: loop {
             result.extend(self.0.part(elem, index).copy_iter());
@@ -203,7 +207,7 @@ where
     }
 
     #[inline]
-    fn get_index(&self, elem: crate::genvec::BitSlice<'_>) -> usize {
+    fn get_index(&self, elem: BitSlice<'_>) -> usize {
         self.0.get_index(elem)
     }
 

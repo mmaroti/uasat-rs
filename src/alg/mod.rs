@@ -61,10 +61,12 @@ pub use wrap_elem::*;
 mod validate;
 
 pub fn test() {
-    let alg = Product2::new(
-        Power::new(BOOLEAN, Power::new(SmallSet::new(4), SmallSet::new(2))),
-        SmallSet::new(7),
-    );
-    let elem = alg.find_element().unwrap();
-    println!("{}", alg.format(elem.slice()));
+    let logic = Logic();
+    let dom = Permutations::new(SmallSet::new(3));
+    for i in 0..dom.size() {
+        let elem = dom.get_elem(&logic, i);
+        println!("{}\t{}", i, dom.format(elem.slice()));
+        let j = dom.get_index(elem.slice());
+        println!("{}", j);
+    }
 }

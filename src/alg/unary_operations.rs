@@ -15,7 +15,9 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BinaryRelations, BooleanLogic, Countable, Domain, Monoid, Power, Semigroup, SmallSet};
+use super::{
+    BinaryRelations, BitSlice, BooleanLogic, Countable, Domain, Monoid, Power, Semigroup, SmallSet,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct UnaryOperations<DOM>(BinaryRelations<DOM>)
@@ -72,7 +74,7 @@ where
         elem1: LOGIC::Slice<'_>,
     ) -> LOGIC::Elem
     where
-        LOGIC: crate::core::BooleanLogic,
+        LOGIC: BooleanLogic,
     {
         self.0.equals(logic, elem0, elem1)
     }
@@ -100,7 +102,7 @@ where
         dom.get_elem(logic, index)
     }
 
-    fn get_index(&self, elem: crate::genvec::BitSlice<'_>) -> usize {
+    fn get_index(&self, elem: BitSlice<'_>) -> usize {
         let size = self.domain().size();
         let dom = Power::new(SmallSet::new(size), SmallSet::new(size));
         dom.get_index(elem)

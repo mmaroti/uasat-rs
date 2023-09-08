@@ -17,8 +17,8 @@
 
 use super::{
     BinaryRelations, BooleanLogic, BooleanSolver, BoundedOrder, Countable, Domain, FixedSet,
-    Lattice, Logic, MeetSemilattice, Operations, PartialOrder, Permutations, Power, Product2,
-    Relations, SmallSet, Solver, UnaryOperations, Vector, BOOLEAN,
+    Lattice, Logic, MeetSemilattice, Monoid, Operations, PartialOrder, Permutations, Power,
+    Product2, Relations, Semigroup, SmallSet, Solver, UnaryOperations, Vector, BOOLEAN,
 };
 
 pub fn validate_domain<DOM>(domain: DOM)
@@ -261,7 +261,7 @@ where
     logic.bool_add_clause2(logic.bool_not(test0), logic.bool_not(test1));
     assert!(!logic.bool_solvable());
 
-    // join is minimal lower bound
+    // join is minimal upper bound
     let mut logic = Solver::new("");
     let elem0 = domain.add_variable(&mut logic);
     let elem1 = domain.add_variable(&mut logic);
@@ -285,6 +285,103 @@ fn lattice() {
     validate_lattice(Product2::new(BOOLEAN, Power::new(BOOLEAN, BOOLEAN)));
     validate_lattice(Relations::new(SmallSet::new(2), 3));
     validate_lattice(BinaryRelations::new(SmallSet::new(3)));
+}
+
+pub fn validate_semigroup<DOM>(domain: DOM)
+where
+    DOM: Semigroup,
+{
+    // product is in domain
+    let mut logic = Solver::new("");
+    let elem0 = domain.add_variable(&mut logic);
+    let elem1 = domain.add_variable(&mut logic);
+    let elem2 = domain.product(&mut logic, elem0.slice(), elem1.slice());
+    let test = domain.contains(&mut logic, elem2.slice());
+    logic.bool_add_clause1(logic.bool_not(test));
+    assert!(!logic.bool_solvable());
+
+    // associativity
+    let mut logic = Solver::new("");
+    let elem0 = domain.add_variable(&mut logic);
+    let elem1 = domain.add_variable(&mut logic);
+    let elem2 = domain.add_variable(&mut logic);
+    let elem3 = domain.product(&mut logic, elem0.slice(), elem1.slice());
+    let elem4 = domain.product(&mut logic, elem3.slice(), elem2.slice());
+    let elem5 = domain.product(&mut logic, elem1.slice(), elem2.slice());
+    let elem6 = domain.product(&mut logic, elem0.slice(), elem5.slice());
+    let test0 = domain.equals(&mut logic, elem4.slice(), elem6.slice());
+    logic.bool_add_clause1(logic.bool_not(test0));
+    assert!(!logic.bool_solvable());
+}
+
+#[test]
+fn semigroup() {
+    validate_semigroup(BinaryRelations::new(SmallSet::new(3)));
+    validate_semigroup(UnaryOperations::new(SmallSet::new(3)));
+    validate_semigroup(Permutations::new(SmallSet::new(3)));
+    validate_semigroup(Product2::new(
+        Permutations::new(SmallSet::new(2)),
+        BinaryRelations::new(SmallSet::new(2)),
+    ));
+    validate_semigroup(Power::new(
+        UnaryOperations::new(SmallSet::new(2)),
+        SmallSet::new(2),
+    ));
+}
+
+pub fn validate_monoid<DOM>(domain: DOM)
+where
+    DOM: Monoid,
+{
+    // identity is in domain
+    let mut logic = Logic();
+    let elem = domain.get_identity(&logic);
+    let test0 = domain.contains(&mut logic, elem.slice());
+    let test1 = domain.is_identity(&mut logic, elem.slice());
+    assert!(test0 && test1);
+
+    // identity is unique
+    let mut logic = Solver::new("");
+    let elem0 = domain.get_identity(&logic);
+    let elem1 = domain.add_variable(&mut logic);
+    let test0 = domain.is_identity(&mut logic, elem1.slice());
+    let test1 = domain.equals(&mut logic, elem0.slice(), elem1.slice());
+    logic.bool_add_clause1(test0);
+    logic.bool_add_clause1(logic.bool_not(test1));
+    assert!(!logic.bool_solvable());
+
+    // left identity law
+    let mut logic = Solver::new("");
+    let elem0 = domain.get_identity(&logic);
+    let elem1 = domain.add_variable(&mut logic);
+    let elem2 = domain.product(&mut logic, elem0.slice(), elem1.slice());
+    let test0 = domain.equals(&mut logic, elem1.slice(), elem2.slice());
+    logic.bool_add_clause1(logic.bool_not(test0));
+    assert!(!logic.bool_solvable());
+
+    // right identity law
+    let mut logic = Solver::new("");
+    let elem0 = domain.get_identity(&logic);
+    let elem1 = domain.add_variable(&mut logic);
+    let elem2 = domain.product(&mut logic, elem1.slice(), elem0.slice());
+    let test0 = domain.equals(&mut logic, elem1.slice(), elem2.slice());
+    logic.bool_add_clause1(logic.bool_not(test0));
+    assert!(!logic.bool_solvable());
+}
+
+#[test]
+fn monoid() {
+    validate_monoid(BinaryRelations::new(SmallSet::new(3)));
+    validate_monoid(UnaryOperations::new(SmallSet::new(3)));
+    validate_monoid(Permutations::new(SmallSet::new(3)));
+    validate_monoid(Product2::new(
+        Permutations::new(SmallSet::new(2)),
+        BinaryRelations::new(SmallSet::new(2)),
+    ));
+    validate_monoid(Power::new(
+        UnaryOperations::new(SmallSet::new(2)),
+        SmallSet::new(2),
+    ));
 }
 
 #[test]

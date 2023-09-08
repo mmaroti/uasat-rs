@@ -17,7 +17,7 @@
 
 use super::{
     BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
-    Lattice, MeetSemilattice, PartialOrder, Slice, Vector,
+    Lattice, MeetSemilattice, Monoid, PartialOrder, Semigroup, Slice, Vector,
 };
 
 /// The product of two domains.
@@ -302,5 +302,59 @@ where
         let mut result: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         result.extend(self.dom0.complement(logic, elem.head(bits0)));
         result
+    }
+}
+
+impl<DOM0, DOM1> Semigroup for Product2<DOM0, DOM1>
+where
+    DOM0: Semigroup,
+    DOM1: Semigroup,
+{
+    fn product<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        let bits0 = self.dom0.num_bits();
+        let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
+        elem.extend(
+            self.dom0
+                .product(logic, elem0.head(bits0), elem1.head(bits0)),
+        );
+        elem.extend(
+            self.dom1
+                .product(logic, elem0.tail(bits0), elem1.tail(bits0)),
+        );
+        elem
+    }
+}
+
+impl<DOM0, DOM1> Monoid for Product2<DOM0, DOM1>
+where
+    DOM0: Monoid,
+    DOM1: Monoid,
+{
+    fn get_identity<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
+        elem.append(&mut self.dom0.get_identity(logic));
+        elem.append(&mut self.dom1.get_identity(logic));
+        elem
+    }
+
+    fn is_identity<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        let bits0 = self.dom0.num_bits();
+        let test0 = self.dom0.is_identity(logic, elem.head(bits0));
+        let test1 = self.dom1.is_identity(logic, elem.tail(bits0));
+        logic.bool_and(test0, test1)
     }
 }

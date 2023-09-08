@@ -17,7 +17,7 @@
 
 use super::{
     BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
-    Lattice, MeetSemilattice, PartialOrder, Slice, Vector,
+    Lattice, MeetSemilattice, Monoid, PartialOrder, Semigroup, Slice, Vector,
 };
 
 use std::iter::{ExactSizeIterator, Extend, FusedIterator};
@@ -387,6 +387,58 @@ where
         let mut result: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         for part in self.part_iter(elem) {
             result.extend(self.base.complement(logic, part));
+        }
+        result
+    }
+}
+
+impl<BASE, EXP> Semigroup for Power<BASE, EXP>
+where
+    BASE: Semigroup,
+    EXP: Countable,
+{
+    fn product<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem0: LOGIC::Slice<'_>,
+        elem1: LOGIC::Slice<'_>,
+    ) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
+        for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
+            elem.extend(self.base.product(logic, part0, part1));
+        }
+        elem
+    }
+}
+
+impl<BASE, EXP> Monoid for Power<BASE, EXP>
+where
+    BASE: Monoid,
+    EXP: Countable,
+{
+    fn get_identity<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        let part = self.base.get_identity(logic);
+        let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
+        for _ in 0..self.exponent.size() {
+            elem.extend(part.copy_iter());
+        }
+        elem
+    }
+
+    fn is_identity<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        let mut result = logic.bool_unit();
+        for part in self.part_iter(elem) {
+            let v = self.base.is_identity(logic, part);
+            result = logic.bool_and(result, v);
         }
         result
     }

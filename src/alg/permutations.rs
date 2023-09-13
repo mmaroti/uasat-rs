@@ -16,17 +16,17 @@
 */
 
 use super::{
-    BinaryRelations, BitSlice, BooleanLogic, Countable, Domain, Monoid, Semigroup, Slice, Vector,
+    BinaryRelations, BitSlice, BooleanLogic, Indexable, Domain, Monoid, Semigroup, Slice, Vector,
 };
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Permutations<DOM>(BinaryRelations<DOM>)
 where
-    DOM: Countable;
+    DOM: Indexable;
 
 impl<DOM> Permutations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     /// Creates a class of permutations of the given domain.
     pub fn new(dom: DOM) -> Self {
@@ -42,7 +42,7 @@ where
 
 impl<DOM> Domain for Permutations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn num_bits(&self) -> usize {
@@ -71,9 +71,9 @@ where
     }
 }
 
-impl<DOM> Countable for Permutations<DOM>
+impl<DOM> Indexable for Permutations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn size(&self) -> usize {
@@ -143,7 +143,7 @@ where
 
 impl<DOM> Semigroup for Permutations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn product<LOGIC>(
@@ -161,7 +161,7 @@ where
 
 impl<DOM> Monoid for Permutations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn get_identity<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector

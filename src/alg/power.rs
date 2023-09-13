@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
+    BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, Indexable, DirectedGraph, Domain,
     Lattice, MeetSemilattice, Monoid, PartialOrder, Semigroup, Slice, Vector,
 };
 
@@ -83,7 +83,7 @@ pub struct Power<BASE, EXP> {
 impl<BASE, EXP> Power<BASE, EXP>
 where
     BASE: Domain,
-    EXP: Countable,
+    EXP: Indexable,
 {
     /// Creates the product domain from the given list of domains.
     pub fn new(base: BASE, exponent: EXP) -> Self {
@@ -124,7 +124,7 @@ where
 impl<BASE, EXP> Domain for Power<BASE, EXP>
 where
     BASE: Domain,
-    EXP: Countable,
+    EXP: Indexable,
 {
     fn num_bits(&self) -> usize {
         self.base.num_bits() * self.exponent.size()
@@ -178,10 +178,10 @@ where
     }
 }
 
-impl<BASE, EXP> Countable for Power<BASE, EXP>
+impl<BASE, EXP> Indexable for Power<BASE, EXP>
 where
-    BASE: Countable,
-    EXP: Countable,
+    BASE: Indexable,
+    EXP: Indexable,
 {
     fn size(&self) -> usize {
         let mut result = 1;
@@ -250,7 +250,7 @@ where
 impl<BASE, EXP> DirectedGraph for Power<BASE, EXP>
 where
     BASE: DirectedGraph,
-    EXP: Countable,
+    EXP: Indexable,
 {
     fn is_edge<LOGIC>(
         &self,
@@ -273,14 +273,14 @@ where
 impl<BASE, EXP> PartialOrder for Power<BASE, EXP>
 where
     BASE: PartialOrder,
-    EXP: Countable,
+    EXP: Indexable,
 {
 }
 
 impl<BASE, EXP> BoundedOrder for Power<BASE, EXP>
 where
     BASE: BoundedOrder,
-    EXP: Countable,
+    EXP: Indexable,
 {
     fn get_top<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
     where
@@ -334,7 +334,7 @@ where
 impl<BASE, EXP> MeetSemilattice for Power<BASE, EXP>
 where
     BASE: MeetSemilattice,
-    EXP: Countable,
+    EXP: Indexable,
 {
     fn meet<LOGIC>(
         &self,
@@ -356,7 +356,7 @@ where
 impl<BASE, EXP> Lattice for Power<BASE, EXP>
 where
     BASE: Lattice,
-    EXP: Countable,
+    EXP: Indexable,
 {
     fn join<LOGIC>(
         &self,
@@ -378,7 +378,7 @@ where
 impl<BASE, EXP> BooleanLattice for Power<BASE, EXP>
 where
     BASE: BooleanLattice,
-    EXP: Countable,
+    EXP: Indexable,
 {
     fn complement<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
     where
@@ -395,7 +395,7 @@ where
 impl<BASE, EXP> Semigroup for Power<BASE, EXP>
 where
     BASE: Semigroup,
-    EXP: Countable,
+    EXP: Indexable,
 {
     fn product<LOGIC>(
         &self,
@@ -417,7 +417,7 @@ where
 impl<BASE, EXP> Monoid for Power<BASE, EXP>
 where
     BASE: Monoid,
-    EXP: Countable,
+    EXP: Indexable,
 {
     fn get_identity<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
     where

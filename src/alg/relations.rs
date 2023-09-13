@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BitSlice, Boolean, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph,
+    BitSlice, Boolean, BooleanLattice, BooleanLogic, BoundedOrder, Indexable, DirectedGraph,
     Domain, Lattice, MeetSemilattice, PartIter, PartialOrder, Power, Slice, SmallSet, Vector,
 };
 
@@ -24,13 +24,13 @@ use super::{
 #[derive(Debug, Clone, PartialEq)]
 pub struct Relations<DOM>(Power<Boolean, Power<DOM, SmallSet>>)
 where
-    DOM: Countable;
+    DOM: Indexable;
 
 /// A domain of relations, which are functions to the BOOLEAN domain.
 
 impl<DOM> Relations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     /// Creates a new function domain from the given domain to
     /// the target codomain.
@@ -277,7 +277,7 @@ where
 
 impl<DOM> Domain for Relations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn num_bits(&self) -> usize {
@@ -306,9 +306,9 @@ where
     }
 }
 
-impl<DOM> Countable for Relations<DOM>
+impl<DOM> Indexable for Relations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn size(&self) -> usize {
@@ -339,7 +339,7 @@ where
 
 impl<DOM> DirectedGraph for Relations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn is_edge<LOGIC>(
@@ -355,11 +355,11 @@ where
     }
 }
 
-impl<DOM> PartialOrder for Relations<DOM> where DOM: Countable {}
+impl<DOM> PartialOrder for Relations<DOM> where DOM: Indexable {}
 
 impl<DOM> BoundedOrder for Relations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn get_top<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
@@ -396,7 +396,7 @@ where
 
 impl<DOM> MeetSemilattice for Relations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn meet<LOGIC>(
@@ -414,7 +414,7 @@ where
 
 impl<DOM> Lattice for Relations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn join<LOGIC>(
@@ -432,7 +432,7 @@ where
 
 impl<DOM> BooleanLattice for Relations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn complement<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector

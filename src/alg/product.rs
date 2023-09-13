@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
+    BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, Indexable, DirectedGraph, Domain,
     Lattice, MeetSemilattice, Monoid, PartialOrder, Semigroup, Slice, Vector,
 };
 
@@ -117,10 +117,10 @@ where
     }
 }
 
-impl<DOM0, DOM1> Countable for Product2<DOM0, DOM1>
+impl<DOM0, DOM1> Indexable for Product2<DOM0, DOM1>
 where
-    DOM0: Countable,
-    DOM1: Countable,
+    DOM0: Indexable,
+    DOM1: Indexable,
 {
     fn size(&self) -> usize {
         self.dom0.size() * self.dom1.size()

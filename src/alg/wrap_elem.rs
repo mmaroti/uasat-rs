@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BipartiteGraph, BitVec, Boolean, BooleanLogic, Countable, Domain, Power, Product2, Vector,
+    BipartiteGraph, BitVec, Boolean, BooleanLogic, Indexable, Domain, Power, Product2, Vector,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -42,8 +42,8 @@ where
 
 impl<DOM0, DOM1> Domain for WrapElem<Power<Boolean, Product2<DOM0, DOM1>>>
 where
-    DOM0: Countable,
-    DOM1: Countable,
+    DOM0: Indexable,
+    DOM1: Indexable,
 {
     fn num_bits(&self) -> usize {
         self.domain.exponent().num_bits()
@@ -71,8 +71,8 @@ where
 
 impl<DOM0, DOM1> BipartiteGraph for WrapElem<Power<Boolean, Product2<DOM0, DOM1>>>
 where
-    DOM0: Countable,
-    DOM1: Countable,
+    DOM0: Indexable,
+    DOM1: Indexable,
 {
     type Domain0 = DOM0;
 

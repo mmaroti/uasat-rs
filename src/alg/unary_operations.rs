@@ -16,17 +16,17 @@
 */
 
 use super::{
-    BinaryRelations, BitSlice, BooleanLogic, Countable, Domain, Monoid, Power, Semigroup, SmallSet,
+    BinaryRelations, BitSlice, BooleanLogic, Indexable, Domain, Monoid, Power, Semigroup, SmallSet,
 };
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct UnaryOperations<DOM>(BinaryRelations<DOM>)
 where
-    DOM: Countable;
+    DOM: Indexable;
 
 impl<DOM> UnaryOperations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     /// Creates domain of binary relations over the given domain.
     #[inline]
@@ -51,7 +51,7 @@ where
 
 impl<DOM> Domain for UnaryOperations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn num_bits(&self) -> usize {
@@ -80,9 +80,9 @@ where
     }
 }
 
-impl<DOM> Countable for UnaryOperations<DOM>
+impl<DOM> Indexable for UnaryOperations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     fn size(&self) -> usize {
         let mut power = 1;
@@ -111,7 +111,7 @@ where
 
 impl<DOM> Semigroup for UnaryOperations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn product<LOGIC>(
@@ -129,7 +129,7 @@ where
 
 impl<DOM> Monoid for UnaryOperations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn get_identity<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector

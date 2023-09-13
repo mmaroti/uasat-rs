@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BitSlice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain, Lattice,
+    BitSlice, BooleanLogic, BoundedOrder, Indexable, DirectedGraph, Domain, Lattice,
     MeetSemilattice, PartialOrder, Slice, Vector,
 };
 
@@ -75,7 +75,7 @@ impl Domain for SmallSet {
     }
 }
 
-impl Countable for SmallSet {
+impl Indexable for SmallSet {
     fn size(&self) -> usize {
         self.size
     }

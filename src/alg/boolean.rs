@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
+    BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, Indexable, DirectedGraph, Domain,
     Lattice, MeetSemilattice, PartialOrder, Slice, Vector,
 };
 
@@ -52,7 +52,7 @@ impl Domain for Boolean {
     }
 }
 
-impl Countable for Boolean {
+impl Indexable for Boolean {
     fn size(&self) -> usize {
         2
     }

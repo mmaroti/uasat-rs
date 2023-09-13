@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BitSlice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain, Lattice,
+    BitSlice, BooleanLogic, BoundedOrder, Indexable, DirectedGraph, Domain, Lattice,
     MeetSemilattice, PartialOrder, Slice, Vector,
 };
 
@@ -67,7 +67,7 @@ impl<const SIZE: usize> Domain for FixedSet<SIZE> {
     }
 }
 
-impl<const SIZE: usize> Countable for FixedSet<SIZE> {
+impl<const SIZE: usize> Indexable for FixedSet<SIZE> {
     fn size(&self) -> usize {
         SIZE
     }

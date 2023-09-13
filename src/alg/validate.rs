@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BinaryRelations, BooleanLogic, BooleanSolver, BoundedOrder, Countable, Domain, FixedSet,
+    BinaryRelations, BooleanLogic, BooleanSolver, BoundedOrder, Indexable, Domain, FixedSet,
     Lattice, Logic, MeetSemilattice, Monoid, Operations, PartialOrder, Permutations, Power,
     Product2, Relations, Semigroup, SmallSet, Solver, UnaryOperations, Vector, BOOLEAN,
 };
@@ -67,7 +67,7 @@ fn domain() {
 
 fn validate_countable<DOM>(domain: DOM, size: usize)
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     assert_eq!(domain.size(), size);
 

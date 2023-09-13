@@ -118,7 +118,7 @@ where
 }
 
 /// A domain where the elements can be counted and indexed.
-pub trait Countable: Domain {
+pub trait Indexable: Domain {
     /// Returns the number of elements of the domain.
     fn size(&self) -> usize;
 

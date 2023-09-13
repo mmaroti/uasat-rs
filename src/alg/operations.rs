@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BitSlice, Boolean, BooleanLogic, BoundedOrder, Countable, Domain, Monoid, Power, Relations,
+    BitSlice, Boolean, BooleanLogic, BoundedOrder, Indexable, Domain, Monoid, Power, Relations,
     Slice, SmallSet, UnaryOperations, Vector,
 };
 
@@ -24,11 +24,11 @@ use super::{
 #[derive(Debug, Clone, PartialEq)]
 pub struct Operations<DOM>(Power<DOM, Power<DOM, SmallSet>>)
 where
-    DOM: Countable;
+    DOM: Indexable;
 
 impl<DOM> Operations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     /// Creates a domain containing operationf of a fixed arity.
     pub fn new(dom: DOM, arity: usize) -> Self {
@@ -160,7 +160,7 @@ where
 
 impl<DOM> Domain for Operations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn num_bits(&self) -> usize {
@@ -189,9 +189,9 @@ where
     }
 }
 
-impl<DOM> Countable for Operations<DOM>
+impl<DOM> Indexable for Operations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn size(&self) -> usize {

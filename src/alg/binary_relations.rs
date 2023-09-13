@@ -16,18 +16,18 @@
 */
 
 use super::{
-    BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, Countable, DirectedGraph, Domain,
+    BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, Indexable, DirectedGraph, Domain,
     Lattice, MeetSemilattice, Monoid, PartialOrder, Relations, Semigroup, Slice, Vector,
 };
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BinaryRelations<DOM>(Relations<DOM>)
 where
-    DOM: Countable;
+    DOM: Indexable;
 
 impl<DOM> BinaryRelations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     /// Creates domain of binary relations over the given domain.
     #[inline]
@@ -140,7 +140,7 @@ where
 
 impl<DOM> Domain for BinaryRelations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn num_bits(&self) -> usize {
@@ -169,9 +169,9 @@ where
     }
 }
 
-impl<DOM> Countable for BinaryRelations<DOM>
+impl<DOM> Indexable for BinaryRelations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn size(&self) -> usize {
@@ -194,7 +194,7 @@ where
 
 impl<DOM> DirectedGraph for BinaryRelations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn is_edge<LOGIC>(
@@ -212,7 +212,7 @@ where
 
 impl<DOM> PartialOrder for BinaryRelations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn is_less<LOGIC>(
@@ -243,7 +243,7 @@ where
 
 impl<DOM> BoundedOrder for BinaryRelations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn get_top<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
@@ -280,7 +280,7 @@ where
 
 impl<DOM> MeetSemilattice for BinaryRelations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn meet<LOGIC>(
@@ -298,7 +298,7 @@ where
 
 impl<DOM> Lattice for BinaryRelations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn join<LOGIC>(
@@ -316,7 +316,7 @@ where
 
 impl<DOM> BooleanLattice for BinaryRelations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn complement<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
@@ -342,7 +342,7 @@ where
 
 impl<DOM> Semigroup for BinaryRelations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     fn product<LOGIC>(
         &self,
@@ -364,7 +364,7 @@ where
 
 impl<DOM> Monoid for BinaryRelations<DOM>
 where
-    DOM: Countable,
+    DOM: Indexable,
 {
     #[inline]
     fn get_identity<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector

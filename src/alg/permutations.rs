@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BinaryRelations, BitSlice, BooleanLogic, Indexable, Domain, Monoid, Semigroup, Slice, Vector,
+    BinaryRelations, BitSlice, BooleanLogic, Domain, Indexable, Monoid, Semigroup, Slice, Vector,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -75,7 +75,6 @@ impl<DOM> Indexable for Permutations<DOM>
 where
     DOM: Indexable,
 {
-    #[inline]
     fn size(&self) -> usize {
         let mut size = 1;
         for i in 0..self.domain().size() {
@@ -84,7 +83,6 @@ where
         size
     }
 
-    #[inline]
     fn get_elem<LOGIC>(&self, logic: &LOGIC, index: usize) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
@@ -101,10 +99,10 @@ where
             stride /= count - i;
             let mut r = index / stride;
             index %= stride;
-            for j in 0..count {
-                if !used[j] {
+            for (j, u) in used.iter_mut().enumerate() {
+                if !*u {
                     if r == 0 {
-                        used[j] = true;
+                        *u = true;
                         result.set(i * count + j, logic.bool_unit());
                         break;
                     }
@@ -115,7 +113,6 @@ where
         result
     }
 
-    #[inline]
     fn get_index(&self, elem: BitSlice<'_>) -> usize {
         let count = self.domain().size();
         assert_eq!(elem.len(), count * count);
@@ -125,10 +122,10 @@ where
         for i in 0..count {
             index *= count - i;
             let mut r = 0;
-            for j in 0..count {
-                if !used[j] {
+            for (j, u) in used.iter_mut().enumerate() {
+                if !*u {
                     if elem.get(i * count + j) {
-                        used[j] = true;
+                        *u = true;
                         assert!(r < count - i);
                         index += r;
                         break;

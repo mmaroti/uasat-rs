@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, Indexable, DirectedGraph, Domain,
+    BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, DirectedGraph, Domain, Indexable,
     Lattice, MeetSemilattice, PartialOrder, Slice, Vector,
 };
 
@@ -34,7 +34,7 @@ impl Domain for Boolean {
     where
         LOGIC: BooleanLogic,
     {
-        assert!(elem.len() == 1);
+        assert_eq!(elem.len(), 1);
         logic.bool_unit()
     }
 

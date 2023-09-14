@@ -16,17 +16,13 @@
 */
 
 use super::{
-    BitSlice, Boolean, BooleanLattice, BooleanLogic, BoundedOrder, Indexable, DirectedGraph,
-    Domain, Lattice, MeetSemilattice, PartIter, PartialOrder, Power, Slice, SmallSet, Vector,
+    BitSlice, Boolean, BooleanLattice, BooleanLogic, BoundedOrder, DirectedGraph, Domain,
+    Indexable, Lattice, MeetSemilattice, PartIter, PartialOrder, Power, Slice, SmallSet, Vector,
 };
 
 /// A domain containing relations of a fixed arity.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Relations<DOM>(Power<Boolean, Power<DOM, SmallSet>>)
-where
-    DOM: Indexable;
-
-/// A domain of relations, which are functions to the BOOLEAN domain.
+pub struct Relations<DOM>(Power<Boolean, Power<DOM, SmallSet>>);
 
 impl<DOM> Relations<DOM>
 where
@@ -177,65 +173,86 @@ where
         logic.bool_fold_one(elem.copy_iter())
     }
 
-    /// Returns the domain size slices of elements.
-    fn fold_iter<'a, ELEM>(&self, elem: ELEM) -> PartIter<'a, ELEM>
+    /// Returns an iterator for slices of elements for count many dimensions.
+    fn fold_iter<'a, ELEM>(&self, elem: ELEM, count: usize) -> PartIter<'a, ELEM>
     where
         ELEM: Slice<'a>,
     {
-        assert!(self.arity() >= 1);
         assert_eq!(elem.len(), self.num_bits());
-        PartIter::new(elem, self.domain().size())
+
+        let size = self.domain().size();
+        let mut step = 1;
+        for _ in 0..count {
+            step *= size;
+        }
+
+        PartIter::new(elem, step)
     }
 
-    /// Returns a new relation of arity one less where the first coordinate is
-    /// removed and folded using the logical and operation.
-    pub fn fold_all<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    /// Returns a new relation of arity count many less where the first count many
+    /// coordinate is removed and folded using the logical and operation.
+    pub fn fold_all<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem: LOGIC::Slice<'_>,
+        count: usize,
+    ) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
-        assert!(self.arity() >= 1);
-        let dom = self.change_arity(self.arity() - 1);
+        assert!(self.arity() >= count);
+        let dom = self.change_arity(self.arity() - count);
         let mut result: LOGIC::Vector = Vector::with_capacity(dom.num_bits());
-        for part in self.fold_iter(elem) {
+        for part in self.fold_iter(elem, count) {
             result.push(logic.bool_fold_all(part.copy_iter()));
         }
         result
     }
 
-    /// Returns a new relation of arity one less where the first coordinate is
-    /// removed and folded using the logical or operation.
-    pub fn fold_any<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    /// Returns a new relation of arity count many less where the first count many
+    /// coordinate is removed and folded using the logical or operation.
+    pub fn fold_any<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem: LOGIC::Slice<'_>,
+        count: usize,
+    ) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
-        assert!(self.arity() >= 1);
-        let dom = self.change_arity(self.arity() - 1);
+        assert!(self.arity() >= count);
+        let dom = self.change_arity(self.arity() - count);
         let mut result: LOGIC::Vector = Vector::with_capacity(dom.num_bits());
-        for part in self.fold_iter(elem) {
+        for part in self.fold_iter(elem, count) {
             result.push(logic.bool_fold_any(part.copy_iter()));
         }
         result
     }
 
-    /// Returns a new relation of arity one less where the first coordinate is
-    /// removed and folded using the operation that is true when exavtly one
-    /// of the elements is true.
-    pub fn fold_one<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    /// Returns a new relation of arity count many less where the first count many
+    /// coordinate is removed and folded using the operation that is true when
+    /// exactly one of the elements is true.
+    pub fn fold_one<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem: LOGIC::Slice<'_>,
+        count: usize,
+    ) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic,
     {
-        assert!(self.arity() >= 1);
-        let dom = self.change_arity(self.arity() - 1);
+        assert!(self.arity() >= count);
+        let dom = self.change_arity(self.arity() - count);
         let mut result: LOGIC::Vector = Vector::with_capacity(dom.num_bits());
-        for part in self.fold_iter(elem) {
+        for part in self.fold_iter(elem, count) {
             result.push(logic.bool_fold_one(part.copy_iter()));
         }
         result
     }
 
     /// Returns the projection of the given relation to the given coordinates.
-    /// The set of coordinates mut be distinct. A tuple is in the new
-    /// relation there are elements for the missing coordinates such that
+    /// The set of coordinates must be distinct. A tuple is in the new
+    /// relation iff there are elements for the missing coordinates such that
     /// the extended tuple is in the old relation.
     pub fn project<LOGIC>(
         &self,
@@ -266,11 +283,8 @@ where
         }
         debug_assert_eq!(pos, start);
 
-        let mut elem = self.polymer(elem, self.arity(), &map);
-        for _ in 0..start {
-            elem = self.fold_any(logic, elem.slice());
-        }
-
+        let elem = self.polymer(elem, self.arity(), &map);
+        let elem = self.fold_any(logic, elem.slice(), start);
         elem
     }
 }

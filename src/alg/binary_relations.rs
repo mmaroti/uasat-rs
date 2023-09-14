@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, Indexable, DirectedGraph, Domain,
+    BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, DirectedGraph, Domain, Indexable,
     Lattice, MeetSemilattice, Monoid, PartialOrder, Relations, Semigroup, Slice, Vector,
 };
 
@@ -122,7 +122,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        let elem = self.0.fold_one(logic, elem);
+        let elem = self.0.fold_one(logic, elem, 1);
         let rels = Relations::new(self.domain().clone(), 1);
         rels.is_top(logic, elem.slice())
     }
@@ -358,7 +358,7 @@ where
 
         let rels = Relations::new(self.domain().clone(), 3);
         let elem2 = rels.meet(logic, elem0.slice(), elem1.slice());
-        rels.fold_any(logic, elem2.slice())
+        rels.fold_any(logic, elem2.slice(), 1)
     }
 }
 

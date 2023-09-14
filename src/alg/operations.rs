@@ -16,15 +16,13 @@
 */
 
 use super::{
-    BitSlice, Boolean, BooleanLogic, BoundedOrder, Indexable, Domain, Monoid, Power, Relations,
+    BitSlice, Boolean, BooleanLogic, BoundedOrder, Domain, Indexable, Monoid, Power, Relations,
     Slice, SmallSet, UnaryOperations, Vector,
 };
 
 /// A domain containing operations of a fixed arity.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Operations<DOM>(Power<DOM, Power<DOM, SmallSet>>)
-where
-    DOM: Indexable;
+pub struct Operations<DOM>(Power<DOM, Power<DOM, SmallSet>>);
 
 impl<DOM> Operations<DOM>
 where

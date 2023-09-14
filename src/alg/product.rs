@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, Indexable, DirectedGraph, Domain,
+    BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, DirectedGraph, Domain, Indexable,
     Lattice, MeetSemilattice, Monoid, PartialOrder, Semigroup, Slice, Vector,
 };
 

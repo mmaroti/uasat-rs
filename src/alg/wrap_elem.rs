@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BipartiteGraph, BitVec, Boolean, BooleanLogic, Indexable, Domain, Power, Product2, Vector,
+    BipartiteGraph, BitVec, Boolean, BooleanLogic, Domain, Indexable, Power, Product2, Vector,
 };
 
 #[derive(Debug, Clone, PartialEq)]

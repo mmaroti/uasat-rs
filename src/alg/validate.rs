@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BinaryRelations, BooleanLogic, BooleanSolver, BoundedOrder, Indexable, Domain, FixedSet,
+    BinaryRelations, BooleanLogic, BooleanSolver, BoundedOrder, Domain, FixedSet, Indexable,
     Lattice, Logic, MeetSemilattice, Monoid, Operations, PartialOrder, Permutations, Power,
     Product2, Relations, Semigroup, SmallSet, Solver, UnaryOperations, Vector, BOOLEAN,
 };

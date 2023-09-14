@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BinaryRelations, BitSlice, BooleanLogic, Indexable, Domain, Monoid, Power, Semigroup, SmallSet,
+    BinaryRelations, BitSlice, BooleanLogic, Domain, Indexable, Monoid, Power, Semigroup, SmallSet,
 };
 
 #[derive(Debug, Clone, PartialEq)]

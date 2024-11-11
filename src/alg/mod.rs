@@ -60,6 +60,9 @@ pub use wrap_elem::*;
 mod preservation;
 pub use preservation::*;
 
+mod rel_clone;
+pub use rel_clone::*;
+
 #[cfg(test)]
 mod validate;
 

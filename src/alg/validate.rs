@@ -16,9 +16,10 @@
 */
 
 use super::{
-    BinaryRelations, BooleanLogic, BooleanSolver, BoundedOrder, Domain, FixedSet, Indexable,
-    Lattice, Logic, MeetSemilattice, Monoid, Operations, PartialOrder, Permutations, Power,
-    Product2, Relations, Semigroup, SmallSet, Solver, UnaryOperations, Vector, BOOLEAN,
+    BinaryRelations, BipartiteGraph, BooleanLogic, BooleanSolver, BoundedOrder, Domain, FixedSet,
+    Indexable, Lattice, Logic, MeetSemilattice, Monoid, Operations, PartialOrder, Permutations,
+    Power, Preservation, Product2, Relations, Semigroup, SmallSet, Solver, UnaryOperations, Vector,
+    BOOLEAN,
 };
 
 pub fn validate_domain<DOM>(domain: DOM)
@@ -420,4 +421,22 @@ fn unary_operations() {
     logic.bool_add_clause1(test);
     let count = logic.bool_find_num_models_method1(elem.copy_iter());
     assert_eq!(count, 720);
+}
+
+#[test]
+fn compatible_operations() {
+    let mut logic = Solver::new("");
+    let pres = Preservation::new(SmallSet::new(2), 2, 2);
+
+    let rel = logic.bool_lift_vec([true, true, false, true].iter().cloned());
+    assert_eq!(
+        pres.dom1().contains(&mut logic, rel.slice()),
+        logic.bool_lift(true)
+    );
+    let op = pres.dom0().add_variable(&mut logic);
+    let test = pres.is_edge(&mut logic, op.slice(), rel.slice());
+    logic.bool_add_clause1(test);
+
+    let count = logic.bool_find_num_models_method1(op.copy_iter());
+    assert_eq!(count, 6);
 }

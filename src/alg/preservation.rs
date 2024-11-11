@@ -24,35 +24,35 @@ use super::{
 /// of operations with a fixed arity and the domain of relations
 /// with a fixed arity over a common domain.
 #[derive(Debug, Clone, PartialEq)]
-pub struct PreservationRelation<DOM> {
-    oper: Operations<DOM>,
+pub struct Preservation<DOM> {
+    ops: Operations<DOM>,
     rels: Relations<DOM>,
 }
 
-impl<DOM> PreservationRelation<DOM>
+impl<DOM> Preservation<DOM>
 where
     DOM: Indexable,
 {
     /// Creates a new preservation relation over the given domain.
-    pub fn new(domain: DOM, oper_arity: usize, rels_arity: usize) -> Self {
+    pub fn new(domain: DOM, op_arity: usize, rel_arity: usize) -> Self {
         Self {
-            oper: Operations::new(domain.clone(), oper_arity),
-            rels: Relations::new(domain, rels_arity),
+            ops: Operations::new(domain.clone(), op_arity),
+            rels: Relations::new(domain, rel_arity),
         }
     }
 
     /// Returns the underlying domain.
     pub fn domain(&self) -> &DOM {
-        &self.rels.domain()
+        self.rels.domain()
     }
 
     /// Returns the arity of the operations.
-    pub fn oper_arity(&self) -> usize {
-        self.oper.arity()
+    pub fn op_arity(&self) -> usize {
+        self.ops.arity()
     }
 
     /// Returns the arity of the relations.
-    pub fn rels_arity(&self) -> usize {
+    pub fn rel_arity(&self) -> usize {
         self.rels.arity()
     }
 
@@ -68,8 +68,8 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        assert_eq!(operation.len(), self.oper.num_bits());
-        assert_eq!(self.oper.arity(), relations.len());
+        assert_eq!(operation.len(), self.ops.num_bits());
+        assert_eq!(self.ops.arity(), relations.len());
         for rel in relations {
             assert_eq!(rel.len(), self.rels.num_bits());
         }
@@ -87,40 +87,41 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        let oper_arity = self.oper.arity();
-        let rels_arity = self.rels.arity();
+        let op_arity = self.ops.arity();
+        let rel_arity = self.rels.arity();
 
         // convert the operation to a relation
-        let operation = self.oper.as_relation(logic, operation);
-        let oper = self.rels.change_arity(oper_arity + 1);
+        let operation = self.ops.as_relation(logic, operation);
+        let oper = self.rels.change_arity(op_arity + 1);
         debug_assert_eq!(operation.len(), oper.num_bits());
 
-        let arity = rels_arity * oper_arity + rels_arity;
+        let arity = rel_arity * op_arity + rel_arity;
         let dom = self.rels.change_arity(arity);
         let mut result = dom.get_top(logic);
 
         // apply the relations
-        let mut mapping = vec![0; rels_arity];
-        for j in 0..oper_arity {
-            for i in 0..rels_arity {
-                mapping[i] = rels_arity * j + i;
+        let mut mapping = vec![0; rel_arity];
+        #[allow(clippy::needless_range_loop)]
+        for j in 0..op_arity {
+            for i in 0..rel_arity {
+                mapping[i] = rel_arity * j + i;
             }
             let rel = self.rels.polymer(relations[j], arity, &mapping);
             result = dom.meet(logic, result.slice(), rel.slice());
         }
 
         // apply the operations
-        let mut mapping = vec![0; oper_arity + 1];
-        for i in 0..rels_arity {
-            mapping[0] = rels_arity * oper_arity + i;
-            for j in 0..oper_arity {
-                mapping[1 + j] = rels_arity * j + i;
+        let mut mapping = vec![0; op_arity + 1];
+        for i in 0..rel_arity {
+            mapping[0] = rel_arity * op_arity + i;
+            for j in 0..op_arity {
+                mapping[1 + j] = rel_arity * j + i;
             }
             let op = oper.polymer(operation.slice(), arity, &mapping);
             result = dom.meet(logic, result.slice(), op.slice());
         }
 
-        let result = dom.fold_any(logic, result.slice(), rels_arity * oper_arity);
+        let result = dom.fold_any(logic, result.slice(), rel_arity * op_arity);
         result
     }
 
@@ -134,16 +135,16 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        debug_assert_eq!(operation.len(), self.oper.num_bits());
+        debug_assert_eq!(operation.len(), self.ops.num_bits());
         debug_assert_eq!(relation.len(), self.rels.num_bits());
 
-        let relations = vec![relation; self.oper.arity()];
+        let relations = vec![relation; self.ops.arity()];
         let result = self.evaluate(logic, operation, &relations);
         self.rels.is_edge(logic, result.slice(), relation)
     }
 }
 
-impl<DOM> BipartiteGraph for PreservationRelation<DOM>
+impl<DOM> BipartiteGraph for Preservation<DOM>
 where
     DOM: Indexable,
 {
@@ -151,7 +152,7 @@ where
     type Domain1 = Relations<DOM>;
 
     fn dom0(&self) -> &Self::Domain0 {
-        &self.oper
+        &self.ops
     }
 
     fn dom1(&self) -> &Self::Domain1 {

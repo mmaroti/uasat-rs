@@ -52,8 +52,8 @@ where
 
     /// Creates a new relation of the given arity from an old relation with
     /// permuted, identified and/or new dummy coordinates. The mapping is a
-    /// vector of length of the arity of the original function with entries
-    /// identifying the matching coordinates in the new function.
+    /// vector of length of the arity of the original relation with entries
+    /// identifying the matching coordinates in the new relation.
     pub fn polymer<'a, SLICE>(&self, elem: SLICE, arity: usize, mapping: &[usize]) -> SLICE::Vector
     where
         SLICE: Slice<'a>,

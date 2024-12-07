@@ -87,7 +87,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        let comp = self.product(logic, elem, elem);
+        let comp = Semigroup::product(self, logic, elem, elem);
         let elem = self.implies(logic, comp.slice(), elem);
         self.is_top(logic, elem.slice())
     }
@@ -123,6 +123,20 @@ where
         LOGIC: BooleanLogic,
     {
         let elem = self.0.fold_one(logic, elem, 1);
+        let rels = Relations::new(self.domain().clone(), 1);
+        rels.is_top(logic, elem.slice())
+    }
+
+    /// Returns true if this relation is the graph of a partial operation.
+    pub fn is_partial_operation<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem: LOGIC::Slice<'_>,
+    ) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        let elem = self.0.fold_amo(logic, elem, 1);
         let rels = Relations::new(self.domain().clone(), 1);
         rels.is_top(logic, elem.slice())
     }

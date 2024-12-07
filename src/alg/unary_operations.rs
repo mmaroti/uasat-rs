@@ -123,7 +123,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.product(logic, elem0, elem1)
+        Semigroup::product(&self.0, logic, elem0, elem1)
     }
 }
 

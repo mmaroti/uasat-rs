@@ -28,8 +28,7 @@ impl<DOM> Relations<DOM>
 where
     DOM: Indexable,
 {
-    /// Creates a new function domain from the given domain to
-    /// the target codomain.
+    /// Creates a new domain of relations of the given arity.
     pub fn new(dom: DOM, arity: usize) -> Self {
         Relations(Power::new(Boolean(), Power::new(dom, SmallSet::new(arity))))
     }
@@ -246,6 +245,27 @@ where
         let mut result: LOGIC::Vector = Vector::with_capacity(dom.num_bits());
         for part in self.fold_iter(elem, count) {
             result.push(logic.bool_fold_one(part.copy_iter()));
+        }
+        result
+    }
+
+    /// Returns a new relation of arity count many less where the first count many
+    /// coordinate is removed and folded using the operation that is true when
+    /// at most one of the elements is true.
+    pub fn fold_amo<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem: LOGIC::Slice<'_>,
+        count: usize,
+    ) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        assert!(self.arity() >= count);
+        let dom = self.change_arity(self.arity() - count);
+        let mut result: LOGIC::Vector = Vector::with_capacity(dom.num_bits());
+        for part in self.fold_iter(elem, count) {
+            result.push(logic.bool_fold_amo(part.copy_iter()));
         }
         result
     }

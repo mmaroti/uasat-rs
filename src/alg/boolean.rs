@@ -75,9 +75,11 @@ impl Indexable for Boolean {
     where
         LOGIC: BooleanLogic,
     {
+        debug_assert_eq!(elem.len(), 1);
         let mut result: LOGIC::Vector = Vector::with_capacity(2);
-        result.push(logic.bool_not(elem.get(0)));
-        result.push(elem.get(0));
+        let elem = elem.get(0);
+        result.push(logic.bool_not(elem));
+        result.push(elem);
         result
     }
 }

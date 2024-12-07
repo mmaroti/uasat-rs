@@ -408,7 +408,7 @@ where
     {
         let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         for (part0, part1) in self.part_iter(elem0).zip(self.part_iter(elem1)) {
-            elem.extend(self.base.product(logic, part0, part1));
+            elem.extend(Semigroup::product(&self.base, logic, part0, part1));
         }
         elem
     }

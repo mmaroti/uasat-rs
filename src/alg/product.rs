@@ -321,14 +321,18 @@ where
     {
         let bits0 = self.dom0.num_bits();
         let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
-        elem.extend(
-            self.dom0
-                .product(logic, elem0.head(bits0), elem1.head(bits0)),
-        );
-        elem.extend(
-            self.dom1
-                .product(logic, elem0.tail(bits0), elem1.tail(bits0)),
-        );
+        elem.extend(Semigroup::product(
+            &self.dom0,
+            logic,
+            elem0.head(bits0),
+            elem1.head(bits0),
+        ));
+        elem.extend(Semigroup::product(
+            &self.dom1,
+            logic,
+            elem0.tail(bits0),
+            elem1.tail(bits0),
+        ));
         elem
     }
 }

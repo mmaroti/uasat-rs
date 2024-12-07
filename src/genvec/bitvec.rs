@@ -301,7 +301,7 @@ impl<'a> Slice<'a> for BitSlice<'a> {
     }
 }
 
-impl<'a> Iterator for BitSlice<'a> {
+impl Iterator for BitSlice<'_> {
     type Item = bool;
 
     fn next(&mut self) -> Option<bool> {
@@ -320,11 +320,11 @@ impl<'a> Iterator for BitSlice<'a> {
     }
 }
 
-impl<'a> FusedIterator for BitSlice<'a> {}
+impl FusedIterator for BitSlice<'_> {}
 
-impl<'a> ExactSizeIterator for BitSlice<'a> {}
+impl ExactSizeIterator for BitSlice<'_> {}
 
-impl<'a> DoubleEndedIterator for BitSlice<'a> {
+impl DoubleEndedIterator for BitSlice<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.start < self.end {
             let elem = self.vec.get(self.start);

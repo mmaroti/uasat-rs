@@ -242,7 +242,7 @@ pub struct VariSat<'a> {
 }
 
 #[cfg(feature = "varisat")]
-impl<'a> VariSat<'a> {
+impl VariSat<'_> {
     fn encode(lit: varisat::Lit) -> Literal {
         Literal {
             value: lit.code() as u32,
@@ -255,7 +255,7 @@ impl<'a> VariSat<'a> {
 }
 
 #[cfg(feature = "varisat")]
-impl<'a> SatInterface for VariSat<'a> {
+impl SatInterface for VariSat<'_> {
     fn add_variable(&mut self) -> Literal {
         let var = varisat::Var::from_index(self.num_variables as usize);
         self.num_variables += 1;

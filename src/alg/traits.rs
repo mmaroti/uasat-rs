@@ -108,7 +108,7 @@ where
     elem: BitSlice<'a>,
 }
 
-impl<'a, BASE> std::fmt::Display for Format<'a, BASE>
+impl<BASE> std::fmt::Display for Format<'_, BASE>
 where
     BASE: Domain,
 {

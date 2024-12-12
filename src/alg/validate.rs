@@ -16,10 +16,10 @@
 */
 
 use super::{
-    BinaryRelations, BipartiteGraph, BooleanLogic, BooleanSolver, BoundedOrder, Domain, FixedSet,
-    Group, Indexable, Lattice, Logic, MeetSemilattice, Monoid, Operations, PartialOrder,
-    Permutations, Power, Preservation, Product2, Relations, Semigroup, SmallSet, Solver,
-    UnaryOperations, Vector, BOOLEAN,
+    AlternatingGroup, BinaryRelations, BipartiteGraph, BooleanLogic, BooleanSolver, BoundedOrder,
+    Domain, FixedSet, Group, Indexable, Lattice, Logic, MeetSemilattice, Monoid, Operations,
+    PartialOrder, Power, Preservation, Product2, Relations, Semigroup, SmallSet, Solver,
+    SymmetricGroup, UnaryOperations, Vector, BOOLEAN,
 };
 
 pub fn validate_domain<DOM>(domain: DOM)
@@ -63,7 +63,8 @@ fn domain() {
     validate_domain(BinaryRelations::new(SmallSet::new(3)));
     validate_domain(Operations::new(SmallSet::new(2), 2));
     validate_domain(UnaryOperations::new(SmallSet::new(3)));
-    validate_domain(Permutations::new(SmallSet::new(4)));
+    validate_domain(SymmetricGroup::new(SmallSet::new(4)));
+    validate_domain(AlternatingGroup::new(SmallSet::new(4)));
 }
 
 fn validate_indexable<DOM>(domain: DOM, size: usize)
@@ -122,9 +123,16 @@ fn indexable() {
     validate_indexable(BinaryRelations::new(SmallSet::new(2)), 16);
     validate_indexable(Operations::new(SmallSet::new(2), 2), 16);
     validate_indexable(UnaryOperations::new(SmallSet::new(3)), 27);
-    validate_indexable(Permutations::new(SmallSet::new(0)), 1);
-    validate_indexable(Permutations::new(SmallSet::new(1)), 1);
-    validate_indexable(Permutations::new(SmallSet::new(4)), 24);
+    validate_indexable(SymmetricGroup::new(SmallSet::new(0)), 1);
+    validate_indexable(SymmetricGroup::new(SmallSet::new(1)), 1);
+    validate_indexable(SymmetricGroup::new(SmallSet::new(2)), 2);
+    validate_indexable(SymmetricGroup::new(SmallSet::new(3)), 6);
+    validate_indexable(SymmetricGroup::new(SmallSet::new(4)), 24);
+    validate_indexable(AlternatingGroup::new(SmallSet::new(0)), 1);
+    validate_indexable(AlternatingGroup::new(SmallSet::new(1)), 1);
+    validate_indexable(AlternatingGroup::new(SmallSet::new(2)), 1);
+    validate_indexable(AlternatingGroup::new(SmallSet::new(3)), 3);
+    validate_indexable(AlternatingGroup::new(SmallSet::new(6)), 360);
 }
 
 pub fn validate_partial_order<DOM>(domain: DOM)
@@ -319,15 +327,16 @@ where
 fn semigroup() {
     validate_semigroup(BinaryRelations::new(SmallSet::new(3)));
     validate_semigroup(UnaryOperations::new(SmallSet::new(3)));
-    validate_semigroup(Permutations::new(SmallSet::new(3)));
+    validate_semigroup(SymmetricGroup::new(SmallSet::new(3)));
     validate_semigroup(Product2::new(
-        Permutations::new(SmallSet::new(2)),
+        SymmetricGroup::new(SmallSet::new(2)),
         BinaryRelations::new(SmallSet::new(2)),
     ));
     validate_semigroup(Power::new(
         UnaryOperations::new(SmallSet::new(2)),
         SmallSet::new(2),
     ));
+    validate_semigroup(AlternatingGroup::new(SmallSet::new(4)));
 }
 
 pub fn validate_monoid<DOM>(domain: DOM)
@@ -374,15 +383,16 @@ where
 fn monoid() {
     validate_monoid(BinaryRelations::new(SmallSet::new(3)));
     validate_monoid(UnaryOperations::new(SmallSet::new(3)));
-    validate_monoid(Permutations::new(SmallSet::new(3)));
+    validate_monoid(SymmetricGroup::new(SmallSet::new(3)));
     validate_monoid(Product2::new(
-        Permutations::new(SmallSet::new(2)),
+        SymmetricGroup::new(SmallSet::new(2)),
         BinaryRelations::new(SmallSet::new(2)),
     ));
     validate_monoid(Power::new(
         UnaryOperations::new(SmallSet::new(2)),
         SmallSet::new(2),
     ));
+    validate_monoid(AlternatingGroup::new(SmallSet::new(4)));
 }
 
 pub fn validate_group<DOM>(domain: DOM)
@@ -418,7 +428,8 @@ where
 
 #[test]
 fn group() {
-    validate_group(Permutations::new(SmallSet::new(3)));
+    validate_group(SymmetricGroup::new(SmallSet::new(3)));
+    validate_group(AlternatingGroup::new(SmallSet::new(3)));
 }
 
 #[test]
@@ -462,6 +473,22 @@ fn binary_relations() {
     logic.bool_add_clause1(test);
     let count = logic.bool_find_num_models_method1(elem.copy_iter());
     assert_eq!(count, 120);
+
+    let mut logic = Solver::new("");
+    let domain = BinaryRelations::new(SmallSet::new(5));
+    let elem = domain.add_variable(&mut logic);
+    let test = domain.is_total_order(&mut logic, elem.slice());
+    logic.bool_add_clause1(test);
+    let count = logic.bool_find_num_models_method1(elem.copy_iter());
+    assert_eq!(count, 120);
+
+    let mut logic = Solver::new("");
+    let domain = SymmetricGroup::new(SmallSet::new(5));
+    let elem = domain.add_variable(&mut logic);
+    let test = domain.is_even_permutation(&mut logic, elem.slice());
+    logic.bool_add_clause1(test);
+    let count = logic.bool_find_num_models_method1(elem.copy_iter());
+    assert_eq!(count, 60);
 }
 
 #[test]

@@ -58,14 +58,24 @@ where
         self.0.is_reflexive(logic, elem)
     }
 
-    /// Returns true if the given binary relation is symmetric under the rotation of
-    /// coordinates.
+    /// Returns true if the given binary relation is symmetric.
     pub fn is_symmetric<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic,
     {
         let conv = self.converse(elem);
         let elem = self.implies(logic, elem, conv.slice());
+        self.is_top(logic, elem.slice())
+    }
+
+    /// Returns true if the given binary relation is complete, that is any pair
+    /// of elements are related in one of or the other way.
+    pub fn is_complete<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        let conv = self.converse(elem);
+        let elem = self.join(logic, elem, conv.slice());
         self.is_top(logic, elem.slice())
     }
 
@@ -114,6 +124,28 @@ where
         logic.bool_and(test2, test3)
     }
 
+    /// Returns true if the given binary relation is total order relation.
+    pub fn is_total_order<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        let test0 = self.is_complete(logic, elem);
+        let test1 = self.is_antisymmetric(logic, elem);
+        let test2 = self.is_transitive(logic, elem);
+        let test3 = logic.bool_and(test0, test1);
+        logic.bool_and(test2, test3)
+    }
+
+    /// Returns true if the given binary relation is a reflexive tournament relation.
+    pub fn is_tournament<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        let test0 = self.is_complete(logic, elem);
+        let test1 = self.is_antisymmetric(logic, elem);
+        logic.bool_and(test0, test1)
+    }
+
     /// Returns true if this relation is the graph of an operation, that is the
     /// first coordinate is completely determined by the other coordinates.
     pub fn is_operation<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
@@ -143,6 +175,55 @@ where
         let test1 = self.is_operation(logic, elem);
         let test2 = self.is_operation(logic, self.converse(elem).slice());
         logic.bool_and(test1, test2)
+    }
+
+    /// Returns true if the parity of the permutation is odd.
+    pub fn is_odd_permutation<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem: LOGIC::Slice<'_>,
+    ) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        let elem0 = self.get_element_with(logic, |i, j| i < j);
+        let elem1 = Semigroup::product(self, logic, elem0.slice(), elem);
+        let elem0 = self.get_element_with(logic, |i, j| i > j);
+        let elem2 = Semigroup::product(self, logic, elem, elem0.slice());
+        let elem3 = self.meet(logic, elem1.slice(), elem2.slice());
+
+        logic.bool_fold_sum(elem3.into_iter())
+    }
+
+    /// Returns true if the parity of the permutation is even.
+    pub fn is_even_permutation<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem: LOGIC::Slice<'_>,
+    ) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        let res = self.is_odd_permutation(logic, elem);
+        logic.bool_not(res)
+    }
+
+    /// Creates a concrete relation as specified by the given predicate
+    pub fn get_element_with<LOGIC, PRED>(&self, logic: &LOGIC, pred: PRED) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+        PRED: Fn(usize, usize) -> bool,
+    {
+        let size = self.domain().size();
+        let mut result: LOGIC::Vector = Vector::with_capacity(size * size);
+
+        for i in 0..size {
+            for j in 0..size {
+                result.push(logic.bool_lift(pred(i, j)));
+            }
+        }
+
+        result
     }
 }
 

@@ -67,12 +67,22 @@ pub use rel_clone::*;
 mod validate;
 
 pub fn test() {
-    let logic = Logic();
-    let dom = Permutations::new(SmallSet::new(3));
-    for i in 0..dom.size() {
-        let elem = dom.get_elem(&logic, i);
-        println!("{}\t{}", i, dom.format(elem.slice()));
-        let j = dom.get_index(elem.slice());
-        println!("{}", j);
+    let mut logic = Logic();
+
+    for size in 0..5 {
+        let dom1 = SymmetricGroup::new(SmallSet::new(size));
+        println!("Sym({}): {}", size, dom1.size());
+        for i in 0..dom1.size() {
+            let elem = dom1.get_elem(&logic, i);
+            let odd = dom1.is_odd_permutation(&mut logic, elem.slice());
+            println!("{} {}", dom1.format(elem.slice()), odd);
+        }
+        let dom2 = AlternatingGroup::new(SmallSet::new(size));
+        println!("Alt({}): {}", size, dom2.size());
+        for i in 0..dom2.size() {
+            let elem = dom2.get_elem(&logic, i);
+            let odd = dom1.is_odd_permutation(&mut logic, elem.slice());
+            println!("{} {}", dom2.format(elem.slice()), odd);
+        }
     }
 }

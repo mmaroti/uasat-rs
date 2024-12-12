@@ -75,18 +75,17 @@ where
 
 /// The product of a list of domains.
 #[derive(Clone, PartialEq, Debug)]
-pub struct Power<BASE, EXP> {
+pub struct Power<BASE> {
     base: BASE,
-    exponent: EXP,
+    exponent: usize,
 }
 
-impl<BASE, EXP> Power<BASE, EXP>
+impl<BASE> Power<BASE>
 where
     BASE: Domain,
-    EXP: Indexable,
 {
     /// Creates the product domain from the given list of domains.
-    pub fn new(base: BASE, exponent: EXP) -> Self {
+    pub fn new(base: BASE, exponent: usize) -> Self {
         Self { base, exponent }
     }
 
@@ -95,9 +94,9 @@ where
         &self.base
     }
 
-    /// Returns the base domain of the power domain.
-    pub fn exponent(&self) -> &EXP {
-        &self.exponent
+    /// Returns the exponent of the power domain.
+    pub fn exponent(&self) -> usize {
+        self.exponent
     }
 
     /// Returns the part of an element at consequtive indices.
@@ -121,13 +120,12 @@ where
     }
 }
 
-impl<BASE, EXP> Domain for Power<BASE, EXP>
+impl<BASE> Domain for Power<BASE>
 where
     BASE: Domain,
-    EXP: Indexable,
 {
     fn num_bits(&self) -> usize {
-        self.base.num_bits() * self.exponent.size()
+        self.base.num_bits() * self.exponent
     }
 
     fn display_elem(
@@ -178,15 +176,14 @@ where
     }
 }
 
-impl<BASE, EXP> Indexable for Power<BASE, EXP>
+impl<BASE> Indexable for Power<BASE>
 where
     BASE: Indexable,
-    EXP: Indexable,
 {
     fn size(&self) -> usize {
         let mut result = 1;
         let base_size = self.base.size();
-        for _ in 0..self.exponent.size() {
+        for _ in 0..self.exponent {
             result *= base_size;
         }
         result
@@ -199,7 +196,7 @@ where
         let mut index = index;
         let base_size = self.base.size();
         let mut result: LOGIC::Vector = Vector::with_capacity(self.num_bits());
-        for _ in 0..self.exponent.size() {
+        for _ in 0..self.exponent {
             let other = self.base.get_elem(logic, index % base_size);
             result.extend(other);
             index /= base_size;
@@ -247,10 +244,9 @@ where
     }
 }
 
-impl<BASE, EXP> DirectedGraph for Power<BASE, EXP>
+impl<BASE> DirectedGraph for Power<BASE>
 where
     BASE: DirectedGraph,
-    EXP: Indexable,
 {
     fn is_edge<LOGIC>(
         &self,
@@ -270,17 +266,11 @@ where
     }
 }
 
-impl<BASE, EXP> PartialOrder for Power<BASE, EXP>
-where
-    BASE: PartialOrder,
-    EXP: Indexable,
-{
-}
+impl<BASE> PartialOrder for Power<BASE> where BASE: PartialOrder {}
 
-impl<BASE, EXP> BoundedOrder for Power<BASE, EXP>
+impl<BASE> BoundedOrder for Power<BASE>
 where
     BASE: BoundedOrder,
-    EXP: Indexable,
 {
     fn get_top<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
     where
@@ -288,7 +278,7 @@ where
     {
         let part = self.base.get_top(logic);
         let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
-        for _ in 0..self.exponent.size() {
+        for _ in 0..self.exponent {
             elem.extend(part.copy_iter());
         }
         elem
@@ -312,7 +302,7 @@ where
     {
         let part = self.base.get_bottom(logic);
         let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
-        for _ in 0..self.exponent.size() {
+        for _ in 0..self.exponent {
             elem.extend(part.copy_iter());
         }
         elem
@@ -331,10 +321,9 @@ where
     }
 }
 
-impl<BASE, EXP> MeetSemilattice for Power<BASE, EXP>
+impl<BASE> MeetSemilattice for Power<BASE>
 where
     BASE: MeetSemilattice,
-    EXP: Indexable,
 {
     fn meet<LOGIC>(
         &self,
@@ -353,10 +342,9 @@ where
     }
 }
 
-impl<BASE, EXP> Lattice for Power<BASE, EXP>
+impl<BASE> Lattice for Power<BASE>
 where
     BASE: Lattice,
-    EXP: Indexable,
 {
     fn join<LOGIC>(
         &self,
@@ -375,10 +363,9 @@ where
     }
 }
 
-impl<BASE, EXP> BooleanLattice for Power<BASE, EXP>
+impl<BASE> BooleanLattice for Power<BASE>
 where
     BASE: BooleanLattice,
-    EXP: Indexable,
 {
     fn complement<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
     where
@@ -392,10 +379,9 @@ where
     }
 }
 
-impl<BASE, EXP> Semigroup for Power<BASE, EXP>
+impl<BASE> Semigroup for Power<BASE>
 where
     BASE: Semigroup,
-    EXP: Indexable,
 {
     fn product<LOGIC>(
         &self,
@@ -414,10 +400,9 @@ where
     }
 }
 
-impl<BASE, EXP> Monoid for Power<BASE, EXP>
+impl<BASE> Monoid for Power<BASE>
 where
     BASE: Monoid,
-    EXP: Indexable,
 {
     fn get_identity<LOGIC>(&self, logic: &LOGIC) -> LOGIC::Vector
     where
@@ -425,7 +410,7 @@ where
     {
         let part = self.base.get_identity(logic);
         let mut elem: LOGIC::Vector = Vector::with_capacity(self.num_bits());
-        for _ in 0..self.exponent.size() {
+        for _ in 0..self.exponent {
             elem.extend(part.copy_iter());
         }
         elem

@@ -24,7 +24,10 @@ use super::{
 /// of operations with a fixed arity and the domain of relations
 /// with a fixed arity over a common domain.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Preservation<DOM> {
+pub struct Preservation<DOM>
+where
+    DOM: Indexable,
+{
     ops: Operations<DOM>,
     rels: Relations<DOM>,
 }

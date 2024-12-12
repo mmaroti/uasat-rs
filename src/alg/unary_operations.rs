@@ -98,13 +98,13 @@ where
         LOGIC: BooleanLogic,
     {
         let size = self.domain().size();
-        let dom = Power::new(SmallSet::new(size), SmallSet::new(size));
+        let dom = Power::new(SmallSet::new(size), size);
         dom.get_elem(logic, index)
     }
 
     fn get_index(&self, elem: BitSlice<'_>) -> usize {
         let size = self.domain().size();
-        let dom = Power::new(SmallSet::new(size), SmallSet::new(size));
+        let dom = Power::new(SmallSet::new(size), size);
         dom.get_index(elem)
     }
 }

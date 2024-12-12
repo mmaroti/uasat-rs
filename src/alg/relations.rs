@@ -17,12 +17,19 @@
 
 use super::{
     BitSlice, Boolean, BooleanLattice, BooleanLogic, BoundedOrder, DirectedGraph, Domain,
-    Indexable, Lattice, MeetSemilattice, PartIter, PartialOrder, Power, Slice, SmallSet, Vector,
+    Indexable, Lattice, MeetSemilattice, PartIter, PartialOrder, Power, Slice, Vector,
 };
 
 /// A domain containing relations of a fixed arity.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Relations<DOM>(Power<Boolean, Power<DOM, SmallSet>>);
+pub struct Relations<DOM>
+where
+    DOM: Indexable,
+{
+    domain: DOM,
+    arity: usize,
+    power: Power<Boolean>,
+}
 
 impl<DOM> Relations<DOM>
 where
@@ -30,17 +37,27 @@ where
 {
     /// Creates a new domain of relations of the given arity.
     pub fn new(dom: DOM, arity: usize) -> Self {
-        Relations(Power::new(Boolean(), Power::new(dom, SmallSet::new(arity))))
+        let size = dom.size();
+        let mut exponent = 1;
+        for _ in 0..arity {
+            exponent *= size
+        }
+
+        Relations {
+            domain: dom,
+            arity,
+            power: Power::new(Boolean(), exponent),
+        }
     }
 
     /// Returns the arity (rank) of all relations in the domain.
     pub fn arity(&self) -> usize {
-        self.0.exponent().exponent().size()
+        self.arity
     }
 
     /// Returns the domain of the relations.
     pub fn domain(&self) -> &DOM {
-        self.0.exponent().base()
+        &self.domain
     }
 
     /// Returns another domain of relations with same domain but with the
@@ -353,7 +370,7 @@ where
 {
     #[inline]
     fn num_bits(&self) -> usize {
-        self.0.num_bits()
+        self.power.num_bits()
     }
 
     #[inline]
@@ -361,7 +378,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.contains(logic, elem)
+        self.power.contains(logic, elem)
     }
 
     #[inline]
@@ -374,7 +391,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.equals(logic, elem0, elem1)
+        self.power.equals(logic, elem0, elem1)
     }
 }
 
@@ -384,7 +401,7 @@ where
 {
     #[inline]
     fn size(&self) -> usize {
-        self.0.size()
+        self.power.size()
     }
 
     #[inline]
@@ -392,12 +409,12 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.get_elem(logic, index)
+        self.power.get_elem(logic, index)
     }
 
     #[inline]
     fn get_index(&self, elem: BitSlice<'_>) -> usize {
-        self.0.get_index(elem)
+        self.power.get_index(elem)
     }
 
     #[inline]
@@ -405,7 +422,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.onehot(logic, elem)
+        self.power.onehot(logic, elem)
     }
 }
 
@@ -423,7 +440,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.is_edge(logic, elem0, elem1)
+        self.power.is_edge(logic, elem0, elem1)
     }
 }
 
@@ -438,7 +455,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.get_top(logic)
+        self.power.get_top(logic)
     }
 
     #[inline]
@@ -446,7 +463,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.is_top(logic, elem)
+        self.power.is_top(logic, elem)
     }
 
     #[inline]
@@ -454,7 +471,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.get_bottom(logic)
+        self.power.get_bottom(logic)
     }
 
     #[inline]
@@ -462,7 +479,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.is_bottom(logic, elem)
+        self.power.is_bottom(logic, elem)
     }
 }
 
@@ -480,7 +497,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.meet(logic, elem0, elem1)
+        self.power.meet(logic, elem0, elem1)
     }
 }
 
@@ -498,7 +515,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.join(logic, elem0, elem1)
+        self.power.join(logic, elem0, elem1)
     }
 }
 
@@ -511,7 +528,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.complement(logic, elem)
+        self.power.complement(logic, elem)
     }
 
     #[inline]
@@ -524,6 +541,6 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.implies(logic, elem0, elem1)
+        self.power.implies(logic, elem0, elem1)
     }
 }

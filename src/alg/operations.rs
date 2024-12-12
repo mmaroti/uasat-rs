@@ -17,12 +17,18 @@
 
 use super::{
     BitSlice, Boolean, BooleanLogic, BoundedOrder, Domain, Indexable, Monoid, Power, Relations,
-    Slice, SmallSet, UnaryOperations, Vector,
+    Slice, UnaryOperations, Vector,
 };
 
 /// A domain containing operations of a fixed arity.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Operations<DOM>(Power<DOM, Power<DOM, SmallSet>>);
+pub struct Operations<DOM>
+where
+    DOM: Indexable,
+{
+    arity: usize,
+    power: Power<DOM>,
+}
 
 impl<DOM> Operations<DOM>
 where
@@ -30,20 +36,26 @@ where
 {
     /// Creates a domain containing operationf of a fixed arity.
     pub fn new(dom: DOM, arity: usize) -> Self {
-        Operations(Power::new(
-            dom.clone(),
-            Power::new(dom, SmallSet::new(arity)),
-        ))
+        let size = dom.size();
+        let mut exponent = 1;
+        for _ in 0..arity {
+            exponent *= size
+        }
+
+        Operations {
+            arity,
+            power: Power::new(dom, exponent),
+        }
     }
 
     /// Returns the arity (rank) of all operations in the domain.
     pub fn arity(&self) -> usize {
-        self.0.exponent().exponent().size()
+        self.arity
     }
 
     /// Returns the domain of the operations.
     pub fn domain(&self) -> &DOM {
-        self.0.exponent().base()
+        self.power.base()
     }
 
     /// Creates a new operation of the given arity from an old operation with
@@ -79,7 +91,7 @@ where
 
         let mut index = 0;
         'outer: loop {
-            result.extend(self.0.part(elem, index).copy_iter());
+            result.extend(self.power.part(elem, index).copy_iter());
 
             for stride in strides.iter_mut() {
                 index += stride.0;
@@ -115,7 +127,7 @@ where
         }
 
         let mut result: LOGIC::Vector = Vector::with_capacity(power);
-        for part in self.0.part_iter(elem) {
+        for part in self.power.part_iter(elem) {
             let mut value = domain.onehot(logic, part);
             result.append(&mut value);
         }
@@ -140,7 +152,7 @@ where
         LOGIC: BooleanLogic,
     {
         let range = self.range(logic, elem);
-        let dom = Power::new(Boolean(), self.domain().clone());
+        let dom = Power::new(Boolean(), self.domain().size());
         dom.is_top(logic, range.slice())
     }
 
@@ -162,7 +174,7 @@ where
 {
     #[inline]
     fn num_bits(&self) -> usize {
-        self.0.num_bits()
+        self.power.num_bits()
     }
 
     #[inline]
@@ -170,7 +182,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.contains(logic, elem)
+        self.power.contains(logic, elem)
     }
 
     #[inline]
@@ -183,7 +195,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.equals(logic, elem0, elem1)
+        self.power.equals(logic, elem0, elem1)
     }
 }
 
@@ -193,7 +205,7 @@ where
 {
     #[inline]
     fn size(&self) -> usize {
-        self.0.size()
+        self.power.size()
     }
 
     #[inline]
@@ -201,12 +213,12 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.get_elem(logic, index)
+        self.power.get_elem(logic, index)
     }
 
     #[inline]
     fn get_index(&self, elem: BitSlice<'_>) -> usize {
-        self.0.get_index(elem)
+        self.power.get_index(elem)
     }
 
     #[inline]
@@ -214,7 +226,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.onehot(logic, elem)
+        self.power.onehot(logic, elem)
     }
 }
 
@@ -227,7 +239,7 @@ mod tests {
     fn graph() {
         let dom = SmallSet::new(3);
         let ops = Operations::new(dom.clone(), 1);
-        let rel = Power::new(BOOLEAN, Power::new(dom.clone(), SmallSet::new(2)));
+        let rel = Power::new(BOOLEAN, dom.size() * dom.size());
 
         let mut logic = Logic();
         let elem1: BitVec = vec![true, false, false, false, false, true, false, true, false]

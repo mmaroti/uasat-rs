@@ -15,7 +15,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{Boolean, BooleanLogic, Indexable, MeetSemilattice, Power, Slice, SmallSet, Vector};
+use super::{BooleanLogic, Indexable, MeetSemilattice, Relations, Slice, Vector};
 
 pub struct RelationalClone<DOM> {
     domain: DOM,
@@ -36,11 +36,8 @@ where
     }
 
     /// Returns the domain of relations of the given arity.
-    pub fn relations(&self, arity: usize) -> Power<Boolean, Power<DOM, SmallSet>> {
-        Power::new(
-            Boolean(),
-            Power::new(self.domain.clone(), SmallSet::new(arity)),
-        )
+    pub fn relations(&self, arity: usize) -> Relations<DOM> {
+        Relations::new(self.domain.clone(), arity)
     }
 
     pub fn relation<VECTOR>(&self, arity: usize, elem: VECTOR) -> (usize, VECTOR)

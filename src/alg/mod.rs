@@ -54,8 +54,9 @@ pub use traits::*;
 mod unary_operations;
 pub use unary_operations::*;
 
-mod wrap_elem;
-pub use wrap_elem::*;
+// TODO: make this work again
+// mod wrap_elem;
+// pub use wrap_elem::*;
 
 mod preservation;
 pub use preservation::*;

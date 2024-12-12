@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, DirectedGraph, Domain, Indexable,
+    BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, DirectedGraph, Domain, Group, Indexable,
     Lattice, MeetSemilattice, Monoid, PartialOrder, Semigroup, Slice, Vector,
 };
 
@@ -301,6 +301,7 @@ where
         let bits0 = self.dom0.num_bits();
         let mut result: LOGIC::Vector = Vector::with_capacity(self.num_bits());
         result.extend(self.dom0.complement(logic, elem.head(bits0)));
+        result.extend(self.dom1.complement(logic, elem.tail(bits0)));
         result
     }
 }
@@ -360,5 +361,22 @@ where
         let test0 = self.dom0.is_identity(logic, elem.head(bits0));
         let test1 = self.dom1.is_identity(logic, elem.tail(bits0));
         logic.bool_and(test0, test1)
+    }
+}
+
+impl<DOM0, DOM1> Group for Product2<DOM0, DOM1>
+where
+    DOM0: Group,
+    DOM1: Group,
+{
+    fn inverse<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        let bits0 = self.dom0.num_bits();
+        let mut result: LOGIC::Vector = Vector::with_capacity(self.num_bits());
+        result.extend(self.dom0.inverse(logic, elem.head(bits0)));
+        result.extend(self.dom1.inverse(logic, elem.tail(bits0)));
+        result
     }
 }

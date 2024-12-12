@@ -16,7 +16,7 @@
 */
 
 use super::{
-    BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, DirectedGraph, Domain, Indexable,
+    BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, DirectedGraph, Domain, Group, Indexable,
     Lattice, MeetSemilattice, Monoid, PartialOrder, Semigroup, Slice, Vector,
 };
 
@@ -424,6 +424,22 @@ where
         for part in self.part_iter(elem) {
             let v = self.base.is_identity(logic, part);
             result = logic.bool_and(result, v);
+        }
+        result
+    }
+}
+
+impl<BASE> Group for Power<BASE>
+where
+    BASE: Group,
+{
+    fn inverse<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        let mut result: LOGIC::Vector = Vector::with_capacity(self.num_bits());
+        for part in self.part_iter(elem) {
+            result.extend(self.base.inverse(logic, part));
         }
         result
     }

@@ -227,7 +227,7 @@ pub trait DirectedGraph: Domain {
 pub trait PartialOrder: DirectedGraph {
     /// Returns true if the first element is strictly less than the
     /// second one.
-    fn is_less<LOGIC>(
+    fn is_less_than<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
@@ -244,7 +244,7 @@ pub trait PartialOrder: DirectedGraph {
 
     /// Returns true if one of the elements is less than or equal to
     /// the other.
-    fn comparable<LOGIC>(
+    fn is_comparable<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,

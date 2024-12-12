@@ -16,10 +16,10 @@
 */
 
 use super::{
-    AlternatingGroup, BinaryRelations, BipartiteGraph, BooleanLogic, BooleanSolver, BoundedOrder,
-    Domain, Group, Indexable, Lattice, Logic, MeetSemilattice, Monoid, Operations, PartialOrder,
-    Power, Preservation, Product2, Relations, Semigroup, SmallSet, Solver, SymmetricGroup,
-    UnaryOperations, Vector, BOOLEAN,
+    AlternatingGroup, BinaryRelations, BipartiteGraph, BooleanLattice, BooleanLogic, BooleanSolver,
+    BoundedOrder, Domain, Group, Indexable, Lattice, Logic, MeetSemilattice, Monoid, Operations,
+    PartialOrder, Power, Preservation, Product2, Relations, Semigroup, SmallSet, Solver,
+    SymmetricGroup, UnaryOperations, Vector, BOOLEAN,
 };
 
 pub fn validate_domain<DOM>(domain: DOM)
@@ -290,6 +290,52 @@ fn lattice() {
     validate_lattice(BinaryRelations::new(SmallSet::new(3)));
 }
 
+pub fn validate_boolean_lattice<DOM>(domain: DOM)
+where
+    DOM: BooleanLattice,
+{
+    // distributivity
+    let mut logic = Solver::new("");
+    let elem0 = domain.add_variable(&mut logic);
+    let elem1 = domain.add_variable(&mut logic);
+    let elem2 = domain.add_variable(&mut logic);
+    let elem3 = domain.join(&mut logic, elem0.slice(), elem1.slice());
+    let elem4 = domain.meet(&mut logic, elem3.slice(), elem2.slice());
+    let elem5 = domain.meet(&mut logic, elem0.slice(), elem2.slice());
+    let elem6 = domain.meet(&mut logic, elem1.slice(), elem2.slice());
+    let elem7 = domain.join(&mut logic, elem5.slice(), elem6.slice());
+    let test0 = domain.equals(&mut logic, elem4.slice(), elem7.slice());
+    logic.bool_add_clause1(logic.bool_not(test0));
+    assert!(!logic.bool_solvable());
+
+    // complement joins to top
+    let mut logic = Solver::new("");
+    let elem0 = domain.add_variable(&mut logic);
+    let elem1 = domain.complement(&mut logic, elem0.slice());
+    let elem2 = domain.join(&mut logic, elem0.slice(), elem1.slice());
+    let test0 = domain.is_top(&mut logic, elem2.slice());
+    logic.bool_add_clause1(logic.bool_not(test0));
+    assert!(!logic.bool_solvable());
+
+    // complement meets to bottom
+    let mut logic = Solver::new("");
+    let elem0 = domain.add_variable(&mut logic);
+    let elem1 = domain.complement(&mut logic, elem0.slice());
+    let elem2 = domain.meet(&mut logic, elem0.slice(), elem1.slice());
+    let test0 = domain.is_bottom(&mut logic, elem2.slice());
+    logic.bool_add_clause1(logic.bool_not(test0));
+    assert!(!logic.bool_solvable());
+}
+
+#[test]
+fn boolean_lattice() {
+    validate_boolean_lattice(BOOLEAN);
+    validate_boolean_lattice(Power::new(BOOLEAN, 3));
+    validate_boolean_lattice(Product2::new(BOOLEAN, Power::new(BOOLEAN, 2)));
+    validate_boolean_lattice(Relations::new(SmallSet::new(2), 3));
+    validate_boolean_lattice(BinaryRelations::new(SmallSet::new(3)));
+}
+
 pub fn validate_semigroup<DOM>(domain: DOM)
 where
     DOM: Semigroup,
@@ -328,6 +374,11 @@ fn semigroup() {
     ));
     validate_semigroup(Power::new(UnaryOperations::new(SmallSet::new(2)), 2));
     validate_semigroup(AlternatingGroup::new(SmallSet::new(4)));
+    validate_semigroup(Product2::new(
+        SymmetricGroup::new(SmallSet::new(3)),
+        AlternatingGroup::new(SmallSet::new(3)),
+    ));
+    validate_semigroup(Power::new(SymmetricGroup::new(SmallSet::new(3)), 2));
 }
 
 pub fn validate_monoid<DOM>(domain: DOM)
@@ -381,6 +432,11 @@ fn monoid() {
     ));
     validate_monoid(Power::new(UnaryOperations::new(SmallSet::new(2)), 2));
     validate_monoid(AlternatingGroup::new(SmallSet::new(4)));
+    validate_monoid(Product2::new(
+        SymmetricGroup::new(SmallSet::new(3)),
+        AlternatingGroup::new(SmallSet::new(3)),
+    ));
+    validate_monoid(Power::new(SymmetricGroup::new(SmallSet::new(3)), 2));
 }
 
 pub fn validate_group<DOM>(domain: DOM)
@@ -418,6 +474,11 @@ where
 fn group() {
     validate_group(SymmetricGroup::new(SmallSet::new(3)));
     validate_group(AlternatingGroup::new(SmallSet::new(3)));
+    validate_group(Product2::new(
+        SymmetricGroup::new(SmallSet::new(3)),
+        AlternatingGroup::new(SmallSet::new(3)),
+    ));
+    validate_group(Power::new(SymmetricGroup::new(SmallSet::new(3)), 2));
 }
 
 #[test]

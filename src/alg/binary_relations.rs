@@ -304,7 +304,7 @@ where
     DOM: Indexable,
 {
     #[inline]
-    fn is_less<LOGIC>(
+    fn is_less_than<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
@@ -313,11 +313,11 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.is_less(logic, elem0, elem1)
+        self.0.is_less_than(logic, elem0, elem1)
     }
 
     #[inline]
-    fn comparable<LOGIC>(
+    fn is_comparable<LOGIC>(
         &self,
         logic: &mut LOGIC,
         elem0: LOGIC::Slice<'_>,
@@ -326,7 +326,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        self.0.comparable(logic, elem0, elem1)
+        self.0.is_comparable(logic, elem0, elem1)
     }
 }
 

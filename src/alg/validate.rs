@@ -17,9 +17,9 @@
 
 use super::{
     BinaryRelations, BipartiteGraph, BooleanLogic, BooleanSolver, BoundedOrder, Domain, FixedSet,
-    Indexable, Lattice, Logic, MeetSemilattice, Monoid, Operations, PartialOrder, Permutations,
-    Power, Preservation, Product2, Relations, Semigroup, SmallSet, Solver, UnaryOperations, Vector,
-    BOOLEAN,
+    Group, Indexable, Lattice, Logic, MeetSemilattice, Monoid, Operations, PartialOrder,
+    Permutations, Power, Preservation, Product2, Relations, Semigroup, SmallSet, Solver,
+    UnaryOperations, Vector, BOOLEAN,
 };
 
 pub fn validate_domain<DOM>(domain: DOM)
@@ -66,7 +66,7 @@ fn domain() {
     validate_domain(Permutations::new(SmallSet::new(4)));
 }
 
-fn validate_countable<DOM>(domain: DOM, size: usize)
+fn validate_indexable<DOM>(domain: DOM, size: usize)
 where
     DOM: Indexable,
 {
@@ -111,27 +111,27 @@ where
 }
 
 #[test]
-fn countable() {
-    validate_countable(BOOLEAN, 2);
-    validate_countable(SmallSet::new(5), 5);
-    validate_countable(FixedSet::<5>, 5);
-    validate_countable(Power::new(BOOLEAN, SmallSet::new(3)), 8);
-    validate_countable(Power::new(SmallSet::new(3), BOOLEAN), 9);
-    validate_countable(Product2::new(BOOLEAN, SmallSet::new(3)), 6);
-    validate_countable(Relations::new(SmallSet::new(2), 3), 256);
-    validate_countable(BinaryRelations::new(SmallSet::new(2)), 16);
-    validate_countable(Operations::new(SmallSet::new(2), 2), 16);
-    validate_countable(UnaryOperations::new(SmallSet::new(3)), 27);
-    validate_countable(Permutations::new(SmallSet::new(0)), 1);
-    validate_countable(Permutations::new(SmallSet::new(1)), 1);
-    validate_countable(Permutations::new(SmallSet::new(4)), 24);
+fn indexable() {
+    validate_indexable(BOOLEAN, 2);
+    validate_indexable(SmallSet::new(5), 5);
+    validate_indexable(FixedSet::<5>, 5);
+    validate_indexable(Power::new(BOOLEAN, SmallSet::new(3)), 8);
+    validate_indexable(Power::new(SmallSet::new(3), BOOLEAN), 9);
+    validate_indexable(Product2::new(BOOLEAN, SmallSet::new(3)), 6);
+    validate_indexable(Relations::new(SmallSet::new(2), 3), 256);
+    validate_indexable(BinaryRelations::new(SmallSet::new(2)), 16);
+    validate_indexable(Operations::new(SmallSet::new(2), 2), 16);
+    validate_indexable(UnaryOperations::new(SmallSet::new(3)), 27);
+    validate_indexable(Permutations::new(SmallSet::new(0)), 1);
+    validate_indexable(Permutations::new(SmallSet::new(1)), 1);
+    validate_indexable(Permutations::new(SmallSet::new(4)), 24);
 }
 
 pub fn validate_partial_order<DOM>(domain: DOM)
 where
     DOM: PartialOrder,
 {
-    assert!(domain.check_partial_order());
+    assert!(domain.test_partial_order());
 }
 
 #[test]
@@ -385,6 +385,42 @@ fn monoid() {
     ));
 }
 
+pub fn validate_group<DOM>(domain: DOM)
+where
+    DOM: Group,
+{
+    // inverse is in domain
+    let mut logic = Solver::new("");
+    let elem0 = domain.add_variable(&mut logic);
+    let elem1 = domain.inverse(&mut logic, elem0.slice());
+    let test = domain.contains(&mut logic, elem1.slice());
+    logic.bool_add_clause1(logic.bool_not(test));
+    assert!(!logic.bool_solvable());
+
+    // left inverse law
+    let mut logic = Solver::new("");
+    let elem0 = domain.add_variable(&mut logic);
+    let elem1 = domain.inverse(&mut logic, elem0.slice());
+    let elem2 = domain.product(&mut logic, elem1.slice(), elem0.slice());
+    let test0 = domain.is_identity(&mut logic, elem2.slice());
+    logic.bool_add_clause1(logic.bool_not(test0));
+    assert!(!logic.bool_solvable());
+
+    // right inverse law
+    let mut logic = Solver::new("");
+    let elem0 = domain.add_variable(&mut logic);
+    let elem1 = domain.inverse(&mut logic, elem0.slice());
+    let elem2 = domain.product(&mut logic, elem0.slice(), elem1.slice());
+    let test0 = domain.is_identity(&mut logic, elem2.slice());
+    logic.bool_add_clause1(logic.bool_not(test0));
+    assert!(!logic.bool_solvable());
+}
+
+#[test]
+fn group() {
+    validate_group(Permutations::new(SmallSet::new(3)));
+}
+
 #[test]
 fn binary_relations() {
     let mut logic = Solver::new("");
@@ -410,6 +446,22 @@ fn binary_relations() {
     logic.bool_add_clause1(test);
     let count = logic.bool_find_num_models_method1(elem.copy_iter());
     assert_eq!(count, 4231);
+
+    let mut logic = Solver::new("");
+    let domain = BinaryRelations::new(SmallSet::new(4));
+    let elem = domain.add_variable(&mut logic);
+    let test = domain.is_partial_operation(&mut logic, elem.slice());
+    logic.bool_add_clause1(test);
+    let count = logic.bool_find_num_models_method1(elem.copy_iter());
+    assert_eq!(count, 625);
+
+    let mut logic = Solver::new("");
+    let domain = BinaryRelations::new(SmallSet::new(5));
+    let elem = domain.add_variable(&mut logic);
+    let test = domain.is_permutation(&mut logic, elem.slice());
+    logic.bool_add_clause1(test);
+    let count = logic.bool_find_num_models_method1(elem.copy_iter());
+    assert_eq!(count, 120);
 }
 
 #[test]

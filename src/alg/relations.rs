@@ -172,6 +172,44 @@ where
         logic.bool_fold_one(elem.copy_iter())
     }
 
+    /// Checks if the given relation is reflexive, all constant tuples are members.
+    pub fn is_reflexive<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        assert!(self.arity() >= 1);
+        let diag = self.polymer(elem, 1, &vec![0; self.arity()]);
+        let rels = self.change_arity(1);
+        rels.is_top(logic, diag.slice())
+    }
+
+    /// Returns true if this relation is the graph of an operation, that is the
+    /// first coordinate is completely determined by the other coordinates.
+    pub fn is_operation<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        assert!(self.arity() >= 1);
+        let elem = self.fold_one(logic, elem, 1);
+        let rels = self.change_arity(self.arity() - 1);
+        rels.is_top(logic, elem.slice())
+    }
+
+    /// Returns true if this relation is the graph of a partial operation.
+    pub fn is_partial_operation<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        elem: LOGIC::Slice<'_>,
+    ) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        assert!(self.arity() >= 1);
+        let elem = self.fold_amo(logic, elem, 1);
+        let rels = self.change_arity(self.arity() - 1);
+        rels.is_top(logic, elem.slice())
+    }
+
     /// Returns an iterator for slices of elements for count many dimensions.
     fn fold_iter<'a, ELEM>(&self, elem: ELEM, count: usize) -> PartIter<'a, ELEM>
     where

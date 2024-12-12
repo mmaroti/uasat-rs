@@ -56,9 +56,9 @@ where
         self.rels.arity()
     }
 
-    /// Takes an operation and a list of relations and calculates
-    /// the relation which contain all the tuples that can be obtained
-    /// using the operation applied to tuples in the relations.
+    /// Takes an operation and a list of relations and calculates the relation
+    /// which contain all the tuples that can be obtained using the operation
+    /// applied to the tuples in the relations.
     pub fn evaluate<LOGIC>(
         &self,
         logic: &mut LOGIC,

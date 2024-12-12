@@ -158,7 +158,7 @@ pub trait DirectedGraph: Domain {
 
     /// Returns true if this directed graph is reflexive
     /// by constructing a suitable SAT problem and solving it.
-    fn check_reflexive_relation(&self) -> bool {
+    fn test_reflexivity(&self) -> bool {
         let mut logic = Solver::new("");
         let elem = self.add_variable(&mut logic);
         let test = self.is_edge(&mut logic, elem.slice(), elem.slice());
@@ -168,7 +168,7 @@ pub trait DirectedGraph: Domain {
 
     /// Returns true if this directed graph is symmertic
     /// by constructing a suitable SAT problem and solving it.
-    fn check_symmetric_relation(&self) -> bool {
+    fn test_symmetricity(&self) -> bool {
         let mut logic = Solver::new("");
         let elem0 = self.add_variable(&mut logic);
         let elem1 = self.add_variable(&mut logic);
@@ -181,7 +181,7 @@ pub trait DirectedGraph: Domain {
 
     /// Returns true if this directed graph is antisymmertic
     /// by constructing a suitable SAT problem and solving it.
-    fn check_antisymmetric_relation(&self) -> bool {
+    fn test_antisymmetricity(&self) -> bool {
         let mut logic = Solver::new("");
         let elem0 = self.add_variable(&mut logic);
         let elem1 = self.add_variable(&mut logic);
@@ -196,7 +196,7 @@ pub trait DirectedGraph: Domain {
 
     /// Returns true if this directed graph is transitive
     /// by constructing a suitable SAT problem and solving it.
-    fn check_transitive_relation(&self) -> bool {
+    fn test_transitivity(&self) -> bool {
         let mut logic = Solver::new("");
         let elem0 = self.add_variable(&mut logic);
         let elem1 = self.add_variable(&mut logic);
@@ -212,18 +212,14 @@ pub trait DirectedGraph: Domain {
 
     /// Returns true if this directed graph is an equivalence relation
     /// by constructing suitable SAT problems and solving them.
-    fn check_equivalence_relation(&self) -> bool {
-        self.check_reflexive_relation()
-            && self.check_symmetric_relation()
-            && self.check_transitive_relation()
+    fn test_equivalence(&self) -> bool {
+        self.test_reflexivity() && self.test_symmetricity() && self.test_transitivity()
     }
 
     /// Returns true if this directed graph is a partial order
     /// by constructing suitable SAT problems and solving them.
-    fn check_partial_order(&self) -> bool {
-        self.check_reflexive_relation()
-            && self.check_antisymmetric_relation()
-            && self.check_transitive_relation()
+    fn test_partial_order(&self) -> bool {
+        self.test_reflexivity() && self.test_antisymmetricity() && self.test_transitivity()
     }
 }
 
@@ -373,7 +369,14 @@ pub trait Monoid: Semigroup {
     }
 }
 
-/// A binary relation between two domains
+pub trait Group: Monoid {
+    /// Calculates the inverse of the given element.
+    fn inverse<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic;
+}
+
+/// A binary relation between two domains.
 pub trait BipartiteGraph {
     /// The type of the first domain of the bipartite graph.
     type Domain0: Domain;
@@ -397,4 +400,65 @@ pub trait BipartiteGraph {
     ) -> LOGIC::Elem
     where
         LOGIC: BooleanLogic;
+}
+
+pub trait Signature {
+    const ARITIES: &'static [usize];
+}
+
+pub trait Structure<SIG>: Domain
+where
+    SIG: Signature,
+{
+    /// Returns true if there is an edge in the given relation index for the
+    /// given elements.
+    fn is_edge<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        relation: usize,
+        elems: Vec<LOGIC::Slice<'_>>,
+    ) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic;
+
+    /// Returns true if this structure is reflexive by constructing a suitable
+    /// SAT problem and solving it.
+    fn test_reflexivity(&self) -> bool {
+        for (relation, &arity) in SIG::ARITIES.iter().enumerate() {
+            let mut logic = Solver::new("");
+            let elem = self.add_variable(&mut logic);
+            let elems = vec![elem.slice(); arity];
+            let test = self.is_edge(&mut logic, relation, elems);
+            logic.bool_add_clause1(logic.bool_not(test));
+            if logic.bool_solvable() {
+                return false;
+            }
+        }
+        true
+    }
+}
+
+pub struct DIGRAPH;
+
+impl Signature for DIGRAPH {
+    const ARITIES: &'static [usize] = &[2];
+}
+
+impl<DOM> Structure<DIGRAPH> for DOM
+where
+    DOM: DirectedGraph,
+{
+    fn is_edge<LOGIC>(
+        &self,
+        logic: &mut LOGIC,
+        relation: usize,
+        elems: Vec<LOGIC::Slice<'_>>,
+    ) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic,
+    {
+        assert_eq!(relation, 0);
+        assert_eq!(elems.len(), 2);
+        self.is_edge(logic, elems[0], elems[1])
+    }
 }

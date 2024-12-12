@@ -16,7 +16,8 @@
 */
 
 use super::{
-    BinaryRelations, BitSlice, BooleanLogic, Domain, Indexable, Monoid, Semigroup, Slice, Vector,
+    BinaryRelations, BitSlice, BooleanLogic, Domain, Group, Indexable, Monoid, Semigroup, Slice,
+    Vector,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -174,5 +175,18 @@ where
         LOGIC: BooleanLogic,
     {
         self.0.is_identity(logic, elem)
+    }
+}
+
+impl<DOM> Group for Permutations<DOM>
+where
+    DOM: Indexable,
+{
+    #[inline]
+    fn inverse<LOGIC>(&self, _logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        self.0.converse(elem)
     }
 }

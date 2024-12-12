@@ -55,9 +55,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        let diag = self.0.polymer(elem, 1, &[0, 0]);
-        let rels = Relations::new(self.domain().clone(), 1);
-        rels.is_top(logic, diag.slice())
+        self.0.is_reflexive(logic, elem)
     }
 
     /// Returns true if the given binary relation is symmetric under the rotation of
@@ -122,9 +120,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        let elem = self.0.fold_one(logic, elem, 1);
-        let rels = Relations::new(self.domain().clone(), 1);
-        rels.is_top(logic, elem.slice())
+        self.0.is_operation(logic, elem)
     }
 
     /// Returns true if this relation is the graph of a partial operation.
@@ -136,9 +132,7 @@ where
     where
         LOGIC: BooleanLogic,
     {
-        let elem = self.0.fold_amo(logic, elem, 1);
-        let rels = Relations::new(self.domain().clone(), 1);
-        rels.is_top(logic, elem.slice())
+        self.0.is_partial_operation(logic, elem)
     }
 
     /// Returns true if this binary relation encodes the graph of a permutation.

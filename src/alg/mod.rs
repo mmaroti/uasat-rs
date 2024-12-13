@@ -61,6 +61,9 @@ pub use preservation::*;
 mod rel_clone;
 pub use rel_clone::*;
 
+mod structure;
+pub use structure::*;
+
 #[cfg(test)]
 mod validate;
 

@@ -15,154 +15,87 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::{BooleanLogic, BooleanSolver, DirectedGraph, Domain, PartialOrder, Solver, Vector};
+use super::{BooleanLogic, Domain, Indexable, Product2, Relations, Vector};
 
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Symbol {
+#[derive(Clone, Debug)]
+struct Relation<LOGIC>
+where
+    LOGIC: BooleanLogic,
+{
     name: &'static str,
     arity: usize,
+    value: LOGIC::Vector,
 }
 
-impl Symbol {
-    pub const fn new(name: &'static str, arity: usize) -> Self {
-        Symbol { name, arity }
-    }
-
-    pub const fn name(&self) -> &str {
-        self.name
-    }
-
-    pub const fn arity(&self) -> usize {
-        self.arity
-    }
-}
-
-pub trait Signature {
-    const RELATIONS: &'static [Symbol];
-
-    fn index(symbol: &Symbol) -> usize {
-        Self::RELATIONS.iter().position(|s| s == symbol).unwrap()
-    }
-}
-
-pub struct DirectedGraphSig;
-
-pub const REL: Symbol = Symbol::new("rel", 2);
-
-impl Signature for DirectedGraphSig {
-    const RELATIONS: &'static [Symbol] = &[REL];
-}
-
-pub trait Structure<SIG>: Domain
+#[derive(Clone, Debug)]
+pub struct Structure<LOGIC, DOM>
 where
-    SIG: Signature,
+    LOGIC: BooleanLogic,
+    DOM: Indexable,
 {
-    /// Returns true if there is an edge in the given relation index for the
-    /// given elements.
-    fn evaluate<LOGIC>(
-        &self,
-        relation: &Symbol,
-        logic: &mut LOGIC,
-        elems: &[LOGIC::Slice<'_>],
-    ) -> LOGIC::Elem
-    where
-        LOGIC: BooleanLogic;
+    domain: DOM,
+    relations: Vec<Relation<LOGIC>>,
+}
 
-    /// Returns true if this structure is reflexive by constructing a suitable
-    /// SAT problem and solving it.
-    fn test_reflexivity(&self) -> bool {
-        for symbol in SIG::RELATIONS.iter() {
-            let mut logic = Solver::new("");
-            let elem = self.add_variable(&mut logic);
-            let elems = vec![elem.slice(); symbol.arity];
-            let test = self.evaluate(symbol, &mut logic, &elems);
-            logic.bool_add_clause1(logic.bool_not(test));
-            if logic.bool_solvable() {
-                return false;
-            }
+impl<LOGIC, DOM> Structure<LOGIC, DOM>
+where
+    LOGIC: BooleanLogic,
+    DOM: Indexable,
+{
+    /// Creates the product domain from the given list of domains.
+    pub fn new(domain: DOM) -> Self {
+        Self {
+            domain,
+            relations: Default::default(),
         }
-        true
     }
-}
 
-impl<DOM> Structure<DirectedGraphSig> for DOM
-where
-    DOM: DirectedGraph,
-{
-    fn evaluate<LOGIC>(
-        &self,
-        relation: &Symbol,
-        logic: &mut LOGIC,
-        elems: &[LOGIC::Slice<'_>],
-    ) -> LOGIC::Elem
-    where
-        LOGIC: BooleanLogic,
-    {
-        assert_eq!(relation, &REL);
-        assert_eq!(elems.len(), 2);
-        DirectedGraph::is_edge(self, logic, elems[0], elems[1])
+    pub fn domain(&self) -> &DOM {
+        &self.domain
     }
-}
 
-pub struct PartialOrderSig;
+    pub fn add(&mut self, name: &'static str, arity: usize, value: LOGIC::Vector) {
+        let dom = Relations::new(self.domain.clone(), arity);
+        assert_eq!(dom.num_bits(), value.len());
 
-impl Signature for PartialOrderSig {
-    const RELATIONS: &'static [Symbol] = &[REL];
-}
-
-impl<DOM> Structure<PartialOrderSig> for DOM
-where
-    DOM: PartialOrder,
-    DOM: Structure<DirectedGraphSig>,
-{
-    fn evaluate<LOGIC>(
-        &self,
-        relation: &Symbol,
-        logic: &mut LOGIC,
-        elems: &[LOGIC::Slice<'_>],
-    ) -> LOGIC::Elem
-    where
-        LOGIC: BooleanLogic,
-    {
-        assert_eq!(relation, &REL);
-        assert_eq!(elems.len(), 2);
-        DirectedGraph::is_edge(self, logic, elems[0], elems[1])
+        self.relations.push(Relation { name, arity, value });
     }
-}
 
-impl DirectedGraphSig {
-    /// Returns true if the first element is connected to the second
-    /// one.
-    pub fn is_edge<'a, LOGIC, DOM>(
-        dom: &DOM,
-        logic: &mut LOGIC,
-        elem0: LOGIC::Slice<'a>,
-        elem1: LOGIC::Slice<'a>,
-    ) -> LOGIC::Elem
-    where
-        LOGIC: BooleanLogic,
-        DOM: Structure<Self>,
-    {
-        dom.evaluate(&REL, logic, &[elem0, elem1])
+    pub fn get(&self, name: &'static str) -> &LOGIC::Vector {
+        &self
+            .relations
+            .iter()
+            .find(|r| r.name == name)
+            .unwrap()
+            .value
     }
-}
 
-impl PartialOrderSig {
-    /// Returns true if the first element is strictly less than the
-    /// second one.
-    pub fn is_less_than<'a, LOGIC, DOM>(
-        dom: &DOM,
-        logic: &mut LOGIC,
-        elem0: LOGIC::Slice<'a>,
-        elem1: LOGIC::Slice<'a>,
-    ) -> LOGIC::Elem
+    pub fn product<DOM0, DOM1>(
+        str0: Structure<LOGIC, DOM0>,
+        str1: Structure<LOGIC, DOM1>,
+    ) -> Structure<LOGIC, Product2<DOM0, DOM1>>
     where
-        LOGIC: BooleanLogic,
-        DOM: Structure<Self> + Structure<DirectedGraphSig>,
+        DOM0: Indexable,
+        DOM1: Indexable,
     {
-        let test0 = DirectedGraphSig::is_edge(dom, logic, elem0, elem1);
-        let test1 = DirectedGraphSig::is_edge(dom, logic, elem1, elem0);
-        let test1 = logic.bool_not(test1);
-        logic.bool_and(test0, test1)
+        let domain = Product2::new(str0.domain().clone(), str1.domain().clone());
+
+        assert_eq!(str0.relations.len(), str1.relations.len());
+        let relations = str0
+            .relations
+            .iter()
+            .zip(str1.relations.iter())
+            .map(|(a, b)| {
+                let name = a.name;
+                assert_eq!(name, b.name);
+                let arity = a.arity;
+                assert_eq!(arity, b.arity);
+
+                let value = a.value.clone();
+                Relation { name, arity, value }
+            })
+            .collect();
+
+        Structure { domain, relations }
     }
 }

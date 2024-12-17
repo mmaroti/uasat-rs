@@ -61,6 +61,9 @@ pub use preservation::*;
 mod rel_clone;
 pub use rel_clone::*;
 
+mod bipart_graphs;
+pub use bipart_graphs::*;
+
 mod structure;
 pub use structure::*;
 

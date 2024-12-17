@@ -19,6 +19,7 @@
 //! This can be used to calculate with boolean terms and ask for a model
 //! where a given set of terms are all true.
 
+use std::fmt::Debug;
 use std::iter;
 
 use super::{create_solver, Literal, SatInterface};
@@ -30,7 +31,7 @@ pub trait BooleanLogic {
     type Elem: Copy;
 
     /// The type of vector holding the elements.
-    type Vector: for<'a> Vector<Item = Self::Elem, Slice<'a> = Self::Slice<'a>>;
+    type Vector: Debug + for<'a> Vector<Item = Self::Elem, Slice<'a> = Self::Slice<'a>>;
 
     /// The type of slices for the element vectors.
     type Slice<'a>: Slice<'a, Item = Self::Elem, Vector = Self::Vector>;

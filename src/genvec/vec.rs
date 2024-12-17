@@ -96,7 +96,10 @@ where
         self.capacity()
     }
 
-    type Slice<'a> = &'a [ELEM] where Self: 'a;
+    type Slice<'a>
+        = &'a [ELEM]
+    where
+        Self: 'a;
 
     fn slice(&self) -> Self::Slice<'_> {
         self

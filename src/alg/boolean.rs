@@ -17,7 +17,7 @@
 
 use super::{
     BitSlice, BooleanLattice, BooleanLogic, BoundedOrder, DirectedGraph, Domain, Indexable,
-    Lattice, MeetSemilattice, PartialOrder, Slice, Vector,
+    Lattice, MeetSemilattice, Operation, PartialOrder, Slice, Vector,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -170,5 +170,82 @@ impl BooleanLattice for Boolean {
     {
         debug_assert!(elem.len() == 1);
         Vector::from_elem(logic.bool_not(elem.get(0)))
+    }
+}
+
+pub struct BooleanNot();
+
+pub const BOOLEAN_NOT: BooleanNot = BooleanNot();
+
+impl Operation for BooleanNot {
+    type Domain = Boolean;
+
+    fn domain(&self) -> &Boolean {
+        &BOOLEAN
+    }
+
+    fn arity(&self) -> usize {
+        1
+    }
+
+    fn evaluate<LOGIC>(&self, logic: &mut LOGIC, args: &[LOGIC::Slice<'_>]) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        assert_eq!(args.len(), 1);
+        assert_eq!(args[0].len(), 1);
+        Vector::from_elem(logic.bool_not(args[0].get(0)))
+    }
+}
+
+pub struct BooleanAnd();
+
+pub const BOOLEAN_AND: BooleanAnd = BooleanAnd();
+
+impl Operation for BooleanAnd {
+    type Domain = Boolean;
+
+    fn domain(&self) -> &Boolean {
+        &BOOLEAN
+    }
+
+    fn arity(&self) -> usize {
+        2
+    }
+
+    fn evaluate<LOGIC>(&self, logic: &mut LOGIC, args: &[LOGIC::Slice<'_>]) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        assert_eq!(args.len(), 2);
+        assert_eq!(args[0].len(), 1);
+        assert_eq!(args[1].len(), 1);
+        Vector::from_elem(logic.bool_and(args[0].get(0), args[1].get(0)))
+    }
+}
+
+pub struct BooleanEqu();
+
+pub const BOOLEAN_EQU: BooleanEqu = BooleanEqu();
+
+impl Operation for BooleanEqu {
+    type Domain = Boolean;
+
+    fn domain(&self) -> &Boolean {
+        &BOOLEAN
+    }
+
+    fn arity(&self) -> usize {
+        2
+    }
+
+    fn evaluate<LOGIC>(&self, logic: &mut LOGIC, args: &[LOGIC::Slice<'_>]) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic,
+    {
+        assert_eq!(args.len(), 2);
+        assert_eq!(args[0].len(), 1);
+        assert_eq!(args[1].len(), 1);
+        Vector::from_elem(logic.bool_equ(args[0].get(0), args[1].get(0)))
     }
 }

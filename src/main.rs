@@ -22,6 +22,7 @@ extern crate lazy_static;
 
 pub mod alg;
 pub mod core;
+pub mod core2;
 pub mod genvec;
 pub mod math;
 

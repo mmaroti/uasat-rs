@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2021, Miklos Maroti
+* Copyright (C) 2022-2024, Miklos Maroti
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -15,16 +15,18 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//! Module for the core components that seems to have stabilized.
+//! Module for working with abstract data types.
+
+#![allow(unused_imports)]
+
+use super::core::{BooleanLogic, BooleanSolver, Literal, SatInterface, Solver, LOGIC};
+use super::genvec::{BitSlice, BitVec, Slice, Vector};
 
 mod solver;
-pub use solver::{create_solver, Literal, SatInterface};
+pub use solver::*;
 
-mod tensor;
-pub use tensor::{Shape, Tensor, TensorAlgebra, TensorSolver};
+mod traits;
+pub use traits::*;
 
 mod boolean;
-pub use boolean::{BooleanLogic, BooleanSolver, Logic, Solver, LOGIC};
-
-mod progress;
-pub use progress::{add_progress, del_progress, set_progress};
+pub use boolean::*;

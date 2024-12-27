@@ -27,7 +27,7 @@ where
     value: LOGIC::Vector,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Structure<LOGIC, DOM>
 where
     LOGIC: BooleanLogic,
@@ -55,9 +55,9 @@ where
     }
 
     pub fn add(&mut self, name: &'static str, arity: usize, value: LOGIC::Vector) {
+        assert!(self.relations.iter().all(|r| r.name != name));
         let dom = Relations::new(self.domain.clone(), arity);
         assert_eq!(dom.num_bits(), value.len());
-
         self.relations.push(Relation { name, arity, value });
     }
 

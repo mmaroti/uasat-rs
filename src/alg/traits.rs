@@ -84,7 +84,7 @@ pub trait Domain: Clone + PartialEq + Debug {
 
     /// Adds a new variable to the given solver, which is just a list of
     /// fresh literals. It also enforces that the returned variable
-    /// is contained in the domain, but adding the appropriate constraint.
+    /// is contained in the domain buy adding the appropriate constraint.
     fn add_variable<LOGIC>(&self, logic: &mut LOGIC) -> LOGIC::Vector
     where
         LOGIC: BooleanSolver,
@@ -374,6 +374,50 @@ pub trait Group: Monoid {
     fn inverse<LOGIC>(&self, logic: &mut LOGIC, elem: LOGIC::Slice<'_>) -> LOGIC::Vector
     where
         LOGIC: BooleanLogic;
+}
+
+/// An arbitrary n-ary operation on a domain.
+pub trait Operation {
+    /// The domain of the elements.
+    type Domain: Domain;
+
+    /// The domain of the operation. If the operation is multiary, then this
+    /// domain will be a product domain.
+    fn domain(&self) -> &Self::Domain;
+
+    /// The arity of the operation.
+    fn arity(&self) -> usize;
+
+    /// Evaluates the operation at the given element.
+    fn evaluate<LOGIC>(&self, logic: &mut LOGIC, args: &[LOGIC::Slice<'_>]) -> LOGIC::Vector
+    where
+        LOGIC: BooleanLogic;
+}
+
+/// An arbitrary n-ary relation on a domain.
+pub trait Relation {
+    /// The domain of the elements.
+    type Domain: Domain;
+
+    /// The domain of the operation. If the operation is multiary, then this
+    /// domain will be a product domain.
+    fn domain(&self) -> &Self::Domain;
+
+    /// The arity of the operation.
+    fn arity(&self) -> usize;
+
+    /// Evaluates the operation at the given element.
+    fn related<LOGIC>(&self, logic: &mut LOGIC, args: &[LOGIC::Slice<'_>]) -> LOGIC::Elem
+    where
+        LOGIC: BooleanLogic;
+}
+
+pub trait Structure2: Domain {
+    /// The type of relations in this structure.
+    type Relation: Relation<Domain = Self>;
+
+    /// Returns the relations of this structure.
+    fn relations(&self) -> &[Self::Relation];
 }
 
 /// A binary relation between two domains.

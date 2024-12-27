@@ -281,6 +281,8 @@ impl BooleanLogic for Logic {
     }
 }
 
+pub const LOGIC: Logic = Logic();
+
 /// The free boolean algebra backed by a SAT solver.
 #[derive(Debug)]
 pub struct Solver {

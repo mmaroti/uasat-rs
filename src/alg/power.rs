@@ -85,7 +85,7 @@ where
     BASE: Domain,
 {
     /// Creates the product domain from the given list of domains.
-    pub fn new(base: BASE, exponent: usize) -> Self {
+    pub const fn new(base: BASE, exponent: usize) -> Self {
         Self { base, exponent }
     }
 

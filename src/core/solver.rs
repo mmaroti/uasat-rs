@@ -79,8 +79,8 @@ pub trait SatInterface {
 }
 
 /// Tries to create a SAT solver with the given name. Currently "batsat",
-/// "varisat", "minisat" and "cryptominisat" are supported, but not on all
-/// platforms. Use the empty string to match the first available solver.
+/// "varisat", "minisat" are supported, but not on all platforms. Use the
+/// empty string to match the first available solver.
 pub fn create_solver(name: &str) -> Box<dyn SatInterface> {
     #[cfg(feature = "batsat")]
     {
@@ -111,14 +111,6 @@ pub fn create_solver(name: &str) -> Box<dyn SatInterface> {
     {
         if name == "minisat" || name.is_empty() {
             let sat: MiniSat = Default::default();
-            return Box::new(sat);
-        }
-    }
-
-    #[cfg(feature = "cryptominisat")]
-    {
-        if name == "cryptominisat" || name.is_empty() {
-            let sat: CryptoMiniSat = Default::default();
             return Box::new(sat);
         }
     }
@@ -313,91 +305,6 @@ impl SatInterface for VariSat<'_> {
     }
 }
 
-/// An advanced SAT solver supporting XOR clauses.
-#[cfg(feature = "cryptominisat")]
-pub struct CryptoMiniSat {
-    solver: cryptominisat::Solver,
-    num_clauses: usize,
-    temp: Vec<cryptominisat::Lit>,
-}
-
-#[cfg(feature = "cryptominisat")]
-impl Default for CryptoMiniSat {
-    fn default() -> Self {
-        CryptoMiniSat {
-            solver: cryptominisat::Solver::new(),
-            num_clauses: 0,
-            temp: Vec::new(),
-        }
-    }
-}
-
-#[cfg(feature = "cryptominisat")]
-impl CryptoMiniSat {
-    fn encode(lit: cryptominisat::Lit) -> Literal {
-        Literal {
-            value: (lit.var() << 1) | (lit.isneg() as u32),
-        }
-    }
-
-    fn decode(lit: Literal) -> cryptominisat::Lit {
-        cryptominisat::Lit::new(lit.value >> 1, (lit.value & 1) != 0).unwrap()
-    }
-}
-
-#[cfg(feature = "cryptominisat")]
-impl SatInterface for CryptoMiniSat {
-    fn add_variable(&mut self) -> Literal {
-        CryptoMiniSat::encode(self.solver.new_var())
-    }
-
-    fn negate(&self, lit: Literal) -> Literal {
-        Literal {
-            value: lit.value ^ 1,
-        }
-    }
-
-    fn add_clause(&mut self, lits: &[Literal]) {
-        self.temp.clear();
-        self.temp
-            .extend(lits.iter().map(|lit| CryptoMiniSat::decode(*lit)));
-        self.solver.add_clause(&self.temp);
-        self.num_clauses += 1;
-    }
-
-    fn add_xor_clause(&mut self, lit1: Literal, lit2: Literal, lit3: Literal) {
-        let lits = [
-            CryptoMiniSat::decode(lit1),
-            CryptoMiniSat::decode(lit2),
-            CryptoMiniSat::decode(lit3),
-        ];
-        self.solver.add_xor_literal_clause(&lits, false);
-    }
-
-    fn solve_with(&mut self, lits: &[Literal]) -> bool {
-        self.temp.clear();
-        self.temp
-            .extend(lits.iter().map(|lit| CryptoMiniSat::decode(*lit)));
-        self.solver.solve_with_assumptions(&self.temp) == cryptominisat::Lbool::True
-    }
-
-    fn get_value(&self, lit: Literal) -> bool {
-        self.solver.is_true(CryptoMiniSat::decode(lit))
-    }
-
-    fn get_name(&self) -> &'static str {
-        "CryptoMiniSat"
-    }
-
-    fn num_variables(&self) -> u32 {
-        self.solver.nvars()
-    }
-
-    fn num_clauses(&self) -> usize {
-        self.num_clauses
-    }
-}
-
 /// MiniSAT reimplemented in pure rust.
 #[cfg(feature = "batsat")]
 pub struct BatSat {
@@ -569,13 +476,6 @@ mod tests {
     #[test]
     fn varisat() {
         let mut sat: VariSat = Default::default();
-        test(&mut sat);
-    }
-
-    #[cfg(feature = "cryptominisat")]
-    #[test]
-    fn cryptominisat() {
-        let mut sat: CryptoMiniSat = Default::default();
         test(&mut sat);
     }
 

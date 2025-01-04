@@ -96,6 +96,4 @@ pub fn validate() {
     validate_solver("minisat");
     #[cfg(feature = "varisat")]
     validate_solver("varisat");
-    #[cfg(feature = "cryptominisat")]
-    validate_solver("cryptominisat");
 }

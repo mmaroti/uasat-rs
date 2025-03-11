@@ -472,12 +472,10 @@ pub trait BooleanSolver: BooleanLogic + Sized {
         let result = self.bool_cmp_ltn(literals.copy_iter().zip(variables.copy_iter().skip(len)));
         self.bool_add_clause(&[result]);
 
-        let mut lower_bound: BitVec = iter::repeat(true)
-            .take(len - 2)
+        let mut lower_bound: BitVec = iter::repeat_n(true, len - 2)
             .chain([false, false].iter().copied())
             .collect();
-        let mut upper_bounds: BitVec = iter::repeat(false)
-            .take(len - 2)
+        let mut upper_bounds: BitVec = iter::repeat_n(false, len - 2)
             .chain([false, true].iter().copied())
             .collect();
 
